@@ -26,9 +26,9 @@ const AutoPlaySprite: React.FC<{
             animationSpeed={speed}
             loop={loop}
             anchor={0.5}
-            x={16}
-            y={16}
-            scale={{ x: 2, y: 2 }} // Scale up small 16x16 sprites
+            x={180}
+            y={200}
+            scale={{ x: 6, y: 6 }}
         />
     );
 };
@@ -36,24 +36,14 @@ const AutoPlaySprite: React.FC<{
 const SimpleAnimationScene: React.FC = () => {
     const [loaded, setLoaded] = useState(false);
 
-    // We will use the 'FarmerCyan' character
-    const characterName = 'FarmerCyan';
+    // State for interactive viewer
+    const [color, setColor] = useState('Cyan');
+    const [action, setAction] = useState('idle');
+    const [direction, setDirection] = useState('down');
 
-    // Animation keys
-    const anims = {
-        idleDown: `${characterName}_idle_down`,
-        idleUp: `${characterName}_idle_up`,
-        idleLeft: `${characterName}_idle_left`,
-        idleRight: `${characterName}_idle_right`,
-        walkDown: `${characterName}_walk_down`,
-        walkUp: `${characterName}_walk_up`,
-        walkLeft: `${characterName}_walk_left`,
-        walkRight: `${characterName}_walk_right`,
-        attackDown: `${characterName}_attack_down`,
-        attackUp: `${characterName}_attack_up`,
-        attackLeft: `${characterName}_attack_left`,
-        attackRight: `${characterName}_attack_right`,
-    };
+    const colors = ['Cyan', 'Red', 'Lime', 'Purple'];
+    const actions = ['idle', 'walk', 'attack'];
+    const directions = ['down', 'up', 'left', 'right'];
 
     useEffect(() => {
         const load = async () => {
@@ -68,66 +58,88 @@ const SimpleAnimationScene: React.FC = () => {
 
     const loader = AssetLoader.getInstance();
 
-    const textStyle = new TextStyle({
+    const characterName = `Farmer${color}`;
+    const animKey = `${characterName}_${action}_${direction}`;
+    const textures = loader.getAnimation(animKey);
+
+    // Speed logic
+    let intervalMs = 300;
+    if (action === 'walk') intervalMs = 200;
+    if (action === 'attack') intervalMs = 100;
+
+    // Speed = 1 / (interval / 16.666)
+    const speed = 1 / (intervalMs / 16.666);
+
+    // Button style helper
+    const buttonStyle = {
+        pointerEvents: 'auto' as const,
+        cursor: 'pointer',
         fill: '#ffffff',
         fontSize: 16,
-        fontFamily: 'Arial', // Fallback
-    });
-
-    // Helper to render an animation row
-    const renderAnimRow = (y: number, label: string, animKey: string, intervalMs: number) => {
-        const textures = loader.getAnimation(animKey);
-
-        if (!textures || textures.length === 0) {
-            console.warn(`Missing animation: ${animKey}`);
-            return null;
-        }
-
-        // Calculate speed relative to 60fps
-        // Speed = 1 means change every frame (16.6ms)
-        // Wanted Interval = 300ms.
-        // Frames per sprite = 300 / 16.6 = 18.
-        // Speed = 1 / 18 = 0.055
-        const speed = 1 / (intervalMs / 16.666);
-
-        return (
-            <pixiContainer x={50} y={y}>
-                <pixiText text={label} style={textStyle} anchor={{ x: 0, y: 0.5 }} y={16} />
-                <pixiContainer x={150}>
-                   <AutoPlaySprite
-                        textures={textures}
-                        speed={speed}
-                        loop={true}
-                   />
-                </pixiContainer>
-            </pixiContainer>
-        );
     };
 
-    const IDLE_INTERVAL = 300;
-    const WALK_INTERVAL = 200;
-    const ATTACK_INTERVAL = 100;
+    const activeColor = '#ffff00';
 
     return (
-        <pixiContainer x={0} y={0}>
+        <pixiContainer>
              {/* Title */}
-            <pixiText text="Farmer Cyan Test" x={20} y={20} style={{ fill: '#ffffff', fontSize: 24 }} />
+            <pixiText text="Character Viewer" x={20} y={20} style={{ fill: '#ffffff', fontSize: 24 }} />
 
-            {/* Animations */}
-            {renderAnimRow(60, "Idle Down", anims.idleDown, IDLE_INTERVAL)}
-            {renderAnimRow(100, "Idle Up", anims.idleUp, IDLE_INTERVAL)}
-            {renderAnimRow(140, "Idle Left", anims.idleLeft, IDLE_INTERVAL)}
-            {renderAnimRow(180, "Idle Right", anims.idleRight, IDLE_INTERVAL)}
+            {/* Display Area */}
+            {textures && textures.length > 0 ? (
+                 <AutoPlaySprite
+                    textures={textures}
+                    speed={speed}
+                    loop={true}
+                />
+            ) : (
+                <pixiText text="Missing Animation" x={180} y={200} anchor={0.5} style={{ fill: 'red', fontSize: 20 }} />
+            )}
 
-            {renderAnimRow(240, "Walk Down", anims.walkDown, WALK_INTERVAL)}
-            {renderAnimRow(280, "Walk Up", anims.walkUp, WALK_INTERVAL)}
-            {renderAnimRow(320, "Walk Left", anims.walkLeft, WALK_INTERVAL)}
-            {renderAnimRow(360, "Walk Right", anims.walkRight, WALK_INTERVAL)}
+            {/* Controls */}
 
-            {renderAnimRow(420, "Attack Down", anims.attackDown, ATTACK_INTERVAL)}
-            {renderAnimRow(460, "Attack Up", anims.attackUp, ATTACK_INTERVAL)}
-            {renderAnimRow(500, "Attack Left", anims.attackLeft, ATTACK_INTERVAL)}
-            {renderAnimRow(540, "Attack Right", anims.attackRight, ATTACK_INTERVAL)}
+            {/* Colors */}
+            <pixiText text="Color:" x={20} y={350} style={{ fill: '#aaa', fontSize: 14 }} />
+            {colors.map((c, i) => (
+                <pixiText
+                    key={c}
+                    text={c}
+                    x={20 + i * 60}
+                    y={370}
+                    style={{ ...buttonStyle, fill: color === c ? activeColor : '#ffffff' }}
+                    eventMode="static"
+                    onpointerdown={() => setColor(c)}
+                />
+            ))}
+
+            {/* Actions */}
+            <pixiText text="Action:" x={20} y={420} style={{ fill: '#aaa', fontSize: 14 }} />
+            {actions.map((a, i) => (
+                <pixiText
+                    key={a}
+                    text={a}
+                    x={20 + i * 60}
+                    y={440}
+                    style={{ ...buttonStyle, fill: action === a ? activeColor : '#ffffff' }}
+                    eventMode="static"
+                    onpointerdown={() => setAction(a)}
+                />
+            ))}
+
+             {/* Directions */}
+             <pixiText text="Direction:" x={20} y={490} style={{ fill: '#aaa', fontSize: 14 }} />
+            {directions.map((d, i) => (
+                <pixiText
+                    key={d}
+                    text={d}
+                    x={20 + i * 60}
+                    y={510}
+                    style={{ ...buttonStyle, fill: direction === d ? activeColor : '#ffffff' }}
+                    eventMode="static"
+                    onpointerdown={() => setDirection(d)}
+                />
+            ))}
+
         </pixiContainer>
     );
 };
