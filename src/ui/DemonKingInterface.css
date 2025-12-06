@@ -28,7 +28,8 @@
 .dk-icon {
   width: 32px;
   height: 32px;
-  background-image: url('/assets/User Interface/UiIcons.png');
+  /* background-image is set via CSS variable --dk-icon-sheet injected in TSX */
+  background-image: var(--dk-icon-sheet);
   background-repeat: no-repeat;
   display: inline-block;
   vertical-align: middle;
