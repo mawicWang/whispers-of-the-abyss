@@ -1,0 +1,203 @@
+:root {
+  --dk-primary: #4a148c; /* Deep Purple */
+  --dk-secondary: #1a237e; /* Deep Blue */
+  --dk-accent: #ffeb3b; /* Gold */
+  --dk-danger: #d50000; /* Red */
+  --dk-text: #e0e0e0;
+  --dk-bg-panel: rgba(10, 10, 20, 0.95);
+}
+
+.dk-interface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Let clicks pass through to game world by default */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--dk-text);
+  overflow: hidden;
+}
+
+/* --- Minimized Mode --- */
+.dk-minimized {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: auto; /* Re-enable clicks for UI elements */
+}
+
+.dk-status-bar {
+  background: rgba(0, 0, 0, 0.7);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dk-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.dk-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.dk-stat-value {
+  font-weight: bold;
+  color: var(--dk-accent);
+}
+
+.dk-quick-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.dk-btn {
+  background: var(--dk-secondary);
+  border: 1px solid var(--dk-primary);
+  color: var(--dk-text);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.dk-btn:hover {
+  background: var(--dk-primary);
+  border-color: var(--dk-accent);
+  box-shadow: 0 0 8px var(--dk-primary);
+}
+
+.dk-btn-toggle {
+  background: var(--dk-primary);
+  width: 100%;
+  margin-top: 5px;
+}
+
+/* --- Full Panel Mode (Drawer) --- */
+.dk-drawer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80%; /* Cover 80% of screen */
+  background: var(--dk-bg-panel);
+  border-top: 2px solid var(--dk-primary);
+  box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.dk-drawer.open {
+  transform: translateY(0);
+}
+
+.dk-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--dk-primary);
+  background: rgba(0,0,0,0.3);
+}
+
+.dk-drawer-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--dk-accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.dk-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--dk-text);
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.dk-drawer-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.dk-sidebar {
+  width: 120px;
+  background: rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0;
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+
+.dk-tab-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  padding: 15px;
+  text-align: left;
+  cursor: pointer;
+  border-left: 4px solid transparent;
+  transition: all 0.2s;
+}
+
+.dk-tab-btn:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--dk-text);
+}
+
+.dk-tab-btn.active {
+  background: rgba(74, 20, 140, 0.3);
+  color: var(--dk-accent);
+  border-left-color: var(--dk-accent);
+}
+
+.dk-main-view {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.dk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 15px;
+}
+
+.dk-item-slot {
+  aspect-ratio: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dk-item-slot:hover {
+  border-color: var(--dk-accent);
+  background: rgba(255,255,255,0.1);
+}
+
+.dk-section-title {
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 5px;
+  color: var(--dk-primary);
+  filter: brightness(1.5);
+}

@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ecs, type Entity } from './entities';
 import { useGameStore } from './state/store';
 import { AssetLoader } from './utils/AssetLoader';
+import { DemonKingInterface } from './ui/DemonKingInterface';
 
 // Register PixiJS components
 extend({ Container, Sprite, Text, Graphics, AnimatedSprite });
@@ -68,10 +69,15 @@ const EntityRenderer = ({ entity }: { entity: Entity }) => {
 
 // Component to handle the Ghost Interaction (Clicking)
 const GhostInteractionLayer = () => {
-  const { addMana, increaseSuspicion } = useGameStore();
+  const { addMana, increaseSuspicion, isDrawerOpen } = useGameStore();
   const [clickEffects, setClickEffects] = useState<{x:number, y:number, id: number}[]>([]);
 
   const handlePointerDown = (e: any) => {
+    // If UI is open, prevent interaction with game world if necessary.
+    // Although the CSS pointer-events should handle most of this,
+    // it's good to have a logical check if we want to completely disable gameplay interactions.
+    if (isDrawerOpen) return;
+
     // Basic interaction: Create a disturbance at click location
     const x = e.global.x;
     const y = e.global.y;
@@ -143,7 +149,6 @@ const ECSLayer = () => {
 }
 
 export const App = () => {
-  const { mana, suspicion } = useGameStore();
   const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   useEffect(() => {
@@ -193,16 +198,13 @@ export const App = () => {
   }
 
   return (
-    <>
-        <div style={{ position: 'absolute', top: 10, left: 10, color: 'white', zIndex: 10, pointerEvents: 'none' }}>
-            <div>Mana: {mana}</div>
-            <div>Suspicion: {suspicion}</div>
-        </div>
+    <div style={{ position: 'relative', width: 800, height: 600, overflow: 'hidden' }}>
         <Application width={800} height={600} backgroundColor={0x222222}>
             <GhostInteractionLayer />
             <ECSLayer />
         </Application>
-    </>
+        <DemonKingInterface />
+    </div>
   );
 };
 
