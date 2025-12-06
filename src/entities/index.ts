@@ -8,7 +8,8 @@ export type Entity = {
 
   // Render
   position?: { x: number; y: number };
-  sprite?: string; // Path to sprite asset
+  sprite?: string; // Key for static texture (e.g., 'house_1')
+  animation?: string; // Key for animation (e.g., 'FarmerTemplate_walk_down')
 
   // Physics/Logic
   velocity?: { x: number; y: number };

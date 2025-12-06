@@ -1,25 +1,54 @@
 
 import { Application, extend, useTick } from '@pixi/react';
-import { Container, Sprite, Text, Graphics, TextStyle } from 'pixi.js';
-import { useState, useEffect } from 'react';
+import { Container, Sprite, Text, Graphics, TextStyle, AnimatedSprite } from 'pixi.js';
+import { useState, useEffect, useRef } from 'react';
 import { ecs, type Entity } from './entities';
 import { useGameStore } from './state/store';
+import { AssetLoader } from './utils/AssetLoader';
 
 // Register PixiJS components
-extend({ Container, Sprite, Text, Graphics });
+extend({ Container, Sprite, Text, Graphics, AnimatedSprite });
 
 // Component to render a single entity
 const EntityRenderer = ({ entity }: { entity: Entity }) => {
   if (!entity.position) return null;
 
+  const assetLoader = AssetLoader.getInstance();
+  const [texture, setTexture] = useState<any>(null);
+  const [animations, setAnimations] = useState<any>(null);
+
+  useEffect(() => {
+    if (entity.sprite) {
+        const tex = assetLoader.getTexture(entity.sprite);
+        if (tex) setTexture(tex);
+    }
+    if (entity.animation) {
+        const anims = assetLoader.getAnimation(entity.animation);
+        if (anims) setAnimations(anims);
+    }
+  }, [entity.sprite, entity.animation]);
+
   return (
     <pixiContainer x={entity.position.x} y={entity.position.y}>
-        <pixiGraphics draw={(g) => {
-          g.clear();
-          g.circle(0, 0, 20);
-          g.fill(entity.role === 'TARGET' ? 0xff0000 : 0x00ff00);
-          g.stroke({ width: 2, color: 0xffffff });
-        }} />
+        {animations ? (
+            <pixiAnimatedSprite
+                textures={animations}
+                isPlaying={true}
+                initialFrame={0}
+                animationSpeed={0.1}
+                anchor={0.5}
+            />
+        ) : texture ? (
+            <pixiSprite texture={texture} anchor={0.5} />
+        ) : (
+             <pixiGraphics draw={(g) => {
+                g.clear();
+                g.circle(0, 0, 20);
+                g.fill(entity.role === 'TARGET' ? 0xff0000 : 0x00ff00);
+                g.stroke({ width: 2, color: 0xffffff });
+              }} />
+        )}
+
       {entity.name && (
         <pixiText
           text={entity.name}
@@ -109,8 +138,19 @@ const ECSLayer = () => {
 
 export const App = () => {
   const { mana, suspicion } = useGameStore();
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   useEffect(() => {
+      const load = async () => {
+          await AssetLoader.getInstance().loadAssets();
+          setAssetsLoaded(true);
+      };
+      load();
+  }, []);
+
+  useEffect(() => {
+      if (!assetsLoaded) return;
+
       // Initialize some entities
       if (ecs.entities.length === 0) {
           ecs.add({
@@ -120,17 +160,31 @@ export const App = () => {
               position: { x: 400, y: 300 },
               isNPC: true,
               aiState: 'IDLE',
-              stats: { willpower: 5, sanity: 10, corruption: 0 }
+              stats: { willpower: 5, sanity: 10, corruption: 0 },
+              animation: 'FarmerTemplate_walk_down'
           });
 
            ecs.add({
-              id: 'obj-1',
-              name: 'Candle',
-              position: { x: 450, y: 300 },
+              id: 'house-1',
+              name: 'House',
+              position: { x: 200, y: 200 },
               isObject: true,
+              sprite: 'house_1'
+          });
+
+           ecs.add({
+              id: 'tavern-1',
+              name: 'Tavern',
+              position: { x: 600, y: 200 },
+              isObject: true,
+              sprite: 'tavern_1'
           });
       }
-  }, []);
+  }, [assetsLoaded]);
+
+  if (!assetsLoaded) {
+      return <div>Loading Assets...</div>;
+  }
 
   return (
     <>
