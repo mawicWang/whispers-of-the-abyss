@@ -6,6 +6,7 @@ import { ecs, type Entity } from './entities';
 import { useGameStore } from './state/store';
 import { AssetLoader } from './utils/AssetLoader';
 import { DemonKingInterface } from './ui/DemonKingInterface';
+import { AISystem } from './systems/AISystem';
 
 // Register PixiJS components
 extend({ Container, Sprite, Text, Graphics, AnimatedSprite });
@@ -164,6 +165,8 @@ export const App = () => {
 
       // Initialize some entities
       if (ecs.entities.length === 0) {
+          console.log("Initializing Game Entities...");
+          // Initialize Arthur (Target)
           ecs.add({
               id: 'npc-1',
               name: 'Arthur',
@@ -175,18 +178,29 @@ export const App = () => {
               animation: 'FarmerTemplate_walk_down'
           });
 
+          // Add a chest
            ecs.add({
-              id: 'house-1',
-              name: 'House',
-              position: { x: 200, y: 200 },
+              id: 'chest-1',
+              name: 'Chest',
+              position: { x: 300, y: 300 },
               isObject: true,
-              sprite: 'house_1'
+              sprite: 'chest_closed'
           });
 
+           // Add another chest
+           ecs.add({
+              id: 'chest-2',
+              name: 'Chest',
+              position: { x: 500, y: 300 },
+              isObject: true,
+              sprite: 'chest_closed'
+          });
+
+           // Use tavern as background/environment context
            ecs.add({
               id: 'tavern-1',
               name: 'Tavern',
-              position: { x: 600, y: 200 },
+              position: { x: 400, y: 200 },
               isObject: true,
               sprite: 'tavern_1'
           });
@@ -201,6 +215,7 @@ export const App = () => {
     <div style={{ position: 'relative', width: 800, height: 600, overflow: 'hidden' }}>
         <Application width={800} height={600} backgroundColor={0x222222}>
             <GhostInteractionLayer />
+            <AISystem />
             <ECSLayer />
         </Application>
         <DemonKingInterface />
