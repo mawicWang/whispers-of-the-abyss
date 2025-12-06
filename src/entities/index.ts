@@ -27,6 +27,7 @@ export type Entity = {
 
   // AI
   aiState?: 'IDLE' | 'WORK' | 'SUSPICIOUS' | 'FLEE' | 'SLEEP';
+  stateEnterTime?: number;
 
   // Tags
   isNPC?: boolean;

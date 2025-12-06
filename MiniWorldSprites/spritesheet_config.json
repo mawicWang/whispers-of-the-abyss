@@ -116,6 +116,15 @@
             "tavern_1": { "frame": 0 },
             "tavern_2": { "frame": 1 }
         }
+    },
+    "Miscellaneous/Chests.png": {
+      "spriteSize": [32, 32],
+      "columns": 4,
+      "comment": "Chests for props.",
+      "tiles": {
+        "chest_closed": { "frame": 0 },
+        "chest_open": { "frame": 1 }
+      }
     }
   }
 }
