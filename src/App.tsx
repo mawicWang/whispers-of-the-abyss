@@ -17,6 +17,8 @@ const EntityRenderer = ({ entity }: { entity: Entity }) => {
   const assetLoader = AssetLoader.getInstance();
   const [texture, setTexture] = useState<any>(null);
   const [animations, setAnimations] = useState<any>(null);
+  const [animSpeed, setAnimSpeed] = useState<number>(0.1);
+  const [loop, setLoop] = useState<boolean>(true);
   const animatedSpriteRef = useRef<AnimatedSprite>(null);
 
   useEffect(() => {
@@ -25,16 +27,68 @@ const EntityRenderer = ({ entity }: { entity: Entity }) => {
       if (tex) setTexture(tex);
     }
     if (entity.animation) {
-      const anims = assetLoader.getAnimation(entity.animation);
-      if (anims) setAnimations(anims);
+      // Determine the specific animation key based on entity state
+      let animKey = entity.animation;
+      let targetSpeed = 0.1;
+      let targetLoop = true;
+
+      // If animation name doesn't have underscores (and isn't a specific legacy key), assume it's a character base name
+      // and append state suffix.
+      // Legacy keys like "FarmerTemplate_walk_down" have underscores.
+      // New base names like "SwordsmanPurple" or "SwordsmanPurple.png" (if I used filename as key base,
+      // but AssetLoader strips extension for key base usually, let's verify).
+      // AssetLoader uses `sheetPath.split('/').pop()?.replace(/\.[^/.]+$/, "")` -> "SwordsmanPurple"
+
+      const isSpecificKey = animKey.includes('_');
+
+      if (!isSpecificKey) {
+          // Map aiState to animation suffix
+          let suffix = 'idle';
+          if (entity.aiState === 'IDLE') {
+              suffix = 'idle';
+              targetSpeed = 0.22; // ~13 fps (300ms for 4 frames)
+              targetLoop = true;
+          } else if (entity.aiState === 'SUSPICIOUS' || entity.aiState === 'CHASING' || entity.aiState === 'FLEEING') {
+              suffix = 'walk';
+              targetSpeed = 0.33; // ~20 fps (200ms for 4 frames)
+              targetLoop = true;
+          } else if (entity.aiState === 'ATTACK') {
+              suffix = 'attack';
+              targetSpeed = 0.66; // ~40 fps (100ms for 4 frames)
+              targetLoop = false;
+          } else {
+             // Default fallbacks
+             suffix = 'idle';
+          }
+
+          animKey = `${entity.animation}_${suffix}`;
+      }
+
+      const anims = assetLoader.getAnimation(animKey);
+      if (anims) {
+          setAnimations(anims);
+          setAnimSpeed(targetSpeed);
+          setLoop(targetLoop);
+      } else {
+          // Fallback to original key if constructed one not found
+          const fallbackAnims = assetLoader.getAnimation(entity.animation);
+          if (fallbackAnims) {
+              setAnimations(fallbackAnims);
+              setAnimSpeed(0.1);
+              setLoop(true);
+          }
+      }
     }
-  }, [entity.sprite, entity.animation]);
+  }, [entity.sprite, entity.animation, entity.aiState]); // Re-run when aiState changes
 
   useEffect(() => {
     if (animatedSpriteRef.current && animations) {
+      animatedSpriteRef.current.stop(); // Stop before playing new
+      animatedSpriteRef.current.loop = loop;
+      animatedSpriteRef.current.animationSpeed = animSpeed;
       animatedSpriteRef.current.play();
     }
-  }, [animations]);
+  }, [animations, animSpeed, loop]);
 
   // Imperatively update position on tick to avoid React re-renders
   useTick(() => {
@@ -52,7 +106,8 @@ const EntityRenderer = ({ entity }: { entity: Entity }) => {
         <pixiAnimatedSprite
           ref={animatedSpriteRef}
           textures={animations}
-          animationSpeed={0.1}
+          animationSpeed={animSpeed}
+          loop={loop}
           anchor={0.5}
         />
       ) : texture ? (
@@ -237,7 +292,7 @@ export const App = () => {
               isNPC: true,
               aiState: 'IDLE',
               stats: { willpower: 5, sanity: 10, corruption: 0 },
-              animation: 'FarmerTemplate_walk_down'
+              animation: 'SwordsmanPurple' // Use the base name, EntityRenderer handles _idle/_walk
           });
 
           // Add a chest

@@ -26,7 +26,7 @@ export type Entity = {
   };
 
   // AI
-  aiState?: 'IDLE' | 'WORK' | 'SUSPICIOUS' | 'FLEE' | 'SLEEP';
+  aiState?: 'IDLE' | 'WORK' | 'SUSPICIOUS' | 'FLEE' | 'SLEEP' | 'CHASING' | 'ATTACK' | 'FLEEING';
   stateEnterTime?: number;
   lastMoveTime?: number;
 

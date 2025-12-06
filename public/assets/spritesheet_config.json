@@ -14,9 +14,34 @@
         "attack_down": { "frames": "36-41" },
         "attack_right": { "frames": "42-47" }
       }
+    },
+    "mini_character_sheet": {
+      "spriteSize": [16, 16],
+      "columns": 4,
+      "animations": {
+        "idle": { "frames": "0-3" },
+        "walk": { "frames": "4-7" },
+        "attack": { "frames": "8-11" },
+        "block": { "frames": "12-15" }
+      }
     }
   },
   "sheets": {
+    "Characters/Soldiers/Melee/PurpleMelee/SwordsmanPurple.png": {
+      "$ref": "#/defaults/mini_character_sheet"
+    },
+    "Characters/Soldiers/Melee/PurpleMelee/SpearmanPurple.png": {
+      "$ref": "#/defaults/mini_character_sheet"
+    },
+    "Characters/Soldiers/Melee/PurpleMelee/AxemanPurple.png": {
+      "$ref": "#/defaults/mini_character_sheet"
+    },
+    "Characters/Soldiers/Melee/PurpleMelee/AssasinPurple.png": {
+      "$ref": "#/defaults/mini_character_sheet"
+    },
+    "Characters/FarmerPurple.png": {
+      "$ref": "#/defaults/mini_character_sheet"
+    },
     "Animals/MarineAnimals.png": {
       "spriteSize": [32, 32],
       "columns": 8,
@@ -94,7 +119,14 @@
         "gear_silver": { "frame": 42 },
         "gear_gold": { "frame": 43 },
         "sword_icon": { "frame": 44 },
-        "arrow_icon": { "frame": 45 }
+        "arrow_icon": { "frame": 45 },
+        "mana_icon": { "frame": 33 },
+        "suspicion_icon": { "frame": 31 },
+        "stats_icon": { "frame": 0 },
+        "inventory_icon": { "frame": 1 },
+        "skills_icon": { "frame": 44 },
+        "quests_icon": { "frame": 40 },
+        "settings_icon": { "frame": 42 }
       }
     },
     "Buildings/Wood/Houses.png": {
