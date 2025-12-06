@@ -125,6 +125,14 @@
         "chest_closed": { "frame": 0 },
         "chest_open": { "frame": 1 }
       }
+    },
+    "Ground/Grass.png": {
+      "spriteSize": [32, 32],
+      "columns": 1,
+      "comment": "Grass tiles",
+      "tiles": {
+        "grass": { "frame": 0 }
+      }
     }
   }
 }
