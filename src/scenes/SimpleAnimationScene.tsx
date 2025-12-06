@@ -49,6 +49,10 @@ const SimpleAnimationScene: React.FC = () => {
         walkUp: `${characterName}_walk_up`,
         walkLeft: `${characterName}_walk_left`,
         walkRight: `${characterName}_walk_right`,
+        attackDown: `${characterName}_attack_down`,
+        attackUp: `${characterName}_attack_up`,
+        attackLeft: `${characterName}_attack_left`,
+        attackRight: `${characterName}_attack_right`,
     };
 
     useEffect(() => {
@@ -102,6 +106,7 @@ const SimpleAnimationScene: React.FC = () => {
 
     const IDLE_INTERVAL = 300;
     const WALK_INTERVAL = 200;
+    const ATTACK_INTERVAL = 100;
 
     return (
         <pixiContainer x={0} y={0}>
@@ -118,6 +123,11 @@ const SimpleAnimationScene: React.FC = () => {
             {renderAnimRow(280, "Walk Up", anims.walkUp, WALK_INTERVAL)}
             {renderAnimRow(320, "Walk Left", anims.walkLeft, WALK_INTERVAL)}
             {renderAnimRow(360, "Walk Right", anims.walkRight, WALK_INTERVAL)}
+
+            {renderAnimRow(420, "Attack Down", anims.attackDown, ATTACK_INTERVAL)}
+            {renderAnimRow(460, "Attack Up", anims.attackUp, ATTACK_INTERVAL)}
+            {renderAnimRow(500, "Attack Left", anims.attackLeft, ATTACK_INTERVAL)}
+            {renderAnimRow(540, "Attack Right", anims.attackRight, ATTACK_INTERVAL)}
         </pixiContainer>
     );
 };
