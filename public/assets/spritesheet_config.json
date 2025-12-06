@@ -5,6 +5,10 @@
       "spriteSize": [32, 32],
       "columns": 6,
       "animations": {
+        "idle_up": { "frames": "0" },
+        "idle_left": { "frames": "6" },
+        "idle_down": { "frames": "12" },
+        "idle_right": { "frames": "18" },
         "walk_up": { "frames": "0-5" },
         "walk_left": { "frames": "6-11" },
         "walk_down": { "frames": "12-17" },
@@ -14,33 +18,26 @@
         "attack_down": { "frames": "36-41" },
         "attack_right": { "frames": "42-47" }
       }
-    },
-    "mini_character_sheet": {
-      "spriteSize": [16, 16],
-      "columns": 4,
-      "animations": {
-        "idle": { "frames": "0-3" },
-        "walk": { "frames": "4-7" },
-        "attack": { "frames": "8-11" },
-        "block": { "frames": "12-15" }
-      }
     }
   },
   "sheets": {
-    "Characters/Soldiers/Melee/PurpleMelee/SwordsmanPurple.png": {
-      "$ref": "#/defaults/mini_character_sheet"
+    "Characters/Champions/Arthax.png": {
+      "$ref": "#/defaults/character_sheet"
     },
-    "Characters/Soldiers/Melee/PurpleMelee/SpearmanPurple.png": {
-      "$ref": "#/defaults/mini_character_sheet"
-    },
-    "Characters/Soldiers/Melee/PurpleMelee/AxemanPurple.png": {
-      "$ref": "#/defaults/mini_character_sheet"
-    },
-    "Characters/Soldiers/Melee/PurpleMelee/AssasinPurple.png": {
-      "$ref": "#/defaults/mini_character_sheet"
-    },
-    "Characters/FarmerPurple.png": {
-      "$ref": "#/defaults/mini_character_sheet"
+    "Characters/Workers/CyanWorker/FarmerCyan.png": {
+      "spriteSize": [16, 16],
+      "columns": 5,
+      "comment": "12 rows, 5 columns. Rows 0-3: Down, Up, Right, Left. First 2 frames idle, next 4 frames walk (using overlapping frames for cycle).",
+      "animations": {
+        "idle_down": { "frames": "0,1" },
+        "walk_down": { "frames": "1,2,3,4" },
+        "idle_up": { "frames": "5,6" },
+        "walk_up": { "frames": "6,7,8,9" },
+        "idle_right": { "frames": "10,11" },
+        "walk_right": { "frames": "11,12,13,14" },
+        "idle_left": { "frames": "15,16" },
+        "walk_left": { "frames": "16,17,18,19" }
+      }
     },
     "Animals/MarineAnimals.png": {
       "spriteSize": [32, 32],
@@ -156,14 +153,6 @@
       "tiles": {
         "chest_closed": { "frame": 0 },
         "chest_open": { "frame": 1 }
-      }
-    },
-    "Ground/Grass.png": {
-      "spriteSize": [32, 32],
-      "columns": 1,
-      "comment": "Grass tiles",
-      "tiles": {
-        "grass": { "frame": 0 }
       }
     }
   }
