@@ -5,6 +5,10 @@
       "spriteSize": [32, 32],
       "columns": 6,
       "animations": {
+        "idle_up": { "frames": "0" },
+        "idle_left": { "frames": "6" },
+        "idle_down": { "frames": "12" },
+        "idle_right": { "frames": "18" },
         "walk_up": { "frames": "0-5" },
         "walk_left": { "frames": "6-11" },
         "walk_down": { "frames": "12-17" },
@@ -17,6 +21,9 @@
     }
   },
   "sheets": {
+    "Characters/Champions/Arthax.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
     "Animals/MarineAnimals.png": {
       "spriteSize": [32, 32],
       "columns": 8,
