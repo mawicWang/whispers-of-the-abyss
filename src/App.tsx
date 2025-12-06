@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ecs, type Entity } from './entities';
 import { useGameStore } from './state/store';
 import { AssetLoader } from './utils/AssetLoader';
+import DemonKingInterface from './ui/DemonKingInterface';
 
 // Register PixiJS components
 extend({ Container, Sprite, Text, Graphics, AnimatedSprite });
@@ -143,7 +144,6 @@ const ECSLayer = () => {
 }
 
 export const App = () => {
-  const { mana, suspicion } = useGameStore();
   const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   useEffect(() => {
@@ -194,10 +194,7 @@ export const App = () => {
 
   return (
     <>
-        <div style={{ position: 'absolute', top: 10, left: 10, color: 'white', zIndex: 10, pointerEvents: 'none' }}>
-            <div>Mana: {mana}</div>
-            <div>Suspicion: {suspicion}</div>
-        </div>
+        <DemonKingInterface />
         <Application width={800} height={600} backgroundColor={0x222222}>
             <GhostInteractionLayer />
             <ECSLayer />
