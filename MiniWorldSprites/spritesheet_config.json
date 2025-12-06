@@ -36,7 +36,11 @@
         "idle_right": { "frames": "10,11" },
         "walk_right": { "frames": "11,12,13,14" },
         "idle_left": { "frames": "15,16" },
-        "walk_left": { "frames": "16,17,18,19" }
+        "walk_left": { "frames": "16,17,18,19" },
+        "attack_down": { "frames": "40,41,42" },
+        "attack_up": { "frames": "45,46,47" },
+        "attack_right": { "frames": "50,51,52" },
+        "attack_left": { "frames": "55,56,57" }
       }
     },
     "Animals/MarineAnimals.png": {
