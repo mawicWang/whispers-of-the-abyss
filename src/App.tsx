@@ -163,9 +163,9 @@ const ECSLayer = () => {
          setEntities([...ecs.entities]);
 
          // In a real app we'd subscribe to ECS events
-         const sub = ecs.onEntityAdded.subscribe(() => setEntities([...ecs.entities]));
-         const sub2 = ecs.onEntityRemoved.subscribe(() => setEntities([...ecs.entities]));
-         return () => { sub.unsubscribe(); sub2.unsubscribe(); };
+         const unsubscribeAdded = ecs.onEntityAdded.subscribe(() => setEntities([...ecs.entities]));
+         const unsubscribeRemoved = ecs.onEntityRemoved.subscribe(() => setEntities([...ecs.entities]));
+         return () => { unsubscribeAdded(); unsubscribeRemoved(); };
     }, []);
 
     return (
