@@ -28,6 +28,7 @@ const AutoPlaySprite: React.FC<{
             anchor={0.5}
             x={16}
             y={16}
+            scale={{ x: 2, y: 2 }} // Scale up small 16x16 sprites
         />
     );
 };
@@ -35,17 +36,19 @@ const AutoPlaySprite: React.FC<{
 const SimpleAnimationScene: React.FC = () => {
     const [loaded, setLoaded] = useState(false);
 
-    // We will use the 'Arthax' character
-    const characterName = 'Arthax';
+    // We will use the 'FarmerCyan' character
+    const characterName = 'FarmerCyan';
 
     // Animation keys
     const anims = {
-        idle: `${characterName}_idle_down`,
-        walkUp: `${characterName}_walk_up`,
+        idleDown: `${characterName}_idle_down`,
+        idleUp: `${characterName}_idle_up`,
+        idleLeft: `${characterName}_idle_left`,
+        idleRight: `${characterName}_idle_right`,
         walkDown: `${characterName}_walk_down`,
+        walkUp: `${characterName}_walk_up`,
         walkLeft: `${characterName}_walk_left`,
         walkRight: `${characterName}_walk_right`,
-        attack: `${characterName}_attack_down` // Using down attack as representative
     };
 
     useEffect(() => {
@@ -68,13 +71,20 @@ const SimpleAnimationScene: React.FC = () => {
     });
 
     // Helper to render an animation row
-    const renderAnimRow = (y: number, label: string, animKey: string, speed: number = 0.15) => {
+    const renderAnimRow = (y: number, label: string, animKey: string, intervalMs: number) => {
         const textures = loader.getAnimation(animKey);
 
         if (!textures || textures.length === 0) {
             console.warn(`Missing animation: ${animKey}`);
             return null;
         }
+
+        // Calculate speed relative to 60fps
+        // Speed = 1 means change every frame (16.6ms)
+        // Wanted Interval = 300ms.
+        // Frames per sprite = 300 / 16.6 = 18.
+        // Speed = 1 / 18 = 0.055
+        const speed = 1 / (intervalMs / 16.666);
 
         return (
             <pixiContainer x={50} y={y}>
@@ -90,18 +100,24 @@ const SimpleAnimationScene: React.FC = () => {
         );
     };
 
+    const IDLE_INTERVAL = 300;
+    const WALK_INTERVAL = 200;
+
     return (
         <pixiContainer x={0} y={0}>
              {/* Title */}
-            <pixiText text="Character Animation Test" x={20} y={20} style={{ fill: '#ffffff', fontSize: 24 }} />
+            <pixiText text="Farmer Cyan Test" x={20} y={20} style={{ fill: '#ffffff', fontSize: 24 }} />
 
             {/* Animations */}
-            {renderAnimRow(80, "待机 (Idle)", anims.idle, 0.1)}
-            {renderAnimRow(130, "上移 (Move Up)", anims.walkUp)}
-            {renderAnimRow(180, "下移 (Move Down)", anims.walkDown)}
-            {renderAnimRow(230, "左移 (Move Left)", anims.walkLeft)}
-            {renderAnimRow(280, "右移 (Move Right)", anims.walkRight)}
-            {renderAnimRow(330, "攻击 (Attack)", anims.attack, 0.1)}
+            {renderAnimRow(60, "Idle Down", anims.idleDown, IDLE_INTERVAL)}
+            {renderAnimRow(100, "Idle Up", anims.idleUp, IDLE_INTERVAL)}
+            {renderAnimRow(140, "Idle Left", anims.idleLeft, IDLE_INTERVAL)}
+            {renderAnimRow(180, "Idle Right", anims.idleRight, IDLE_INTERVAL)}
+
+            {renderAnimRow(240, "Walk Down", anims.walkDown, WALK_INTERVAL)}
+            {renderAnimRow(280, "Walk Up", anims.walkUp, WALK_INTERVAL)}
+            {renderAnimRow(320, "Walk Left", anims.walkLeft, WALK_INTERVAL)}
+            {renderAnimRow(360, "Walk Right", anims.walkRight, WALK_INTERVAL)}
         </pixiContainer>
     );
 };
