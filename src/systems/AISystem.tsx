@@ -10,7 +10,7 @@ const FLEE_DURATION = 5000; // ms
 const now = () => Date.now();
 
 export const AISystem = () => {
-  useTick((ticker) => {
+  useTick(() => {
     // Iterate over all entities with aiState
     for (const entity of ecs.entities) {
         if (!entity.aiState) continue;
