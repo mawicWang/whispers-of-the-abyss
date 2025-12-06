@@ -35,21 +35,7 @@
     }
   },
   "sheets": {
-    "Characters/Workers/CyanWorker/FarmerCyan.png": {
-      "spriteSize": [16, 16],
-      "columns": 5,
-      "comment": "Verified configuration.",
-      "animations": {
-        "idle_down": { "frames": "0,1" },
-        "walk_down": { "frames": "1,2,3,4" },
-        "idle_up": { "frames": "5,6" },
-        "walk_up": { "frames": "6,7,8,9" },
-        "idle_right": { "frames": "10,11" },
-        "walk_right": { "frames": "11,12,13,14" },
-        "idle_left": { "frames": "15,16" },
-        "walk_left": { "frames": "16,17,18,19" }
-      }
-    },
+    "Characters/Workers/CyanWorker/FarmerCyan.png": { "$ref": "#/defaults/character_sheet" },
     "User Interface/UiIcons.png": {
       "spriteSize": [32, 32],
       "columns": 4,
