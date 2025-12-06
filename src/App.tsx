@@ -13,8 +13,7 @@ extend({ Container, Sprite, Text, Graphics, AnimatedSprite });
 
 // Component to render a single entity
 const EntityRenderer = ({ entity }: { entity: Entity }) => {
-  if (!entity.position) return null;
-
+  const containerRef = useRef<Container>(null);
   const assetLoader = AssetLoader.getInstance();
   const [texture, setTexture] = useState<any>(null);
   const [animations, setAnimations] = useState<any>(null);
@@ -37,8 +36,18 @@ const EntityRenderer = ({ entity }: { entity: Entity }) => {
     }
   }, [animations]);
 
+  // Imperatively update position on tick to avoid React re-renders
+  useTick(() => {
+      if (containerRef.current && entity.position) {
+          containerRef.current.x = entity.position.x;
+          containerRef.current.y = entity.position.y;
+      }
+  });
+
+  if (!entity.position) return null;
+
   return (
-    <pixiContainer x={entity.position.x} y={entity.position.y}>
+    <pixiContainer ref={containerRef} x={entity.position.x} y={entity.position.y}>
       {animations ? (
         <pixiAnimatedSprite
           ref={animatedSpriteRef}
@@ -113,7 +122,7 @@ const GhostInteractionLayer = () => {
        <pixiGraphics
         draw={(g) => {
            g.clear();
-           g.rect(0, 0, 800, 600);
+           g.rect(0, 0, 360, 640);
            g.fill({ color: 0xffffff, alpha: 0.05 });
         }}
         eventMode="static"
@@ -137,8 +146,27 @@ const ECSLayer = () => {
 
     // Subscribe to ECS changes (naive implementation for prototype)
     useTick(() => {
-        setEntities([...ecs.entities]); // Force re-render entities
+        // Optimization: Only update the list if length changes or we need to add/remove entities.
+        // For position updates, we rely on EntityRenderer's useTick.
+        // But for this prototype, checking entities length is a simple heuristic.
+        // Actually, we should just set entities once or on add/remove.
+        // Miniplex has onEntityAdded/Removed subscriptions.
+        // For now, let's just stick to what we had but trust EntityRenderer to animate position.
+        // But we DO need to make sure entities list is up to date initially.
+        if (ecs.entities.length !== entities.length) {
+            setEntities([...ecs.entities]);
+        }
     });
+
+    useEffect(() => {
+         // Initial load
+         setEntities([...ecs.entities]);
+
+         // In a real app we'd subscribe to ECS events
+         const sub = ecs.onEntityAdded.subscribe(() => setEntities([...ecs.entities]));
+         const sub2 = ecs.onEntityRemoved.subscribe(() => setEntities([...ecs.entities]));
+         return () => { sub.unsubscribe(); sub2.unsubscribe(); };
+    }, []);
 
     return (
         <pixiContainer>
@@ -147,6 +175,40 @@ const ECSLayer = () => {
             ))}
         </pixiContainer>
     );
+}
+
+// Map Rendering Component
+const MapLayer = () => {
+  const assetLoader = AssetLoader.getInstance();
+  const [tiles, setTiles] = useState<{x: number, y: number, texture: any, id: string}[]>([]);
+
+  useEffect(() => {
+      const cols = 12; // 360 / 32 ~= 11.25
+      const rows = 20; // 640 / 32 = 20
+      const newTiles = [];
+
+      const grassTexture = assetLoader.getTexture('grass');
+
+      if (grassTexture) {
+          for (let y = 0; y < rows; y++) {
+              for (let x = 0; x < cols; x++) {
+                   newTiles.push({
+                       id: `tile_${x}_${y}`,
+                       x: x * 32,
+                       y: y * 32,
+                       texture: grassTexture
+                   });
+              }
+          }
+          setTiles(newTiles);
+      }
+  }, []);
+
+  return <pixiContainer>
+      {tiles.map(tile => (
+          <pixiSprite key={tile.id} texture={tile.texture} x={tile.x} y={tile.y} />
+      ))}
+  </pixiContainer>;
 }
 
 export const App = () => {
@@ -171,7 +233,7 @@ export const App = () => {
               id: 'npc-1',
               name: 'Arthur',
               role: 'TARGET',
-              position: { x: 400, y: 300 },
+              position: { x: 180, y: 320 },
               isNPC: true,
               aiState: 'IDLE',
               stats: { willpower: 5, sanity: 10, corruption: 0 },
@@ -182,7 +244,7 @@ export const App = () => {
            ecs.add({
               id: 'chest-1',
               name: 'Chest',
-              position: { x: 300, y: 300 },
+              position: { x: 100, y: 300 },
               isObject: true,
               sprite: 'chest_closed'
           });
@@ -191,7 +253,7 @@ export const App = () => {
            ecs.add({
               id: 'chest-2',
               name: 'Chest',
-              position: { x: 500, y: 300 },
+              position: { x: 260, y: 300 },
               isObject: true,
               sprite: 'chest_closed'
           });
@@ -200,7 +262,7 @@ export const App = () => {
            ecs.add({
               id: 'tavern-1',
               name: 'Tavern',
-              position: { x: 400, y: 200 },
+              position: { x: 180, y: 200 },
               isObject: true,
               sprite: 'tavern_1'
           });
@@ -212,8 +274,9 @@ export const App = () => {
   }
 
   return (
-    <div style={{ position: 'relative', width: 800, height: 600, overflow: 'hidden' }}>
-        <Application width={800} height={600} backgroundColor={0x222222}>
+    <div className="game-container">
+        <Application width={360} height={640} backgroundColor={0x222222}>
+            <MapLayer />
             <GhostInteractionLayer />
             <AISystem />
             <ECSLayer />
