@@ -1,33 +1,9 @@
 {
-  "comment": "This JSON file defines the layout for sprite sheets in the MiniWorldSprites library. It specifies sprite dimensions, animations, and icon mappings.",
+  "comment": "This JSON file defines the layout for sprite sheets in the MiniWorldSprites library. It specifies sprite dimensions, animations, and icon mappings. Most assets are 16x16.",
   "defaults": {
     "character_sheet": {
-      "spriteSize": [32, 32],
-      "columns": 6,
-      "animations": {
-        "idle_up": { "frames": "0" },
-        "idle_left": { "frames": "6" },
-        "idle_down": { "frames": "12" },
-        "idle_right": { "frames": "18" },
-        "walk_up": { "frames": "0-5" },
-        "walk_left": { "frames": "6-11" },
-        "walk_down": { "frames": "12-17" },
-        "walk_right": { "frames": "18-23" },
-        "attack_up": { "frames": "24-29" },
-        "attack_left": { "frames": "30-35" },
-        "attack_down": { "frames": "36-41" },
-        "attack_right": { "frames": "42-47" }
-      }
-    }
-  },
-  "sheets": {
-    "Characters/Champions/Arthax.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Workers/CyanWorker/FarmerCyan.png": {
       "spriteSize": [16, 16],
       "columns": 5,
-      "comment": "12 rows, 5 columns. Rows 0-3: Down, Up, Right, Left. First 2 frames idle, next 4 frames walk (using overlapping frames for cycle).",
       "animations": {
         "idle_down": { "frames": "0,1" },
         "walk_down": { "frames": "1,2,3,4" },
@@ -43,66 +19,40 @@
         "attack_left": { "frames": "55,56,57" }
       }
     },
-    "Animals/MarineAnimals.png": {
+    "dragon_sheet": {
       "spriteSize": [32, 32],
-      "columns": 8,
-      "comment": "Custom layout for marine life.",
+      "columns": 3,
       "animations": {
-        "turtle_walk_down": { "frames": "0-1" },
-        "turtle_walk_left": { "frames": "8-9" },
-        "turtle_walk_up": { "frames": "16-17" },
-        "turtle_walk_right": { "frames": "24-25" },
-        "humanoid_aqua_walk": { "frames": "2-3" },
-        "humanoid_purple_walk": { "frames": "4-5" },
-        "humanoid_brown_walk": { "frames": "6-7" }
+        "idle_down": { "frames": "0,1" },
+        "walk_down": { "frames": "0,1,2" },
+        "idle_left": { "frames": "3,4" },
+        "walk_left": { "frames": "3,4,5" },
+        "idle_right": { "frames": "6,7" },
+        "walk_right": { "frames": "6,7,8" },
+        "idle_up": { "frames": "9,10" },
+        "walk_up": { "frames": "9,10,11" }
       }
-    },
-    "Characters/Monsters/Orcs/Orc.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Monsters/Orcs/OrcMage.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Monsters/Orcs/OrcShaman.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Monsters/Undead/Skeleton-Soldier.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Soldiers/Melee/SpearmanTemplate.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Soldiers/Melee/SwordsmanTemplate.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Soldiers/Melee/AxemanTemplate.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Soldiers/Ranged/BowmanTemplate.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Soldiers/Ranged/MageTemplate.png": {
-      "$ref": "#/defaults/character_sheet"
-    },
-    "Characters/Workers/FarmerTemplate.png": {
-      "spriteSize": [32, 32],
-      "columns": 6,
-      "comment": "Farmer has walk and work animations.",
+    }
+  },
+  "sheets": {
+    "Characters/Workers/CyanWorker/FarmerCyan.png": {
+      "spriteSize": [16, 16],
+      "columns": 5,
+      "comment": "Verified configuration.",
       "animations": {
-        "walk_up": { "frames": "0-5" },
-        "walk_left": { "frames": "6-11" },
-        "walk_down": { "frames": "12-17" },
-        "walk_right": { "frames": "18-23" },
-        "work_up": { "frames": "24-29" },
-        "work_left": { "frames": "30-35" },
-        "work_down": { "frames": "36-41" },
-        "work_right": { "frames": "42-47" }
+        "idle_down": { "frames": "0,1" },
+        "walk_down": { "frames": "1,2,3,4" },
+        "idle_up": { "frames": "5,6" },
+        "walk_up": { "frames": "6,7,8,9" },
+        "idle_right": { "frames": "10,11" },
+        "walk_right": { "frames": "11,12,13,14" },
+        "idle_left": { "frames": "15,16" },
+        "walk_left": { "frames": "16,17,18,19" }
       }
     },
     "User Interface/UiIcons.png": {
       "spriteSize": [32, 32],
       "columns": 4,
-      "comment": "A grid of UI icons. Mappings are by index.",
       "icons": {
         "helmet": { "frame": 0 },
         "sword_shield": { "frame": 1 },
@@ -115,14 +65,14 @@
         "question_mark": { "frame": 13 },
         "checkmark": { "frame": 14 },
         "arrow_down": { "frame": 16 },
+        "suspicion_icon": { "frame": 31 },
+        "mana_icon": { "frame": 33 },
         "mail": { "frame": 40 },
         "chat_bubble": { "frame": 41 },
         "gear_silver": { "frame": 42 },
         "gear_gold": { "frame": 43 },
         "sword_icon": { "frame": 44 },
         "arrow_icon": { "frame": 45 },
-        "mana_icon": { "frame": 33 },
-        "suspicion_icon": { "frame": 31 },
         "stats_icon": { "frame": 0 },
         "inventory_icon": { "frame": 1 },
         "skills_icon": { "frame": 44 },
@@ -130,34 +80,242 @@
         "settings_icon": { "frame": 42 }
       }
     },
-    "Buildings/Wood/Houses.png": {
-        "spriteSize": [64, 64],
-        "columns": 4,
-        "comment": "This is a tileset of house variations, not an animation.",
-        "tiles": {
-            "house_1": { "frame": 0 },
-            "house_2": { "frame": 1 },
-            "house_3": { "frame": 2 },
-            "house_4": { "frame": 3 }
-        }
+    "Animals/MarineAnimals.png": {
+      "spriteSize": [32, 32],
+      "columns": 8,
+      "animations": {
+        "turtle_walk_down": { "frames": "0-1" },
+        "turtle_walk_left": { "frames": "8-9" },
+        "turtle_walk_up": { "frames": "16-17" },
+        "turtle_walk_right": { "frames": "24-25" },
+        "humanoid_aqua_walk": { "frames": "2-3" },
+        "humanoid_purple_walk": { "frames": "4-5" },
+        "humanoid_brown_walk": { "frames": "6-7" }
+      }
     },
-    "Buildings/Wood/Taverns.png": {
-        "spriteSize": [64, 96],
-        "columns": 2,
-        "comment": "Tileset of tavern variations.",
-        "tiles": {
-            "tavern_1": { "frame": 0 },
-            "tavern_2": { "frame": 1 }
-        }
+    "Animals/Horse(32x32).png": {
+      "spriteSize": [32, 32]
     },
     "Miscellaneous/Chests.png": {
       "spriteSize": [32, 32],
       "columns": 4,
-      "comment": "Chests for props.",
       "tiles": {
         "chest_closed": { "frame": 0 },
         "chest_open": { "frame": 1 }
       }
-    }
+    },
+    "Characters/Monsters/Dragons/BlackDragon.png": { "$ref": "#/defaults/dragon_sheet" },
+    "Characters/Monsters/Dragons/BlueDragon.png": { "$ref": "#/defaults/dragon_sheet" },
+    "Characters/Monsters/Dragons/RedDragon.png": { "$ref": "#/defaults/dragon_sheet" },
+    "Characters/Monsters/Dragons/WhiteDragon.png": { "$ref": "#/defaults/dragon_sheet" },
+    "Characters/Monsters/Dragons/YellowDragon.png": { "$ref": "#/defaults/dragon_sheet" },
+
+    "Characters/Monsters/Demons/ArmouredRedDemon.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Demons/RedDemon.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Demons/PurpleDemon.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Monsters/Frostborn/Mammoth.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Frostborn/Wendigo.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Frostborn/Yeti.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Monsters/GiantAnimals/GiantCrab.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Monsters/Orcs/ClubGoblin.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Orcs/FarmerGoblin.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Orcs/ArcherGoblin.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Orcs/Minotaur.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Orcs/OrcShaman.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Orcs/Orc.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Orcs/SpearGoblin.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Orcs/KamikazeGoblin.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Orcs/OrcMage.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Monsters/Pirates/PirateCaptain.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Pirates/PirateGunner.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Pirates/PirateGrunt.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Monsters/Slimes/SlimeBlue.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Slimes/Slime.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Monsters/Undead/Necromancer.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Monsters/Undead/Skeleton-Soldier.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Champions/Arthax.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Champions/Börg.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Champions/Gangblanc.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Champions/Grum.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Champions/Kanji.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Champions/Katan.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Champions/Okomo.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Champions/Zhinja.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Melee/AssasinTemplate.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/AxemanTemplate.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/SpearmanTemplate.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/SwordsmanTemplate.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Melee/CyanMelee/AssasinCyan.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/CyanMelee/AxemanCyan.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/CyanMelee/SpearmanCyan.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/CyanMelee/SwordsmanCyan.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Melee/LimeMelee/AssasinLime.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/LimeMelee/AxemanLime.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/LimeMelee/SpearmanLime.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/LimeMelee/SwordsmanLime.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Melee/PurpleMelee/AssasinPurple.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/PurpleMelee/AxemanPurple.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/PurpleMelee/SpearmanPurple.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/PurpleMelee/SwordsmanPurple.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Melee/RedMelee/AssasinRed.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/RedMelee/AxemanRed.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/RedMelee/SpearmanRed.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Melee/RedMelee/SwordsmanRed.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Mounted/CyanKnight.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Mounted/LimeKnight.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Mounted/PurpleKnight.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Mounted/RedKnight.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Ranged/Ballista.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/BowmanTemplate.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/MageTemplate.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Ranged/CyanRanged/BowmanCyan.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/CyanRanged/MageCyan.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/CyanRanged/MusketeerCyan.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Ranged/LimeRanged/BowmanLime.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/LimeRanged/MageLime.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/LimeRanged/MusketeerLime.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Ranged/PurpleRanged/BowmanPurple.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/PurpleRanged/MagePurple.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/PurpleRanged/MusketeerPurple.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Soldiers/Ranged/RedRanged/BowmanRed.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/RedRanged/MageRed.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Soldiers/Ranged/RedRanged/MusketeerRed.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Characters/Workers/FarmerTemplate.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Workers/LimeWorker/FarmerLime.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Workers/PurpleWorker/FarmerPurple.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Workers/RedWorker/FarmerRed.png": { "$ref": "#/defaults/character_sheet" },
+
+    "Buildings/Cyan/CyanBarracks.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanChapels.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanDocks.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanHouses.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanHuts.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanKeep.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanMarket.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanResources.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanShip.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanTaverns.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanTower.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanWell.png": { "spriteSize": [16, 16] },
+    "Buildings/Cyan/CyanWorkshops.png": { "spriteSize": [16, 16] },
+
+    "Buildings/Lime/LimeBarracks.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeChapels.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeDocks.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeHouses.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeHuts.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeKeep.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeMarket.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeResources.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeShip.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeTaverns.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeTower.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeWell.png": { "spriteSize": [16, 16] },
+    "Buildings/Lime/LimeWorkshops.png": { "spriteSize": [16, 16] },
+
+    "Buildings/Purple/PurpleBarracks.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleChapels.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleDocks.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleHouses.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleHuts.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleKeep.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleMarket.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleResources.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleShip.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleTaverns.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleTower.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleWell.png": { "spriteSize": [16, 16] },
+    "Buildings/Purple/PurpleWorkshops.png": { "spriteSize": [16, 16] },
+
+    "Buildings/Red/RedBarracks.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedChapels.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedDocks.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedHouses.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedHuts.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedKeep.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedMarket.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedResources.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedShip.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedTaverns.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedTower.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedWell.png": { "spriteSize": [16, 16] },
+    "Buildings/Red/RedWorkshops.png": { "spriteSize": [16, 16] },
+
+    "Buildings/Wood/Barracks.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/CaveV2.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Chapels.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Docks.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Houses.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Huts.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Keep.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Market.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Resources.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Taverns.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Tower.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Tower2.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Workshops.png": { "spriteSize": [16, 16] },
+
+    "Buildings/Enemy/Mausoleum.png": { "spriteSize": [16, 16] },
+    "Buildings/Enemy/SpearWall.png": { "spriteSize": [16, 16] },
+
+    "Ground/Cliff.png": { "spriteSize": [16, 16] },
+    "Ground/Cliff-Water.png": { "spriteSize": [16, 16] },
+    "Ground/DeadGrass.png": { "spriteSize": [16, 16] },
+    "Ground/Grass.png": { "spriteSize": [16, 16] },
+    "Ground/Shore.png": { "spriteSize": [16, 16] },
+    "Ground/TexturedGrass.png": { "spriteSize": [16, 16] },
+    "Ground/Winter.png": { "spriteSize": [16, 16] },
+
+    "Nature/Cactus.png": { "spriteSize": [16, 16] },
+    "Nature/CoconutTrees.png": { "spriteSize": [16, 16] },
+    "Nature/DeadTrees.png": { "spriteSize": [16, 16] },
+    "Nature/Trees.png": { "spriteSize": [16, 16] },
+    "Nature/Wheatfield.png": { "spriteSize": [16, 16] },
+    "Nature/WinterDeadTrees.png": { "spriteSize": [16, 16] },
+
+    "Objects/ArrowLong.png": { "spriteSize": [16, 16] },
+    "Objects/ArrowShort.png": { "spriteSize": [16, 16] },
+    "Objects/Axe.png": { "spriteSize": [16, 16] },
+    "Objects/BallistaBolt.png": { "spriteSize": [16, 16] },
+    "Objects/Bullet.png": { "spriteSize": [16, 16] },
+    "Objects/FireballProjectile.png": { "spriteSize": [16, 16] },
+    "Objects/ShortBig.png": { "spriteSize": [16, 16] },
+    "Objects/Spear.png": { "spriteSize": [16, 16] },
+    "Objects/SwordShort.png": { "spriteSize": [16, 16] },
+
+    "Miscellaneous/Boat.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/Bridge.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/PirateShip.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/Portal.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/QuestBoard.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/Signs.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/StreetSigns.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/Tombstones.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/TransportShip.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/WarShip.png": { "spriteSize": [16, 16] },
+    "Miscellaneous/Well.png": { "spriteSize": [16, 16] },
+
+    "Templates/16x16Large.png": { "spriteSize": [16, 16] },
+    "Templates/16x16Small.png": { "spriteSize": [16, 16] },
+    "Templates/32x32Small.png": { "spriteSize": [32, 32] }
   }
 }
