@@ -1,0 +1,97 @@
+{
+  "hash": "2a863dc5",
+  "configHash": "135df27c",
+  "lockfileHash": "65981a91",
+  "browserHash": "c8855a24",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "d2bc1181",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "4d0f55db",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "99a174a4",
+      "needsInterop": true
+    },
+    "@pixi/react": {
+      "src": "../../node_modules/@pixi/react/lib/index.mjs",
+      "file": "@pixi_react.js",
+      "fileHash": "03c64d02",
+      "needsInterop": false
+    },
+    "pixi.js": {
+      "src": "../../node_modules/pixi.js/lib/index.mjs",
+      "file": "pixi__js.js",
+      "fileHash": "717522be",
+      "needsInterop": false
+    },
+    "miniplex": {
+      "src": "../../node_modules/miniplex/dist/miniplex.esm.js",
+      "file": "miniplex.js",
+      "fileHash": "9ccb3eee",
+      "needsInterop": false
+    },
+    "zustand": {
+      "src": "../../node_modules/zustand/esm/index.mjs",
+      "file": "zustand.js",
+      "fileHash": "ccba0baf",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "webworkerAll-PF53NO74": {
+      "file": "webworkerAll-PF53NO74.js"
+    },
+    "WebGPURenderer-4CQCOPPR": {
+      "file": "WebGPURenderer-4CQCOPPR.js"
+    },
+    "WebGLRenderer-DQGGKCZT": {
+      "file": "WebGLRenderer-DQGGKCZT.js"
+    },
+    "chunk-2NFP4AY3": {
+      "file": "chunk-2NFP4AY3.js"
+    },
+    "chunk-V45QF7RP": {
+      "file": "chunk-V45QF7RP.js"
+    },
+    "chunk-AIOZCAM3": {
+      "file": "chunk-AIOZCAM3.js"
+    },
+    "chunk-VUMF4NB6": {
+      "file": "chunk-VUMF4NB6.js"
+    },
+    "chunk-6VPNIYGA": {
+      "file": "chunk-6VPNIYGA.js"
+    },
+    "browserAll-IPHVUEOD": {
+      "file": "browserAll-IPHVUEOD.js"
+    },
+    "chunk-2OQEBDUJ": {
+      "file": "chunk-2OQEBDUJ.js"
+    },
+    "chunk-3VP6347N": {
+      "file": "chunk-3VP6347N.js"
+    },
+    "chunk-YXOWDNXQ": {
+      "file": "chunk-YXOWDNXQ.js"
+    },
+    "chunk-RRDNFVBD": {
+      "file": "chunk-RRDNFVBD.js"
+    },
+    "chunk-YR6V32XD": {
+      "file": "chunk-YR6V32XD.js"
+    },
+    "chunk-5WRI5ZAA": {
+      "file": "chunk-5WRI5ZAA.js"
+    }
+  }
+}
