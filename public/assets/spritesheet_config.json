@@ -1,0 +1,121 @@
+{
+  "comment": "This JSON file defines the layout for sprite sheets in the MiniWorldSprites library. It specifies sprite dimensions, animations, and icon mappings.",
+  "defaults": {
+    "character_sheet": {
+      "spriteSize": [32, 32],
+      "columns": 6,
+      "animations": {
+        "walk_up": { "frames": "0-5" },
+        "walk_left": { "frames": "6-11" },
+        "walk_down": { "frames": "12-17" },
+        "walk_right": { "frames": "18-23" },
+        "attack_up": { "frames": "24-29" },
+        "attack_left": { "frames": "30-35" },
+        "attack_down": { "frames": "36-41" },
+        "attack_right": { "frames": "42-47" }
+      }
+    }
+  },
+  "sheets": {
+    "Animals/MarineAnimals.png": {
+      "spriteSize": [32, 32],
+      "columns": 8,
+      "comment": "Custom layout for marine life.",
+      "animations": {
+        "turtle_walk_down": { "frames": "0-1" },
+        "turtle_walk_left": { "frames": "8-9" },
+        "turtle_walk_up": { "frames": "16-17" },
+        "turtle_walk_right": { "frames": "24-25" },
+        "humanoid_aqua_walk": { "frames": "2-3" },
+        "humanoid_purple_walk": { "frames": "4-5" },
+        "humanoid_brown_walk": { "frames": "6-7" }
+      }
+    },
+    "Characters/Monsters/Orcs/Orc.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Monsters/Orcs/OrcMage.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Monsters/Orcs/OrcShaman.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Monsters/Undead/Skeleton-Soldier.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Soldiers/Melee/SpearmanTemplate.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Soldiers/Melee/SwordsmanTemplate.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Soldiers/Melee/AxemanTemplate.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Soldiers/Ranged/BowmanTemplate.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Soldiers/Ranged/MageTemplate.png": {
+      "$ref": "#/defaults/character_sheet"
+    },
+    "Characters/Workers/FarmerTemplate.png": {
+      "spriteSize": [32, 32],
+      "columns": 6,
+      "comment": "Farmer has walk and work animations.",
+      "animations": {
+        "walk_up": { "frames": "0-5" },
+        "walk_left": { "frames": "6-11" },
+        "walk_down": { "frames": "12-17" },
+        "walk_right": { "frames": "18-23" },
+        "work_up": { "frames": "24-29" },
+        "work_left": { "frames": "30-35" },
+        "work_down": { "frames": "36-41" },
+        "work_right": { "frames": "42-47" }
+      }
+    },
+    "User Interface/UiIcons.png": {
+      "spriteSize": [32, 32],
+      "columns": 4,
+      "comment": "A grid of UI icons. Mappings are by index.",
+      "icons": {
+        "helmet": { "frame": 0 },
+        "sword_shield": { "frame": 1 },
+        "shield": { "frame": 2 },
+        "bow_arrow": { "frame": 3 },
+        "cursor_plus": { "frame": 8 },
+        "cursor_minus": { "frame": 9 },
+        "cursor_cross": { "frame": 10 },
+        "arrow_up": { "frame": 12 },
+        "question_mark": { "frame": 13 },
+        "checkmark": { "frame": 14 },
+        "arrow_down": { "frame": 16 },
+        "mail": { "frame": 40 },
+        "chat_bubble": { "frame": 41 },
+        "gear_silver": { "frame": 42 },
+        "gear_gold": { "frame": 43 },
+        "sword_icon": { "frame": 44 },
+        "arrow_icon": { "frame": 45 }
+      }
+    },
+    "Buildings/Wood/Houses.png": {
+        "spriteSize": [64, 64],
+        "columns": 4,
+        "comment": "This is a tileset of house variations, not an animation.",
+        "tiles": {
+            "house_1": { "frame": 0 },
+            "house_2": { "frame": 1 },
+            "house_3": { "frame": 2 },
+            "house_4": { "frame": 3 }
+        }
+    },
+    "Buildings/Wood/Taverns.png": {
+        "spriteSize": [64, 96],
+        "columns": 2,
+        "comment": "Tileset of tavern variations.",
+        "tiles": {
+            "tavern_1": { "frame": 0 },
+            "tavern_2": { "frame": 1 }
+        }
+    }
+  }
+}
