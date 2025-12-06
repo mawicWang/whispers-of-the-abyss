@@ -1,0 +1,85 @@
+name: Auto-merge Jules PRs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+
+jobs:
+  approve-and-merge:
+    runs-on: ubuntu-latest
+    if: (github.event.action != 'closed' && (github.actor == 'google-labs-jules[bot]' || github.actor == 'jules')) || github.event_name == 'workflow_dispatch'
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Convert Draft to Ready & Enable Auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          PR_URL="${{ github.event.pull_request.html_url }}"
+
+          if [ -z "$PR_URL" ]; then
+             echo "No PR URL found (maybe manual run?)"
+             exit 0
+          fi
+
+          # 1. Mark PR as ready
+          gh pr ready "$PR_URL" || true
+
+          # 2. Approve PR
+          gh pr review "$PR_URL" --approve --body "Auto-approved Jules changes." || true
+
+          # 3. Enable auto-merge
+          gh pr merge "$PR_URL" --auto --squash
+
+  notify-merge:
+    runs-on: ubuntu-latest
+    # This job runs when a PR is closed and merged. It does not depend on approve-and-merge.
+    if: github.event.pull_request.merged == true && github.event.action == 'closed'
+    permissions:
+      actions: write # Needed for gh workflow run
+      contents: read
+    steps:
+      - name: Send Bark Notification
+        env:
+          BARK_KEY: ${{ secrets.BARK_KEY }}
+          TITLE: "PR Merged: ${{ github.event.pull_request.title }}"
+          BODY: "Merged by ${{ github.actor }}. PR #${{ github.event.pull_request.number }}"
+        run: |
+          node -e '
+            const https = require("https");
+            const key = process.env.BARK_KEY;
+
+            if (!key) {
+               console.log("BARK_KEY not set. Skipping notification.");
+               process.exit(0);
+            }
+
+            const title = encodeURIComponent(process.env.TITLE);
+            const body = encodeURIComponent(process.env.BODY);
+            const url = `https://api.day.app/${key}/${title}/${body}`;
+
+            console.log("Sending notification...");
+            https.get(url, (res) => {
+              if (res.statusCode === 200) {
+                console.log("Notification sent.");
+              } else {
+                console.error(`Failed with status: ${res.statusCode}`);
+                process.exit(1);
+              }
+            }).on("error", (e) => {
+              console.error(e);
+              process.exit(1);
+            });
+          '
+
+      - name: Trigger Deployment
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Triggering deployment workflow..."
+          gh workflow run deploy.yml --ref main || echo "Failed to trigger deploy.yml (possibly due to missing PAT permission). If a PAT was used for merge, deployment should trigger automatically via push event."
