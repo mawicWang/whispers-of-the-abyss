@@ -18,6 +18,12 @@
 3.  **收割 (Harvest):** 收集 NPC 因情绪波动掉落的“魔力”或“负面情绪”。
 4.  **进化 (Evolve):** 升级能力（托梦、附身），转化核心信徒，对抗“守望者”。
 
+### 1.3 美术风格与素材 (Art Style & Assets)
+*   **素材库:** `MiniWorldSprites`
+*   **风格:** 经典像素艺术 (Pixel Art) - 16x16 / 32x32 网格。
+*   **使用规范:** 严格遵循 `MiniWorldSprites/spritesheet_config.json` 定义的动画帧和布局。
+*   **氛围:** 虽然素材风格可爱，但需通过光影（Pixi.js Lights）和音乐营造出压抑、诡异的恐怖氛围（反差萌/黑深残）。
+
 ---
 
 ## 2. 核心系统与玩法机制
@@ -169,6 +175,7 @@ NPC 的行为由状态机驱动，推荐使用 **XState** 进行管理：
 *   **开发语言:** TypeScript
 *   **UI 框架:** React 18+ & Zustand (全局状态管理)
 *   **渲染引擎:** Pixi.js (高性能 2D WebGL 渲染)
+*   **美术素材:** MiniWorldSprites (Pixel Art Asset Pack)
 *   **逻辑核心:** Miniplex (轻量级实体组件系统 ECS)
 *   **AI 状态机:** XState (可视化管理 NPC 行为逻辑)
 *   **构建工具:** Vite
@@ -206,6 +213,8 @@ graph TD
 ```
 
 ### 6.3 开发者提示
+*   **美术资源 (Assets):** 必须使用 `MiniWorldSprites` 目录下的素材。**严禁**引入未授权的外部素材。
+*   **动画配置:** 实现 AssetLoader 时，必须读取 `MiniWorldSprites/spritesheet_config.json` 来自动切分 SpriteSheet，避免硬编码坐标。
 *   **事件总线 (Event Bus):** 交互应高度解耦。例如，蜡烛熄灭应广播一个全局事件，而不是直接调用 NPC 的代码。
 *   **调试工具 (Debug Tools):** 必须开发强大的上帝工具，用于一键修改游戏状态，这对测试蝴蝶效应至关重要。
 
@@ -216,12 +225,13 @@ graph TD
 采用敏捷开发模式，每个阶段产出一个可玩的 MVP。
 
 ### 阶段一：核心交互原型 (The "Poltergeist" Prototype)
-*   **目标:** 验证“玩家微操 -> NPC 反应”的基础闭环。
+*   **目标:** 验证“玩家微操 -> NPC 反应”的基础闭环，并跑通美术管线。
 *   **内容:**
+    *   **资源管线:** 实现基于 `spritesheet_config.json` 的资源加载器 (AssetLoader)，将 `MiniWorldSprites` 资源正确加载到 Pixi.js。
     *   搭建单个房间场景（酒馆一角）。
     *   实现“微操”系统：熄灭蜡烛、打翻杯子等。
     *   实现单一 NPC 的基础 AI（闲逛、惊吓、查看）。
-*   **验收标准:** 一个可玩的 Demo，玩家可以像闹鬼一样捉弄一个 NPC，并得到合乎逻辑的反应。
+*   **验收标准:** 一个可玩的 Demo，玩家可以像闹鬼一样捉弄一个 NPC，且美术资源显示正确（动画流畅）。
 
 ### 阶段二：小镇生态与资源循环 (The "Town" MVP)
 *   **目标:** 引入时间系统、资源循环和多 NPC 交互。

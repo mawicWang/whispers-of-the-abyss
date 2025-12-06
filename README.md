@@ -7,6 +7,16 @@ Currently, two official plugins are available:
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
 - [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
+## Project Assets
+
+This project utilizes the **MiniWorldSprites** library for all game assets (characters, buildings, UI, environment, etc.).
+
+- **Location:** `MiniWorldSprites/`
+- **Documentation:** `MiniWorldSprites/README.md`
+- **Configuration:** `MiniWorldSprites/spritesheet_config.json` (Defines sprite sizes, animations, and mappings)
+
+**Important:** All developers must strictly use assets from this directory. Please refer to the documentation within that folder for naming conventions and usage guidelines.
+
 ## React Compiler
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
