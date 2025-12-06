@@ -1,4 +1,4 @@
-import { Assets, Texture, Rectangle, Spritesheet } from 'pixi.js';
+import { Assets, Texture, Rectangle } from 'pixi.js';
 
 interface SpriteSheetConfig {
   spriteSize: [number, number];

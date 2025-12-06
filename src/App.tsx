@@ -16,30 +16,36 @@ const EntityRenderer = ({ entity }: { entity: Entity }) => {
   const assetLoader = AssetLoader.getInstance();
   const [texture, setTexture] = useState<any>(null);
   const [animations, setAnimations] = useState<any>(null);
+  const animatedSpriteRef = useRef<AnimatedSprite>(null);
 
   useEffect(() => {
     if (entity.sprite) {
-        const tex = assetLoader.getTexture(entity.sprite);
-        if (tex) setTexture(tex);
+      const tex = assetLoader.getTexture(entity.sprite);
+      if (tex) setTexture(tex);
     }
     if (entity.animation) {
-        const anims = assetLoader.getAnimation(entity.animation);
-        if (anims) setAnimations(anims);
+      const anims = assetLoader.getAnimation(entity.animation);
+      if (anims) setAnimations(anims);
     }
   }, [entity.sprite, entity.animation]);
 
+  useEffect(() => {
+    if (animatedSpriteRef.current && animations) {
+      animatedSpriteRef.current.play();
+    }
+  }, [animations]);
+
   return (
     <pixiContainer x={entity.position.x} y={entity.position.y}>
-        {animations ? (
-            <pixiAnimatedSprite
-                textures={animations}
-                isPlaying={true}
-                initialFrame={0}
-                animationSpeed={0.1}
-                anchor={0.5}
-            />
-        ) : texture ? (
-            <pixiSprite texture={texture} anchor={0.5} />
+      {animations ? (
+        <pixiAnimatedSprite
+          ref={animatedSpriteRef}
+          textures={animations}
+          animationSpeed={0.1}
+          anchor={0.5}
+        />
+      ) : texture ? (
+        <pixiSprite texture={texture} anchor={0.5} />
         ) : (
              <pixiGraphics draw={(g) => {
                 g.clear();
