@@ -36,6 +36,9 @@
   },
   "sheets": {
     "Characters/Workers/CyanWorker/FarmerCyan.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Workers/RedWorker/FarmerRed.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Workers/LimeWorker/FarmerLime.png": { "$ref": "#/defaults/character_sheet" },
+    "Characters/Workers/PurpleWorker/FarmerPurple.png": { "$ref": "#/defaults/character_sheet" },
     "User Interface/UiIcons.png": {
       "spriteSize": [32, 32],
       "columns": 4,
@@ -127,13 +130,6 @@
     "Characters/Monsters/Undead/Skeleton-Soldier.png": { "$ref": "#/defaults/character_sheet" },
 
     "Characters/Champions/Arthax.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Champions/Börg.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Champions/Gangblanc.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Champions/Grum.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Champions/Kanji.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Champions/Katan.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Champions/Okomo.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Champions/Zhinja.png": { "$ref": "#/defaults/character_sheet" },
 
     "Characters/Soldiers/Melee/AssasinTemplate.png": { "$ref": "#/defaults/character_sheet" },
     "Characters/Soldiers/Melee/AxemanTemplate.png": { "$ref": "#/defaults/character_sheet" },
@@ -186,9 +182,6 @@
     "Characters/Soldiers/Ranged/RedRanged/MusketeerRed.png": { "$ref": "#/defaults/character_sheet" },
 
     "Characters/Workers/FarmerTemplate.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Workers/LimeWorker/FarmerLime.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Workers/PurpleWorker/FarmerPurple.png": { "$ref": "#/defaults/character_sheet" },
-    "Characters/Workers/RedWorker/FarmerRed.png": { "$ref": "#/defaults/character_sheet" },
 
     "Buildings/Cyan/CyanBarracks.png": { "spriteSize": [16, 16] },
     "Buildings/Cyan/CyanChapels.png": { "spriteSize": [16, 16] },
