@@ -1,10 +1,14 @@
 :root {
-  --dk-primary: #4a148c; /* Deep Purple */
-  --dk-secondary: #1a237e; /* Deep Blue */
-  --dk-accent: #ffeb3b; /* Gold */
-  --dk-danger: #d50000; /* Red */
-  --dk-text: #e0e0e0;
-  --dk-bg-panel: rgba(10, 10, 20, 0.95);
+  --dk-primary: #5e35b1; /* Deep Purple */
+  --dk-primary-dark: #311b92;
+  --dk-secondary: #283593; /* Indigo */
+  --dk-accent: #ffd740; /* Amber/Gold */
+  --dk-danger: #ff5252; /* Red Accent */
+  --dk-text: #eceff1;
+  --dk-text-muted: #b0bec5;
+  --dk-bg-panel: rgba(22, 24, 35, 0.95);
+  --dk-border: #455a64;
+  --dk-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
 }
 
 .dk-interface {
@@ -13,74 +17,143 @@
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Let clicks pass through to game world by default */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  pointer-events: none;
+  font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
   color: var(--dk-text);
   overflow: hidden;
+  user-select: none;
 }
+
+/* --- Common Icon Styles --- */
+.dk-icon {
+  width: 32px;
+  height: 32px;
+  background-image: url('/assets/User Interface/UiIcons.png');
+  background-repeat: no-repeat;
+  display: inline-block;
+  vertical-align: middle;
+  image-rendering: pixelated;
+}
+
+.dk-icon-small {
+    transform: scale(0.75);
+}
+
+/* Icon Mappings */
+.dk-icon-stats { background-position: 0 0; }
+.dk-icon-inventory { background-position: -32px 0; }
+.dk-icon-mana { background-position: -32px -256px; }
+.dk-icon-suspicion { background-position: -96px -224px; }
+.dk-icon-skills { background-position: 0 -352px; } /* Small sword */
+.dk-icon-quests { background-position: 0 -320px; } /* Mail */
+.dk-icon-settings { background-position: -64px -320px; } /* Gear Gold */
+.dk-icon-manage { background-position: -128px -128px; } /* Arrow Up (Check Row 4 Col 2? Row 4 is index 16. Col 2 is 18. X=64, Y=128. Let's recheck) */
+/* Actually let's use Arrow Up from Index 12? Row 3 Col 0? No wait. */
+/* Row 4: Arrow Right(16), Left(17), Up(18), Down(19). Index 18.
+   18 / 4 = 4 rem 2. Row 4, Col 2.
+   X = 64, Y = 128.
+*/
+.dk-icon-arrow-up { background-position: -64px -128px; }
+
 
 /* --- Minimized Mode --- */
 .dk-minimized {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  bottom: 16px;
+  left: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  pointer-events: auto; /* Re-enable clicks for UI elements */
+  gap: 12px;
+  pointer-events: auto;
+  align-items: flex-start;
 }
 
 .dk-status-bar {
-  background: rgba(0, 0, 0, 0.7);
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--dk-primary);
+  background: linear-gradient(135deg, rgba(30, 30, 40, 0.9), rgba(20, 20, 30, 0.95));
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--dk-border);
+  box-shadow: var(--dk-shadow);
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  min-width: 150px;
+  gap: 8px;
+  min-width: 160px;
+  backdrop-filter: blur(4px);
 }
 
 .dk-stat-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 10px;
   font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.dk-stat-label {
+    flex: 1;
+    font-size: 12px;
+    color: var(--dk-text-muted);
+    text-transform: uppercase;
 }
 
 .dk-stat-value {
   font-weight: bold;
-  color: var(--dk-accent);
+  font-size: 16px;
+  color: var(--dk-text);
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
 }
+
+.dk-value-mana { color: #4fc3f7; }
+.dk-value-suspicion { color: #fff176; }
 
 .dk-quick-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.dk-btn {
-  background: var(--dk-secondary);
-  border: 1px solid var(--dk-primary);
+.dk-btn-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--dk-border);
+  border-radius: 8px;
   color: var(--dk-text);
-  padding: 8px 12px;
-  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
-  font-weight: bold;
-  text-transform: uppercase;
-  font-size: 12px;
+  transition: all 0.2s ease;
+  font-size: 20px;
 }
 
-.dk-btn:hover {
+.dk-btn-icon:hover {
   background: var(--dk-primary);
-  border-color: var(--dk-accent);
-  box-shadow: 0 0 8px var(--dk-primary);
+  border-color: var(--dk-primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
 
 .dk-btn-toggle {
+  background: var(--dk-primary-dark);
+  color: var(--dk-accent);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--dk-primary);
+  cursor: pointer;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: var(--dk-shadow);
+}
+
+.dk-btn-toggle:hover {
   background: var(--dk-primary);
-  width: 100%;
-  margin-top: 5px;
+  filter: brightness(1.1);
 }
 
 /* --- Full Panel Mode (Drawer) --- */
@@ -89,15 +162,20 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 80%; /* Cover 80% of screen */
+  height: 75%;
+  max-width: 800px; /* Constrain width on tablets/desktop if needed */
+  margin: 0 auto;
+  right: 0; /* Center horizontally if constrained */
   background: var(--dk-bg-panel);
-  border-top: 2px solid var(--dk-primary);
-  box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
-  transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  border-top: 3px solid var(--dk-primary);
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+  transform: translateY(110%);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy effect */
   pointer-events: auto;
   display: flex;
   flex-direction: column;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
 }
 
 .dk-drawer.open {
@@ -108,25 +186,41 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid var(--dk-primary);
-  background: rgba(0,0,0,0.3);
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  background: linear-gradient(to right, rgba(94, 53, 177, 0.2), transparent);
 }
 
 .dk-drawer-title {
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 800;
   color: var(--dk-accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .dk-close-btn {
   background: transparent;
   border: none;
-  color: var(--dk-text);
+  color: var(--dk-text-muted);
   font-size: 24px;
   cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.dk-close-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--dk-text);
 }
 
 .dk-drawer-content {
@@ -136,68 +230,116 @@
 }
 
 .dk-sidebar {
-  width: 120px;
-  background: rgba(0,0,0,0.2);
+  width: 80px; /* Reduced width to just fit icons mainly */
+  background: rgba(0,0,0,0.3);
   display: flex;
   flex-direction: column;
-  padding: 10px 0;
-  border-right: 1px solid rgba(255,255,255,0.1);
+  align-items: center;
+  padding: 16px 0;
+  border-right: 1px solid rgba(255,255,255,0.05);
+  gap: 8px;
 }
 
 .dk-tab-btn {
   background: transparent;
   border: none;
-  color: #aaa;
-  padding: 15px;
-  text-align: left;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  border-left: 4px solid transparent;
   transition: all 0.2s;
+  position: relative;
+}
+
+.dk-tab-btn .dk-icon {
+    opacity: 0.6;
+    transition: opacity 0.2s;
 }
 
 .dk-tab-btn:hover {
   background: rgba(255,255,255,0.05);
-  color: var(--dk-text);
+}
+
+.dk-tab-btn:hover .dk-icon {
+    opacity: 1;
 }
 
 .dk-tab-btn.active {
-  background: rgba(74, 20, 140, 0.3);
-  color: var(--dk-accent);
-  border-left-color: var(--dk-accent);
+  background: rgba(94, 53, 177, 0.3);
+  box-shadow: inset 0 0 0 1px var(--dk-primary);
 }
+
+.dk-tab-btn.active .dk-icon {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px var(--dk-accent));
+}
+
+.dk-tab-tooltip {
+    position: absolute;
+    left: 70px;
+    background: #000;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.dk-tab-btn:hover .dk-tab-tooltip {
+    opacity: 1;
+}
+
 
 .dk-main-view {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
+  background: radial-gradient(circle at top right, rgba(94, 53, 177, 0.05), transparent 70%);
+}
+
+.dk-section-title {
+  margin: 0 0 20px 0;
+  font-size: 24px;
+  color: var(--dk-text);
+  font-weight: 300;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 10px;
 }
 
 .dk-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 16px;
 }
 
 .dk-item-slot {
   aspect-ratio: 1;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid #333;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
 }
 
 .dk-item-slot:hover {
   border-color: var(--dk-accent);
-  background: rgba(255,255,255,0.1);
+  box-shadow: 0 0 10px rgba(255, 215, 64, 0.2);
 }
 
-.dk-section-title {
-  margin-bottom: 15px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  padding-bottom: 5px;
-  color: var(--dk-primary);
-  filter: brightness(1.5);
+.dk-info-row {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--dk-text-muted);
 }
