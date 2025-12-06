@@ -34,7 +34,11 @@ export class AssetLoader {
 
     try {
       // 1. Load the configuration
-      const configResponse = await fetch('/assets/spritesheet_config.json');
+      // Use BASE_URL to handle deployment in subdirectories (e.g. GitHub Pages)
+      const baseUrl = import.meta.env.BASE_URL;
+      const configUrl = `${baseUrl}assets/spritesheet_config.json`;
+
+      const configResponse = await fetch(configUrl);
       const config: ConfigFile = await configResponse.json();
 
       // 2. Process each sheet in the config
@@ -51,8 +55,8 @@ export class AssetLoader {
 
         // Construct the full URL for the asset
         // The path in keys is like "Characters/Workers/FarmerTemplate.png"
-        // We assume these match the structure in public/assets/
-        const assetUrl = `/assets/${path}`;
+        // We prepend the base URL and assets/
+        const assetUrl = `${baseUrl}assets/${path}`;
 
         // Skip if file doesn't exist (handle 404 gracefully or check existence first if possible,
         // but here we might just try to load and catch error)

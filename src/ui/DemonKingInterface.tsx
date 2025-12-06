@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameStore } from '../state/store';
 import './DemonKingInterface.css';
 
@@ -8,6 +8,13 @@ type Tab = 'DASHBOARD' | 'INVENTORY' | 'SKILLS' | 'QUESTS' | 'SETTINGS';
 export const DemonKingInterface = () => {
   const { mana, suspicion, isDrawerOpen, toggleDrawer } = useGameStore();
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
+
+  useEffect(() => {
+    // Inject the correct asset path for CSS variable based on environment
+    const baseUrl = import.meta.env.BASE_URL;
+    const iconUrl = `${baseUrl}assets/User Interface/UiIcons.png`;
+    document.documentElement.style.setProperty('--dk-icon-sheet', `url('${iconUrl}')`);
+  }, []);
 
   const renderContent = () => {
     switch (activeTab) {
