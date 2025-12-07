@@ -29,7 +29,7 @@ export class AssetLoader {
     return AssetLoader.instance;
   }
 
-  public async loadAssets(onProgress?: (progress: number, message: string) => void): Promise<void> {
+  public async loadAssets(onProgress?: (progress: number, message: string) => void, whitelist?: string[]): Promise<void> {
     if (this.initialized) {
         if (onProgress) onProgress(100, 'Done');
         return;
@@ -54,7 +54,10 @@ export class AssetLoader {
       const configResponse = await fetch(configUrl);
       const config: ConfigFile = await configResponse.json();
 
-      const sheets = Object.entries(config.sheets);
+      // Use whitelist if provided, otherwise load all assets
+      const sheets = whitelist
+          ? Object.entries(config.sheets).filter(([path]) => whitelist.includes(path))
+          : Object.entries(config.sheets);
       const totalSheets = sheets.length;
       let loadedSheets = 0;
 

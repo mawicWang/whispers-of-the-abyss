@@ -16,11 +16,18 @@ export const App = () => {
   useEffect(() => {
     const loadGameAssets = async () => {
       const loader = AssetLoader.getInstance();
+      const assetsToLoad = [
+        "Characters/Workers/CyanWorker/FarmerCyan.png",
+        "Characters/Workers/RedWorker/FarmerRed.png",
+        "Characters/Workers/LimeWorker/FarmerLime.png",
+        "Characters/Workers/PurpleWorker/FarmerPurple.png"
+      ];
+
       try {
         await loader.loadAssets((prog, msg) => {
           setProgress(prog);
           setLoadingText(msg);
-        });
+        }, assetsToLoad);
         setLoading(false);
       } catch (e) {
         console.error("Fatal error loading assets:", e);
