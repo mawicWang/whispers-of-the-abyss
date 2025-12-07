@@ -35,10 +35,12 @@ const AutoPlaySprite: React.FC<{
 
 const SimpleAnimationScene: React.FC = () => {
     // State for interactive viewer
+    const [characterType, setCharacterType] = useState('Farmer');
     const [color, setColor] = useState('Cyan');
     const [action, setAction] = useState('idle');
     const [direction, setDirection] = useState('down');
 
+    const characterTypes = ['Farmer', 'Axeman'];
     const colors = ['Cyan', 'Red', 'Lime', 'Purple'];
     const actions = ['idle', 'walk', 'run', 'attack'];
     const directions = ['down', 'up', 'left', 'right'];
@@ -46,7 +48,7 @@ const SimpleAnimationScene: React.FC = () => {
     // At this point, assets are already loaded by App.tsx
     const loader = AssetLoader.getInstance();
 
-    const characterName = `Farmer${color}`;
+    const characterName = `${characterType}${color}`;
     const animKey = `${characterName}_${action}_${direction}`;
     const textures = loader.getAnimation(animKey);
 
@@ -87,14 +89,28 @@ const SimpleAnimationScene: React.FC = () => {
 
             {/* Controls */}
 
+            {/* Character Type */}
+            <pixiText text="Type:" x={20} y={270} style={{ fill: '#aaa', fontSize: 14 }} />
+             {characterTypes.map((t, i) => (
+                <pixiText
+                    key={t}
+                    text={t}
+                    x={20 + i * 80}
+                    y={290}
+                    style={{ ...buttonStyle, fill: characterType === t ? activeColor : '#ffffff' }}
+                    eventMode="static"
+                    onPointerDown={() => setCharacterType(t)}
+                />
+            ))}
+
             {/* Colors */}
-            <pixiText text="Color:" x={20} y={350} style={{ fill: '#aaa', fontSize: 14 }} />
+            <pixiText text="Color:" x={20} y={330} style={{ fill: '#aaa', fontSize: 14 }} />
             {colors.map((c, i) => (
                 <pixiText
                     key={c}
                     text={c}
                     x={20 + i * 60}
-                    y={370}
+                    y={350}
                     style={{ ...buttonStyle, fill: color === c ? activeColor : '#ffffff' }}
                     eventMode="static"
                     onPointerDown={() => setColor(c)}
@@ -102,13 +118,13 @@ const SimpleAnimationScene: React.FC = () => {
             ))}
 
             {/* Actions */}
-            <pixiText text="Action:" x={20} y={420} style={{ fill: '#aaa', fontSize: 14 }} />
+            <pixiText text="Action:" x={20} y={400} style={{ fill: '#aaa', fontSize: 14 }} />
             {actions.map((a, i) => (
                 <pixiText
                     key={a}
                     text={a}
                     x={20 + i * 60}
-                    y={440}
+                    y={420}
                     style={{ ...buttonStyle, fill: action === a ? activeColor : '#ffffff' }}
                     eventMode="static"
                     onPointerDown={() => setAction(a)}
@@ -116,13 +132,13 @@ const SimpleAnimationScene: React.FC = () => {
             ))}
 
              {/* Directions */}
-             <pixiText text="Direction:" x={20} y={490} style={{ fill: '#aaa', fontSize: 14 }} />
+             <pixiText text="Direction:" x={20} y={470} style={{ fill: '#aaa', fontSize: 14 }} />
             {directions.map((d, i) => (
                 <pixiText
                     key={d}
                     text={d}
                     x={20 + i * 60}
-                    y={510}
+                    y={490}
                     style={{ ...buttonStyle, fill: direction === d ? activeColor : '#ffffff' }}
                     eventMode="static"
                     onPointerDown={() => setDirection(d)}
