@@ -20,7 +20,11 @@ export const App = () => {
         "Characters/Workers/CyanWorker/FarmerCyan.png",
         "Characters/Workers/RedWorker/FarmerRed.png",
         "Characters/Workers/LimeWorker/FarmerLime.png",
-        "Characters/Workers/PurpleWorker/FarmerPurple.png"
+        "Characters/Workers/PurpleWorker/FarmerPurple.png",
+        "Characters/Soldiers/Melee/CyanMelee/AxemanCyan.png",
+        "Characters/Soldiers/Melee/RedMelee/AxemanRed.png",
+        "Characters/Soldiers/Melee/LimeMelee/AxemanLime.png",
+        "Characters/Soldiers/Melee/PurpleMelee/AxemanPurple.png"
       ];
 
       try {
