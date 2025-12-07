@@ -29,10 +29,15 @@ export class AssetLoader {
     return AssetLoader.instance;
   }
 
-  public async loadAssets(): Promise<void> {
-    if (this.initialized) return;
+  public async loadAssets(onProgress?: (progress: number, message: string) => void): Promise<void> {
+    if (this.initialized) {
+        if (onProgress) onProgress(100, 'Done');
+        return;
+    }
 
     try {
+      if (onProgress) onProgress(0, 'Initializing...');
+
       // Initialize Assets with preference for workers to offload image decoding
       await Assets.init({
         preferences: {
@@ -45,11 +50,16 @@ export class AssetLoader {
       const baseUrl = import.meta.env.BASE_URL;
       const configUrl = `${baseUrl}assets/spritesheet_config.json`;
 
+      if (onProgress) onProgress(5, 'Loading configuration...');
       const configResponse = await fetch(configUrl);
       const config: ConfigFile = await configResponse.json();
 
+      const sheets = Object.entries(config.sheets);
+      const totalSheets = sheets.length;
+      let loadedSheets = 0;
+
       // 2. Process each sheet in the config
-      const loadPromises = Object.entries(config.sheets).map(async ([path, sheetConfig]) => {
+      const loadPromises = sheets.map(async ([path, sheetConfig]) => {
         // Resolve $ref if present
         let finalConfig = sheetConfig as SpriteSheetConfig;
         if ('$ref' in sheetConfig) {
@@ -61,13 +71,16 @@ export class AssetLoader {
         }
 
         // Construct the full URL for the asset
-        // The path in keys is like "Characters/Workers/FarmerTemplate.png"
-        // We prepend the base URL and assets/
         const assetUrl = `${baseUrl}assets/${path}`;
 
-        // Skip if file doesn't exist (handle 404 gracefully or check existence first if possible,
-        // but here we might just try to load and catch error)
+        // Update progress before loading
+        if (onProgress) onProgress(
+            10 + Math.floor((loadedSheets / totalSheets) * 90),
+            `Loading ${path}...`
+        );
+
         try {
+             // PixiJS Assets.load handles caching automatically via browser headers if no cache-busting query is added.
              const texture = await Assets.load(assetUrl);
              if (!texture) {
                  console.warn(`Failed to load texture: ${assetUrl}`);
@@ -81,17 +94,26 @@ export class AssetLoader {
 
         } catch (e) {
             console.warn(`Could not load asset ${assetUrl}:`, e);
+        } finally {
+            loadedSheets++;
+            if (onProgress) onProgress(
+                10 + Math.floor((loadedSheets / totalSheets) * 90),
+                `Processed ${path}`
+            );
         }
       });
 
       await Promise.all(loadPromises);
       this.initialized = true;
+      if (onProgress) onProgress(100, 'Assets loaded successfully');
+
       console.log('Assets loaded successfully');
       console.log('Textures:', this.textures.keys());
       console.log('Animations:', this.animations.keys());
 
     } catch (error) {
       console.error('Failed to load assets:', error);
+      if (onProgress) onProgress(0, 'Error loading assets');
     }
   }
 
@@ -129,8 +151,6 @@ export class AssetLoader {
               });
 
               // Store animation with a key.
-              // Key convention: "FileNameWithoutExt_AnimationName" or just "AnimationName" if unique?
-              // The plan implies we might want to lookup by "FarmerTemplate_walk_down"
               const sheetName = sheetPath.split('/').pop()?.replace(/\.[^/.]+$/, "") || "unknown";
               const key = `${sheetName}_${animName}`;
               this.animations.set(key, animTextures);
@@ -146,10 +166,6 @@ export class AssetLoader {
                       return;
                }
               const texture = new Texture({ source: baseTexture.source, frame: rect });
-
-              // Key convention: "name" (assuming unique across project or valid enough)
-              // Or "SheetName_name"
-              // Given "house_1" in Houses.png, "house_1" seems good.
               this.textures.set(name, texture);
            });
       };

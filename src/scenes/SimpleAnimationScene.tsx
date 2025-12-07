@@ -34,8 +34,6 @@ const AutoPlaySprite: React.FC<{
 };
 
 const SimpleAnimationScene: React.FC = () => {
-    const [loaded, setLoaded] = useState(false);
-
     // State for interactive viewer
     const [color, setColor] = useState('Cyan');
     const [action, setAction] = useState('idle');
@@ -45,17 +43,7 @@ const SimpleAnimationScene: React.FC = () => {
     const actions = ['idle', 'walk', 'attack'];
     const directions = ['down', 'up', 'left', 'right'];
 
-    useEffect(() => {
-        const load = async () => {
-            const loader = AssetLoader.getInstance();
-            await loader.loadAssets();
-            setLoaded(true);
-        };
-        load();
-    }, []);
-
-    if (!loaded) return null;
-
+    // At this point, assets are already loaded by App.tsx
     const loader = AssetLoader.getInstance();
 
     const characterName = `Farmer${color}`;
