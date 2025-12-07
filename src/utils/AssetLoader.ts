@@ -29,6 +29,10 @@ export class AssetLoader {
     return AssetLoader.instance;
   }
 
+  public static reset(): void {
+      AssetLoader.instance = new AssetLoader();
+  }
+
   public async loadAssets(onProgress?: (progress: number, message: string) => void, whitelist?: string[]): Promise<void> {
     if (this.initialized) {
         if (onProgress) onProgress(100, 'Done');
@@ -48,7 +52,8 @@ export class AssetLoader {
       // 1. Load the configuration
       // Use BASE_URL to handle deployment in subdirectories (e.g. GitHub Pages)
       const baseUrl = import.meta.env.BASE_URL;
-      const configUrl = `${baseUrl}assets/spritesheet_config.json`;
+      // Add timestamp to prevent caching of the configuration file
+      const configUrl = `${baseUrl}assets/spritesheet_config.json?t=${Date.now()}`;
 
       if (onProgress) onProgress(5, 'Loading configuration...');
       const configResponse = await fetch(configUrl);
