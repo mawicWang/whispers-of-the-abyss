@@ -40,7 +40,7 @@ const SimpleAnimationScene: React.FC = () => {
     const [direction, setDirection] = useState('down');
 
     const colors = ['Cyan', 'Red', 'Lime', 'Purple'];
-    const actions = ['idle', 'walk', 'attack'];
+    const actions = ['idle', 'walk', 'run', 'attack'];
     const directions = ['down', 'up', 'left', 'right'];
 
     // At this point, assets are already loaded by App.tsx
@@ -53,6 +53,7 @@ const SimpleAnimationScene: React.FC = () => {
     // Speed logic
     let intervalMs = 300;
     if (action === 'walk') intervalMs = 200;
+    if (action === 'run') intervalMs = 150;
     if (action === 'attack') intervalMs = 100;
 
     // Speed = 1 / (interval / 16.666)
