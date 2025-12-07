@@ -67,6 +67,9 @@ export class AssetLoader {
                  return;
              }
 
+             // Fix for blurry edges: Set scale mode to nearest neighbor
+             texture.source.scaleMode = 'nearest';
+
              this.processSheet(texture, finalConfig, path);
 
         } catch (e) {
