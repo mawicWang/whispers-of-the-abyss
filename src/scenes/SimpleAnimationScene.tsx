@@ -108,7 +108,7 @@ const SimpleAnimationScene: React.FC = () => {
                     y={370}
                     style={{ ...buttonStyle, fill: color === c ? activeColor : '#ffffff' }}
                     eventMode="static"
-                    onpointerdown={() => setColor(c)}
+                    onPointerDown={() => setColor(c)}
                 />
             ))}
 
@@ -122,7 +122,7 @@ const SimpleAnimationScene: React.FC = () => {
                     y={440}
                     style={{ ...buttonStyle, fill: action === a ? activeColor : '#ffffff' }}
                     eventMode="static"
-                    onpointerdown={() => setAction(a)}
+                    onPointerDown={() => setAction(a)}
                 />
             ))}
 
@@ -136,7 +136,7 @@ const SimpleAnimationScene: React.FC = () => {
                     y={510}
                     style={{ ...buttonStyle, fill: direction === d ? activeColor : '#ffffff' }}
                     eventMode="static"
-                    onpointerdown={() => setDirection(d)}
+                    onPointerDown={() => setDirection(d)}
                 />
             ))}
 
