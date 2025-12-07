@@ -33,6 +33,13 @@ export class AssetLoader {
     if (this.initialized) return;
 
     try {
+      // Initialize Assets with preference for workers to offload image decoding
+      await Assets.init({
+        preferences: {
+          preferWorkers: true,
+        },
+      });
+
       // 1. Load the configuration
       // Use BASE_URL to handle deployment in subdirectories (e.g. GitHub Pages)
       const baseUrl = import.meta.env.BASE_URL;
