@@ -74,6 +74,7 @@
         "question_mark": { "frame": 13 },
         "checkmark": { "frame": 14 },
         "arrow_down": { "frame": 16 },
+        "back_arrow": { "frame": 17 },
         "suspicion_icon": { "frame": 31 },
         "mana_icon": { "frame": 33 },
         "mail": { "frame": 40 },

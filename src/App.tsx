@@ -2,18 +2,31 @@ import React, { useEffect, useState } from 'react';
 import { Application, extend } from '@pixi/react';
 import { Container, Sprite, Text, Graphics, TextStyle, AnimatedSprite } from 'pixi.js';
 import SimpleAnimationScene from './scenes/SimpleAnimationScene';
+import { TilemapTestScene } from './scenes/TilemapTestScene';
 import { AssetLoader } from './utils/AssetLoader';
 import LoadingScreen from './ui/LoadingScreen';
+import { MainMenu } from './ui/MainMenu';
+import { NavigationHeader } from './ui/NavigationHeader';
+import { DemonKingInterface } from './ui/DemonKingInterface';
+import './App.css';
 
 // Register PixiJS components
 extend({ Container, Sprite, Text, Graphics, AnimatedSprite });
+
+type SceneState = 'menu' | 'sprites' | 'tilemap';
 
 export const App = () => {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [loadingText, setLoadingText] = useState('Initializing...');
+  const [currentScene, setCurrentScene] = useState<SceneState>('menu');
 
   useEffect(() => {
+    // Inject CSS variable for global UI icons
+    const baseUrl = import.meta.env.BASE_URL;
+    const iconUrl = `${baseUrl}assets/User Interface/UiIcons.png`;
+    document.documentElement.style.setProperty('--dk-icon-sheet', `url('${iconUrl}')`);
+
     const loadGameAssets = async () => {
       const loader = AssetLoader.getInstance();
       const assetsToLoad = [
@@ -24,7 +37,9 @@ export const App = () => {
         "Characters/Soldiers/Melee/CyanMelee/AxemanCyan.png",
         "Characters/Soldiers/Melee/RedMelee/AxemanRed.png",
         "Characters/Soldiers/Melee/LimeMelee/AxemanLime.png",
-        "Characters/Soldiers/Melee/PurpleMelee/AxemanPurple.png"
+        "Characters/Soldiers/Melee/PurpleMelee/AxemanPurple.png",
+        // UI Icons are needed for the interface
+        "User Interface/UiIcons.png"
       ];
 
       try {
@@ -42,14 +57,40 @@ export const App = () => {
     loadGameAssets();
   }, []);
 
+  const getSceneTitle = () => {
+    switch(currentScene) {
+        case 'sprites': return 'Sprites Test';
+        case 'tilemap': return 'Tile Map Test';
+        default: return '';
+    }
+  };
+
   return (
     <div className="game-container">
         {loading ? (
             <LoadingScreen progress={progress} currentAsset={loadingText} />
         ) : (
-            <Application width={360} height={640} backgroundColor={0x222222}>
-                <SimpleAnimationScene />
-            </Application>
+            <>
+                {currentScene === 'menu' && (
+                    <MainMenu onNavigate={(scene) => setCurrentScene(scene as SceneState)} />
+                )}
+
+                {currentScene !== 'menu' && (
+                    <>
+                        <NavigationHeader
+                            title={getSceneTitle()}
+                            onBack={() => setCurrentScene('menu')}
+                        />
+                        <Application width={360} height={640} backgroundColor={0x222222}>
+                            {currentScene === 'sprites' && <SimpleAnimationScene />}
+                            {currentScene === 'tilemap' && <TilemapTestScene />}
+                        </Application>
+
+                        {/* Only show DemonKingInterface in the sprites scene for now */}
+                        {currentScene === 'sprites' && <DemonKingInterface />}
+                    </>
+                )}
+            </>
         )}
     </div>
   );
