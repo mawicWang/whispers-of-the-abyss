@@ -10,9 +10,6 @@ const SimpleAnimationScene: React.FC = () => {
 
     return (
         <pixiContainer>
-             {/* Title */}
-            <pixiText text="Character Viewer" x={20} y={20} style={{ fill: '#ffffff', fontSize: 24 }} />
-
             {/* Character Type Selection - Always Visible */}
             <pixiText text="Type:" x={20} y={270} style={{ fill: '#aaa', fontSize: 14 }} />
              {characterTypes.map((t, i) => (
