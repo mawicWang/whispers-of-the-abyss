@@ -24,7 +24,7 @@ export const App = () => {
   useEffect(() => {
     // Inject CSS variable for global UI icons
     const baseUrl = import.meta.env.BASE_URL;
-    const iconUrl = `${baseUrl}assets/User%20Interface/UiIcons.png`;
+    const iconUrl = `${baseUrl}assets/UserInterface/UiIcons.png`;
     document.documentElement.style.setProperty('--dk-icon-sheet', `url('${iconUrl}')`);
 
     const loadGameAssets = async () => {
@@ -39,7 +39,7 @@ export const App = () => {
         "Characters/Soldiers/Melee/LimeMelee/AxemanLime.png",
         "Characters/Soldiers/Melee/PurpleMelee/AxemanPurple.png",
         // UI Icons are needed for the interface
-        "User Interface/UiIcons.png"
+        "UserInterface/UiIcons.png"
       ];
 
       try {
