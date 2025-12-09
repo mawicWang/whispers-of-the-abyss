@@ -24,7 +24,7 @@ export const App = () => {
   useEffect(() => {
     // Inject CSS variable for global UI icons
     const baseUrl = import.meta.env.BASE_URL;
-    const iconUrl = `${baseUrl}assets/User Interface/UiIcons.png`;
+    const iconUrl = `${baseUrl}assets/User%20Interface/UiIcons.png`;
     document.documentElement.style.setProperty('--dk-icon-sheet', `url('${iconUrl}')`);
 
     const loadGameAssets = async () => {
@@ -90,7 +90,7 @@ export const App = () => {
                 </Application>
 
                 {/* Only show DemonKingInterface in the sprites scene for now */}
-                {currentScene === 'sprites' && <DemonKingInterface />}
+                {/* DemonKingInterface removed from sprites scene per user request */}
             </>
         )}
     </div>
