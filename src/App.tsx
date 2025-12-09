@@ -76,20 +76,21 @@ export const App = () => {
                 )}
 
                 {currentScene !== 'menu' && (
-                    <>
-                        <NavigationHeader
-                            title={getSceneTitle()}
-                            onBack={() => setCurrentScene('menu')}
-                        />
-                        <Application width={360} height={640} backgroundColor={0x222222}>
-                            {currentScene === 'sprites' && <SimpleAnimationScene />}
-                            {currentScene === 'tilemap' && <TilemapTestScene />}
-                        </Application>
-
-                        {/* Only show DemonKingInterface in the sprites scene for now */}
-                        {currentScene === 'sprites' && <DemonKingInterface />}
-                    </>
+                    <NavigationHeader
+                        title={getSceneTitle()}
+                        onBack={() => setCurrentScene('menu')}
+                    />
                 )}
+
+                <Application width={360} height={640} backgroundColor={0x222222}>
+                    {/* Render SimpleAnimationScene as background for menu */}
+                    {currentScene === 'menu' && <SimpleAnimationScene />}
+                    {currentScene === 'sprites' && <SimpleAnimationScene />}
+                    {currentScene === 'tilemap' && <TilemapTestScene />}
+                </Application>
+
+                {/* Only show DemonKingInterface in the sprites scene for now */}
+                {currentScene === 'sprites' && <DemonKingInterface />}
             </>
         )}
     </div>
