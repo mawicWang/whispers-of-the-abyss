@@ -12,7 +12,7 @@ export const DemonKingInterface = () => {
   useEffect(() => {
     // Inject the correct asset path for CSS variable based on environment
     const baseUrl = import.meta.env.BASE_URL;
-    const iconUrl = `${baseUrl}assets/User Interface/UiIcons.png`;
+    const iconUrl = `${baseUrl}assets/UserInterface/UiIcons.png`;
     document.documentElement.style.setProperty('--dk-icon-sheet', `url('${iconUrl}')`);
   }, []);
 
