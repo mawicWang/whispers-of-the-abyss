@@ -23,8 +23,9 @@ export const App = () => {
 
   useEffect(() => {
     // Inject CSS variable for global UI icons
-    const baseUrl = import.meta.env.BASE_URL;
-    const iconUrl = `${baseUrl}assets/UserInterface/UiIcons.png`;
+    // Use document.baseURI to construct an absolute URL, ensuring robust path resolution
+    // whether hosted at root, in a subdirectory, or via local dev server.
+    const iconUrl = new URL('assets/UserInterface/UiIcons.png', document.baseURI).href;
     document.documentElement.style.setProperty('--dk-icon-sheet', `url('${iconUrl}')`);
 
     const loadGameAssets = async () => {
