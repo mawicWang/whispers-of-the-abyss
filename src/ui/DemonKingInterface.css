@@ -34,6 +34,11 @@
   display: inline-block;
   vertical-align: middle;
   image-rendering: pixelated;
+  /*
+     The source image is 64px wide (16x16 tiles), but we render at 32x32.
+     We scale the background to 128px (4 columns * 32px) to align with our CSS coordinates.
+  */
+  background-size: 128px auto;
 }
 
 .dk-icon-small {
