@@ -274,6 +274,16 @@
     "Buildings/Wood/Tower2.png": { "spriteSize": [16, 16] },
     "Buildings/Wood/Workshops.png": { "spriteSize": [16, 16] },
 
+    "Buildings/WoodenTiles.png": {
+      "spriteSize": [16, 16],
+      "columns": 1,
+      "tiles": {
+        "wood_tile_1": { "frame": 0 },
+        "wood_tile_2": { "frame": 1 },
+        "wood_tile_3": { "frame": 2 }
+      }
+    },
+
     "Buildings/Enemy/Mausoleum.png": { "spriteSize": [16, 16] },
     "Buildings/Enemy/SpearWall.png": { "spriteSize": [16, 16] },
 

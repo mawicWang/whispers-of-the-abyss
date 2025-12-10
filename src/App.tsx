@@ -40,7 +40,9 @@ export const App = () => {
         "Characters/Soldiers/Melee/LimeMelee/AxemanLime.png",
         "Characters/Soldiers/Melee/PurpleMelee/AxemanPurple.png",
         // UI Icons are needed for the interface
-        "UserInterface/UiIcons.png"
+        "UserInterface/UiIcons.png",
+        // Tilemap assets
+        "Buildings/WoodenTiles.png"
       ];
 
       try {
