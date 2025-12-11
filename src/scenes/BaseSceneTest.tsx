@@ -123,7 +123,7 @@ export const BaseSceneTest: React.FC = () => {
     const [workerTextures, setWorkerTextures] = useState<Record<string, Texture[]>>({});
 
     // Shared State
-    const { selectedSkill } = useBaseSceneStore();
+    const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
     const { mana, addMana, whisperLevel, setSelectedEntity } = useGameStore();
 
     // Hook for Mana Regen
@@ -273,6 +273,9 @@ export const BaseSceneTest: React.FC = () => {
 
         // Create Zone Entity
         createWhisperZone(x, y, whisperLevel);
+
+        // Cancel selection
+        setSelectedSkill(null);
     };
 
     return (
