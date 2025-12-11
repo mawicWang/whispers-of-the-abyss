@@ -7,6 +7,30 @@ export const MoveSystem = () => {
     const delta = ticker.deltaTime;
 
     for (const entity of ecs.entities) {
+      // Handle Path Following
+      if (entity.path && entity.path.length > 0 && !entity.move && entity.position) {
+          const nextPoint = entity.path[0];
+          // Simple check: if we are close to next point, pop it?
+          // Actually, we should set move target to next point.
+          ecs.addComponent(entity, 'move', {
+              targetX: nextPoint.x,
+              targetY: nextPoint.y,
+              speed: 0.05 // Default speed if not set elsewhere, or preserve existing speed?
+              // Ideally speed should be a component or persistent.
+              // For now let's assume entities with path also have a base 'speed' somewhere or we default.
+              // Wait, 'move' component has speed. We need to know the entity's speed.
+              // Let's assume a default or look for a stats component.
+          });
+          // Check if we need to preserve speed from previous move or a stats component.
+          // For now hardcode or reuse if we can.
+          // We just added 'move' component, so we can access it safely via ecs or just rely on the fact it was added.
+          // However, TS might think entity.move is still undefined because of the loop scope or previous check.
+          // Let's re-query or just trust the addComponent.
+          // Actually, entity.move is typed as optional.
+          // We can just set the speed in the addComponent call (which we did).
+      }
+
+
       if (entity.move && entity.position && entity.appearance) {
         const dx = entity.move.targetX - entity.position.x;
         const dy = entity.move.targetY - entity.position.y;
@@ -19,10 +43,32 @@ export const MoveSystem = () => {
           // Reached target
           entity.position.x = entity.move.targetX;
           entity.position.y = entity.move.targetY;
-          // Remove move component
-          delete entity.move;
-          // Update animation to idle
-          entity.appearance.animation = 'idle';
+
+          // Check if there are more points in path
+          if (entity.path && entity.path.length > 0) {
+             // Remove the point we just reached (assuming it was the first one)
+             // We need to be careful not to remove if we just added it.
+             // Logic: If we reached target, and target matches path[0], pop it.
+             if (entity.path[0].x === entity.move.targetX && entity.path[0].y === entity.move.targetY) {
+                 entity.path.shift();
+             }
+
+             if (entity.path.length > 0) {
+                 const next = entity.path[0];
+                 entity.move.targetX = next.x;
+                 entity.move.targetY = next.y;
+                 // speed remains
+             } else {
+                 delete entity.move;
+                 entity.appearance.animation = 'idle';
+             }
+          } else {
+              // Remove move component
+              delete entity.move;
+              // Update animation to idle
+              entity.appearance.animation = 'idle';
+          }
+
         } else {
           // Normalize and move
           entity.position.x += (dx / dist) * step;

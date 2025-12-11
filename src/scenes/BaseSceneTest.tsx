@@ -5,6 +5,7 @@ import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
 import type { Entity } from '../entities';
+import { findPath } from '../utils/Pathfinding';
 
 const ENTITY_HIT_AREA = new Rectangle(-24, -24, 48, 48); // Large hit area for easy clicking
 import { useTick } from '@pixi/react';
@@ -32,9 +33,23 @@ const createWorker = (x: number, y: number, id: string) => {
         },
         aiState: 'IDLE',
         lastMoveTime: Date.now(),
-        stateEnterTime: Date.now()
+        stateEnterTime: Date.now(),
+        path: [],
+        isNPC: true
     });
 };
+
+const createHouse = (x: number, y: number, variant: number, id: string) => {
+    ecs.add({
+        id,
+        position: { x, y },
+        appearance: {
+            sprite: `House_${variant}`, // Uses the named tiles we defined in spritesheet_config
+        },
+        isObstacle: true,
+        isObject: true
+    });
+}
 
 // Whisper Zone Factory
 const createWhisperZone = (x: number, y: number, level: number) => {
@@ -123,6 +138,7 @@ export const BaseSceneTest: React.FC = () => {
     const [effects, setEffects] = useState<{ id: number; x: number; y: number }[]>([]);
     const [floatingTexts, setFloatingTexts] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
     const [workerTextures, setWorkerTextures] = useState<Record<string, Texture[]>>({});
+    const [staticTextures, setStaticTextures] = useState<Record<string, Texture>>({});
 
     // Shared State
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
@@ -144,10 +160,53 @@ export const BaseSceneTest: React.FC = () => {
         // Clear world
         ecs.clear();
 
+        // Initialize Map & Obstacles
+        const obstacles = new Set<string>(); // Stores "gridX,gridY"
+        const houses = [];
+
+        // Grid config
+        const TILE_SIZE = 16;
+        const GRID_W = Math.floor(360 / TILE_SIZE);
+        const GRID_H = Math.floor(640 / TILE_SIZE);
+
+        // Spawn Houses
+        for (let i = 0; i < 5; i++) {
+             // Random position (aligned to 16px grid)
+             // Padding: keep away from edges
+             const gridX = 2 + Math.floor(Math.random() * (GRID_W - 4));
+             const gridY = 2 + Math.floor(Math.random() * (GRID_H - 4));
+
+             const key = `${gridX},${gridY}`;
+             if (obstacles.has(key)) continue;
+
+             const x = gridX * TILE_SIZE;
+             const y = gridY * TILE_SIZE;
+
+             // Add House
+             const variant = Math.floor(Math.random() * 9) + 1; // 1-9
+             createHouse(x, y, variant, `house-${i}`);
+
+             // Mark obstacle (grid coords)
+             obstacles.add(key);
+
+             houses.push({x, y, gridX, gridY});
+        }
+
         // Spawn Workers
-        createWorker(100, 100, 'worker-1');
-        createWorker(200, 300, 'worker-2');
-        createWorker(150, 400, 'worker-3');
+        houses.forEach((house, idx) => {
+             // Spawn below the house
+             const workerGridX = house.gridX;
+             const workerGridY = house.gridY + 1;
+             const workerKey = `${workerGridX},${workerGridY}`;
+
+             // Check valid spawn
+             if (!obstacles.has(workerKey)) {
+                createWorker(workerGridX * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`);
+             } else {
+                 // Try neighbor (right)
+                 createWorker((workerGridX + 1) * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`);
+             }
+        });
 
         // Load Textures
         const loader = AssetLoader.getInstance();
@@ -160,6 +219,14 @@ export const BaseSceneTest: React.FC = () => {
                     walk
                 });
             }
+
+            // Load House textures
+            const houses: Record<string, Texture> = {};
+            for(let i=1; i<=9; i++) {
+                const t = loader.getTexture(`House_${i}`);
+                if (t) houses[`House_${i}`] = t;
+            }
+            setStaticTextures(houses);
         };
         loadAnims();
 
@@ -178,28 +245,49 @@ export const BaseSceneTest: React.FC = () => {
         // 1. AI / Movement System
         for (const entity of ecs.entities) {
             // Movement Logic
-            if (entity.appearance && entity.position && entity.lastMoveTime) {
-                // If currently moving, skip AI decision
-                if (entity.move) continue;
+            if (entity.appearance && entity.position && entity.lastMoveTime && entity.isNPC) {
+                 // If currently moving or has path, skip AI decision
+                if (entity.move || (entity.path && entity.path.length > 0)) continue;
 
                 // Random wander logic
                 if (now - entity.lastMoveTime > 1000 + Math.random() * 2000) {
-                    // Pick random direction
-                    const dx = (Math.random() - 0.5) * 64; // Move up to 32px
-                    const dy = (Math.random() - 0.5) * 64;
+                    const TILE_SIZE = 16;
+                    const GRID_W = Math.floor(360 / TILE_SIZE);
+                    const GRID_H = Math.floor(640 / TILE_SIZE);
 
-                    // Boundary Check (0-360, 0-640)
-                    const newX = Math.max(16, Math.min(360 - 16, entity.position!.x + dx));
-                    const newY = Math.max(16, Math.min(640 - 16, entity.position!.y + dy));
+                    // Pick random target grid
+                    const targetGridX = 2 + Math.floor(Math.random() * (GRID_W - 4));
+                    const targetGridY = 2 + Math.floor(Math.random() * (GRID_H - 4));
 
-                    // Use Move Component
-                    ecs.addComponent(entity, 'move', {
-                        targetX: newX,
-                        targetY: newY,
-                        speed: 1 // Speed in pixels per frame factor (approx 60px/sec if delta=1)
-                    });
+                    const startGridX = Math.round(entity.position.x / TILE_SIZE);
+                    const startGridY = Math.round(entity.position.y / TILE_SIZE);
 
-                    entity.lastMoveTime = now;
+                    // Build Obstacle Set (Grid Coordinates)
+                    const obstacles = new Set<string>();
+                    for(const e of ecs.entities) {
+                        if (e.isObstacle && e.position) {
+                            const gx = Math.round(e.position.x / TILE_SIZE);
+                            const gy = Math.round(e.position.y / TILE_SIZE);
+                            obstacles.add(`${gx},${gy}`);
+                        }
+                    }
+
+                    // Find Path (Grid Space)
+                    const gridPath = findPath(
+                        { x: startGridX, y: startGridY },
+                        { x: targetGridX, y: targetGridY },
+                        obstacles,
+                        { minX: 0, maxX: GRID_W, minY: 0, maxY: GRID_H }
+                    );
+
+                    if (gridPath.length > 0) {
+                        // Convert Grid Path back to World Coordinates
+                        entity.path = gridPath.map(p => ({
+                            x: p.x * TILE_SIZE,
+                            y: p.y * TILE_SIZE
+                        }));
+                        entity.lastMoveTime = now;
+                    }
                 } else if (now - entity.lastMoveTime > 500) {
                    if (!entity.move && entity.appearance.animation !== 'idle') {
                         entity.appearance.animation = 'idle';
@@ -320,13 +408,34 @@ export const BaseSceneTest: React.FC = () => {
                 }
 
                 if (!entity.position || !entity.appearance) return null;
-                const textures = workerTextures[entity.appearance.animation || 'idle'];
+
+                // Determine what to render: Animation or Static Sprite
+                const isStatic = entity.isObject && entity.appearance.sprite && entity.appearance.sprite.startsWith('House_');
+
                 const isSelected = selectedEntityId === entity.id;
                 const isFollower = entity.attributes?.sanity && entity.attributes.sanity.current <= 0;
 
                 const filters = [];
                 if (isSelected) filters.push(outlineFilter);
                 if (isFollower) filters.push(followerFilter);
+
+                if (isStatic) {
+                     const texture = staticTextures[entity.appearance.sprite];
+                     if (!texture) return null; // Wait for load
+
+                     return (
+                        <pixiSprite
+                            key={entity.id}
+                            texture={texture}
+                            x={entity.position.x}
+                            y={entity.position.y}
+                            eventMode="static"
+                            anchor={0}
+                        />
+                     )
+                }
+
+                const textures = workerTextures[entity.appearance.animation || 'idle'];
 
                 // Fallback visual
                 if (!textures) {
