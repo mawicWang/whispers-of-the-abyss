@@ -33,7 +33,8 @@ const SpellEffect = ({ x, y, onComplete }: { x: number; y: number; onComplete: (
     const [alpha, setAlpha] = useState(1);
     const [scale, setScale] = useState(0.5);
 
-    useTick((delta) => {
+    useTick((ticker: any) => {
+        const delta = ticker.deltaTime ?? ticker;
         if (alpha <= 0) {
             onComplete();
             return;
@@ -65,7 +66,8 @@ const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: 
     const [offsetY, setOffsetY] = useState(0);
     const [alpha, setAlpha] = useState(1);
 
-    useTick((delta) => {
+    useTick((ticker: any) => {
+        const delta = ticker.deltaTime ?? ticker;
         setOffsetY(y => y - 0.5 * delta);
         setAlpha(a => a - 0.02 * delta);
         if (alpha <= 0) onComplete();
@@ -83,8 +85,7 @@ const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: 
                 fontFamily: 'monospace',
                 fontSize: 12,
                 fill: '#ff0000',
-                stroke: '#000000',
-                strokeThickness: 2
+                stroke: { color: '#000000', width: 2 }
             })}
             anchor={0.5}
         />
@@ -138,7 +139,7 @@ export const BaseSceneTest: React.FC = () => {
     }, []);
 
     // Game Loop (Logic & Render Update)
-    useTick((delta) => {
+    useTick((ticker: any) => {
         // 1. AI / Movement System
         const now = Date.now();
         for (const entity of ecs.entities) {
@@ -150,11 +151,11 @@ export const BaseSceneTest: React.FC = () => {
                     const dy = (Math.random() - 0.5) * 64;
 
                     // Boundary Check (0-360, 0-640)
-                    const newX = Math.max(16, Math.min(360 - 16, entity.position.x + dx));
-                    const newY = Math.max(16, Math.min(640 - 16, entity.position.y + dy));
+                    const newX = Math.max(16, Math.min(360 - 16, entity.position!.x + dx));
+                    const newY = Math.max(16, Math.min(640 - 16, entity.position!.y + dy));
 
-                    entity.position.x = newX;
-                    entity.position.y = newY;
+                    entity.position!.x = newX;
+                    entity.position!.y = newY;
                     entity.lastMoveTime = now;
 
                     entity.appearance.animation = 'walk';
@@ -195,8 +196,8 @@ export const BaseSceneTest: React.FC = () => {
                     const textId = textIdCounter.current++;
                     setFloatingTexts(prev => [...prev, {
                         id: textId,
-                        x: entity.position.x,
-                        y: entity.position.y - 20,
+                        x: entity.position!.x,
+                        y: entity.position!.y - 20,
                         text: `San -${damage}`
                     }]);
                 }
@@ -239,10 +240,9 @@ export const BaseSceneTest: React.FC = () => {
 
                 return (
                     <pixiContainer key={entity.id} x={entity.position.x} y={entity.position.y}>
-                        <pixiAnimatedSprite
+                        <AutoPlayAnimatedSprite
                             textures={textures}
                             animationSpeed={0.1}
-                            isPlaying={true}
                             anchor={0.5}
                         />
                             {/* Simple Sanity Bar */}
@@ -286,6 +286,17 @@ export const BaseSceneTest: React.FC = () => {
 
         </pixiContainer>
     );
+};
+
+// Helper for animated sprite
+const AutoPlayAnimatedSprite = ({ textures, animationSpeed, anchor, ...props }: any) => {
+    const ref = useRef<any>(null);
+    useEffect(() => {
+        if (ref.current) {
+            ref.current.play();
+        }
+    }, [textures]);
+    return <pixiAnimatedSprite ref={ref} textures={textures} animationSpeed={animationSpeed} anchor={anchor} {...props} />;
 };
 
 // The UI Component
