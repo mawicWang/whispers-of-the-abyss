@@ -35,6 +35,13 @@ export type Entity = {
   velocity?: { x: number; y: number };
   interactive?: boolean;
 
+  // Movement
+  move?: {
+    targetX: number;
+    targetY: number;
+    speed: number;
+  };
+
   // Game Logic
   role?: 'CIVILIAN' | 'GUARD' | 'PRIEST' | 'TARGET' | 'GHOST';
 

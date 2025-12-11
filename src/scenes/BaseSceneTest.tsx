@@ -7,6 +7,7 @@ import { useTick } from '@pixi/react';
 import { useBaseSceneStore } from '../state/BaseSceneStore';
 import { useGameStore } from '../state/store';
 import { useManaRegen } from '../hooks/useManaRegen';
+import { MoveSystem } from '../systems/MoveSystem';
 
 // Character Factory
 const createWorker = (x: number, y: number, id: string) => {
@@ -169,6 +170,9 @@ export const BaseSceneTest: React.FC = () => {
         for (const entity of ecs.entities) {
             // Movement Logic
             if (entity.appearance && entity.position && entity.lastMoveTime) {
+                // If currently moving, skip AI decision
+                if (entity.move) continue;
+
                 // Random wander logic
                 if (now - entity.lastMoveTime > 1000 + Math.random() * 2000) {
                     // Pick random direction
@@ -179,13 +183,18 @@ export const BaseSceneTest: React.FC = () => {
                     const newX = Math.max(16, Math.min(360 - 16, entity.position!.x + dx));
                     const newY = Math.max(16, Math.min(640 - 16, entity.position!.y + dy));
 
-                    entity.position!.x = newX;
-                    entity.position!.y = newY;
-                    entity.lastMoveTime = now;
+                    // Use Move Component
+                    ecs.addComponent(entity, 'move', {
+                        targetX: newX,
+                        targetY: newY,
+                        speed: 1 // Speed in pixels per frame factor (approx 60px/sec if delta=1)
+                    });
 
-                    entity.appearance.animation = 'walk';
+                    entity.lastMoveTime = now;
                 } else if (now - entity.lastMoveTime > 500) {
-                    entity.appearance.animation = 'idle';
+                   if (!entity.move && entity.appearance.animation !== 'idle') {
+                        entity.appearance.animation = 'idle';
+                   }
                 }
             }
 
@@ -265,6 +274,7 @@ export const BaseSceneTest: React.FC = () => {
 
     return (
         <pixiContainer eventMode="static" onPointerDown={handleStageClick}>
+            <MoveSystem />
             {/* Background (Interactive area) */}
             <pixiGraphics
                 draw={(g) => {
