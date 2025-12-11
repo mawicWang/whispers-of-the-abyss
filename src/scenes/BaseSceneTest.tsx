@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
 import { Texture, BlurFilter, TextStyle, Rectangle } from 'pixi.js';
+import { OutlineFilter } from 'pixi-filters';
 import { ecs } from '../entities';
 import type { Entity } from '../entities';
 
@@ -124,7 +125,10 @@ export const BaseSceneTest: React.FC = () => {
 
     // Shared State
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
-    const { mana, addMana, whisperLevel, setSelectedEntity } = useGameStore();
+    const { mana, addMana, whisperLevel, selectedEntityId, setSelectedEntity } = useGameStore();
+
+    // Create a stable OutlineFilter instance
+    const outlineFilter = useMemo(() => new OutlineFilter({ thickness: 2, color: 0xffffff }), []);
 
     // Hook for Mana Regen
     useManaRegen();
@@ -315,6 +319,7 @@ export const BaseSceneTest: React.FC = () => {
 
                 if (!entity.position || !entity.appearance) return null;
                 const textures = workerTextures[entity.appearance.animation || 'idle'];
+                const isSelected = selectedEntityId === entity.id;
 
                 // Fallback visual
                 if (!textures) {
@@ -349,6 +354,7 @@ export const BaseSceneTest: React.FC = () => {
                             textures={textures}
                             animationSpeed={0.1}
                             anchor={0.5}
+                            filters={isSelected ? [outlineFilter] : null}
                         />
                             {/* Simple Sanity Bar */}
                             {entity.attributes?.sanity && (
