@@ -15,19 +15,8 @@ export const MoveSystem = () => {
           ecs.addComponent(entity, 'move', {
               targetX: nextPoint.x,
               targetY: nextPoint.y,
-              speed: 0.05 // Default speed if not set elsewhere, or preserve existing speed?
-              // Ideally speed should be a component or persistent.
-              // For now let's assume entities with path also have a base 'speed' somewhere or we default.
-              // Wait, 'move' component has speed. We need to know the entity's speed.
-              // Let's assume a default or look for a stats component.
+              speed: entity.speed ?? 1.0
           });
-          // Check if we need to preserve speed from previous move or a stats component.
-          // For now hardcode or reuse if we can.
-          // We just added 'move' component, so we can access it safely via ecs or just rely on the fact it was added.
-          // However, TS might think entity.move is still undefined because of the loop scope or previous check.
-          // Let's re-query or just trust the addComponent.
-          // Actually, entity.move is typed as optional.
-          // We can just set the speed in the addComponent call (which we did).
       }
 
 

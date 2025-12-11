@@ -20,6 +20,7 @@ const createWorker = (x: number, y: number, id: string) => {
     ecs.add({
         id,
         position: { x, y },
+        speed: 1.0,
         appearance: {
             sprite: 'FarmerCyan',
             animation: 'idle',
