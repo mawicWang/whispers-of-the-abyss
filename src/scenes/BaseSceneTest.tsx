@@ -3,8 +3,10 @@ import { AssetLoader } from '../utils/AssetLoader';
 import { Texture, BlurFilter, TextStyle, Rectangle } from 'pixi.js';
 import { ecs } from '../entities';
 import type { Entity } from '../entities';
+import { FollowerFilter } from '../utils/FollowerFilter';
 
 const ENTITY_HIT_AREA = new Rectangle(-24, -24, 48, 48); // Large hit area for easy clicking
+const FOLLOWER_FILTER = new FollowerFilter(); // Shared instance
 import { useTick } from '@pixi/react';
 import { useBaseSceneStore } from '../state/BaseSceneStore';
 import { useGameStore } from '../state/store';
@@ -315,6 +317,7 @@ export const BaseSceneTest: React.FC = () => {
 
                 if (!entity.position || !entity.appearance) return null;
                 const textures = workerTextures[entity.appearance.animation || 'idle'];
+                const isFollower = (entity.attributes?.sanity?.current ?? 10) <= 0;
 
                 // Fallback visual
                 if (!textures) {
@@ -349,6 +352,7 @@ export const BaseSceneTest: React.FC = () => {
                             textures={textures}
                             animationSpeed={0.1}
                             anchor={0.5}
+                            filters={isFollower ? [FOLLOWER_FILTER] : []}
                         />
                             {/* Simple Sanity Bar */}
                             {entity.attributes?.sanity && (
