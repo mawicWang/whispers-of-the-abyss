@@ -33,6 +33,7 @@ export type Entity = {
 
   // Physics/Logic
   velocity?: { x: number; y: number };
+  speed?: number; // Base movement speed (pixels per frame approx)
   interactive?: boolean;
 
   // Movement
