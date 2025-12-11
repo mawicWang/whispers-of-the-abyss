@@ -1,13 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
-import { Texture, BlurFilter, TextStyle } from 'pixi.js';
+import { Texture, BlurFilter, TextStyle, Rectangle } from 'pixi.js';
 import { ecs } from '../entities';
 import type { Entity } from '../entities';
+
+const ENTITY_HIT_AREA = new Rectangle(-24, -24, 48, 48); // Large hit area for easy clicking
 import { useTick } from '@pixi/react';
 import { useBaseSceneStore } from '../state/BaseSceneStore';
 import { useGameStore } from '../state/store';
 import { useManaRegen } from '../hooks/useManaRegen';
 import { MoveSystem } from '../systems/MoveSystem';
+import { CharacterStatusDrawer } from '../ui/CharacterStatusDrawer';
 
 // Character Factory
 const createWorker = (x: number, y: number, id: string) => {
@@ -121,7 +124,7 @@ export const BaseSceneTest: React.FC = () => {
 
     // Shared State
     const { selectedSkill } = useBaseSceneStore();
-    const { mana, addMana, whisperLevel } = useGameStore();
+    const { mana, addMana, whisperLevel, setSelectedEntity } = useGameStore();
 
     // Hook for Mana Regen
     useManaRegen();
@@ -324,7 +327,18 @@ export const BaseSceneTest: React.FC = () => {
                 }
 
                 return (
-                    <pixiContainer key={entity.id} x={entity.position.x} y={entity.position.y}>
+                    <pixiContainer
+                        key={entity.id}
+                        x={entity.position.x}
+                        y={entity.position.y}
+                        eventMode="static"
+                        hitArea={ENTITY_HIT_AREA}
+                        cursor="pointer"
+                        onPointerDown={(e: any) => {
+                            e.stopPropagation();
+                            setSelectedEntity(entity.id || null);
+                        }}
+                    >
                         <AutoPlayAnimatedSprite
                             textures={textures}
                             animationSpeed={0.1}
@@ -452,6 +466,7 @@ export const BaseSceneUI: React.FC = () => {
 
     return (
         <>
+            <CharacterStatusDrawer />
             <div style={manaTextStyle}>
                 {Math.floor(mana)}/{maxMana}
             </div>
