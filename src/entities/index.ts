@@ -50,6 +50,16 @@ export type Entity = {
   stateEnterTime?: number;
   lastMoveTime?: number;
 
+  // Zone / Effect Logic
+  zone?: {
+    type: 'WHISPER';
+    radius: number;
+    duration: number; // seconds remaining
+    damageMin: number;
+    damageMax: number;
+    tickTimer: number; // Accumulates delta time
+  };
+
   // Tags
   isNPC?: boolean;
   isObject?: boolean;

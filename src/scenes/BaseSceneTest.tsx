@@ -5,6 +5,8 @@ import { ecs } from '../entities';
 import type { Entity } from '../entities';
 import { useTick } from '@pixi/react';
 import { useBaseSceneStore } from '../state/BaseSceneStore';
+import { useGameStore } from '../state/store';
+import { useManaRegen } from '../hooks/useManaRegen';
 
 // Character Factory
 const createWorker = (x: number, y: number, id: string) => {
@@ -25,6 +27,22 @@ const createWorker = (x: number, y: number, id: string) => {
         aiState: 'IDLE',
         lastMoveTime: Date.now(),
         stateEnterTime: Date.now()
+    });
+};
+
+// Whisper Zone Factory
+const createWhisperZone = (x: number, y: number, level: number) => {
+    const isLevel1 = level >= 1;
+    ecs.add({
+        position: { x, y },
+        zone: {
+            type: 'WHISPER',
+            radius: 30,
+            duration: isLevel1 ? 20 : 10,
+            damageMin: isLevel1 ? 2 : 1,
+            damageMax: isLevel1 ? 12 : 6,
+            tickTimer: 0
+        }
     });
 };
 
@@ -102,6 +120,10 @@ export const BaseSceneTest: React.FC = () => {
 
     // Shared State
     const { selectedSkill } = useBaseSceneStore();
+    const { mana, addMana, whisperLevel } = useGameStore();
+
+    // Hook for Mana Regen
+    useManaRegen();
 
     // Systems Refs
     const effectIdCounter = useRef(0);
@@ -140,9 +162,12 @@ export const BaseSceneTest: React.FC = () => {
 
     // Game Loop (Logic & Render Update)
     useTick((ticker: any) => {
-        // 1. AI / Movement System
+        const delta = ticker.deltaTime ?? ticker;
         const now = Date.now();
+
+        // 1. AI / Movement System
         for (const entity of ecs.entities) {
+            // Movement Logic
             if (entity.appearance && entity.position && entity.lastMoveTime) {
                 // Random wander logic
                 if (now - entity.lastMoveTime > 1000 + Math.random() * 2000) {
@@ -163,6 +188,46 @@ export const BaseSceneTest: React.FC = () => {
                     entity.appearance.animation = 'idle';
                 }
             }
+
+            // Zone Logic
+            if (entity.zone) {
+                entity.zone.duration -= (delta / 60); // Approx seconds
+                entity.zone.tickTimer += (delta / 60);
+
+                if (entity.zone.duration <= 0) {
+                    ecs.remove(entity);
+                    continue;
+                }
+
+                // Process Tick (Every 1 second)
+                if (entity.zone.tickTimer >= 1.0) {
+                    entity.zone.tickTimer = 0;
+
+                    // Find targets in range
+                    for (const target of ecs.entities) {
+                        if (target !== entity && target.position && target.attributes?.sanity) {
+                             const dx = target.position.x - entity.position!.x;
+                             const dy = target.position.y - entity.position!.y;
+                             const dist = Math.sqrt(dx * dx + dy * dy);
+
+                             if (dist <= entity.zone.radius) {
+                                 // Apply Damage
+                                 const dmg = Math.floor(Math.random() * (entity.zone.damageMax - entity.zone.damageMin + 1)) + entity.zone.damageMin;
+                                 target.attributes.sanity.current = Math.max(0, target.attributes.sanity.current - dmg);
+
+                                 // Floating Text
+                                 const textId = textIdCounter.current++;
+                                 setFloatingTexts(prev => [...prev, {
+                                    id: textId,
+                                    x: target.position!.x,
+                                    y: target.position!.y - 20,
+                                    text: `San -${dmg}`
+                                 }]);
+                             }
+                        }
+                    }
+                }
+            }
         }
         setEntities([...ecs.entities]);
     });
@@ -175,34 +240,27 @@ export const BaseSceneTest: React.FC = () => {
     };
 
     const castWhisper = (x: number, y: number) => {
+        // Mana Check
+        if (mana < 1) {
+             const textId = textIdCounter.current++;
+             setFloatingTexts(prev => [...prev, {
+                id: textId,
+                x: x,
+                y: y,
+                text: `No Mana!`
+             }]);
+             return;
+        }
+
+        // Deduct Mana
+        addMana(-1);
+
         // Visual Effect
         const effectId = effectIdCounter.current++;
         setEffects(prev => [...prev, { id: effectId, x, y }]);
 
-        // Logic: Hit Check (Radius ~30)
-        const radius = 30;
-        for (const entity of ecs.entities) {
-            if (entity.position && entity.attributes?.sanity) {
-                const dx = entity.position.x - x;
-                const dy = entity.position.y - y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist < radius) {
-                    // Hit!
-                    const damage = Math.floor(Math.random() * 6) + 1; // 1-6
-                    entity.attributes.sanity.current = Math.max(0, entity.attributes.sanity.current - damage);
-
-                    // Floating Text
-                    const textId = textIdCounter.current++;
-                    setFloatingTexts(prev => [...prev, {
-                        id: textId,
-                        x: entity.position!.x,
-                        y: entity.position!.y - 20,
-                        text: `San -${damage}`
-                    }]);
-                }
-            }
-        }
+        // Create Zone Entity
+        createWhisperZone(x, y, whisperLevel);
     };
 
     return (
@@ -219,6 +277,23 @@ export const BaseSceneTest: React.FC = () => {
 
             {/* Entities */}
             {entities.map((entity) => {
+                // Render Zone Debug
+                if (entity.zone && entity.position) {
+                    return (
+                        <pixiGraphics
+                            key={`zone-${entity.id || Math.random()}`}
+                            x={entity.position.x}
+                            y={entity.position.y}
+                            draw={(g) => {
+                                g.clear();
+                                g.beginFill(0x9d4edd, 0.2);
+                                g.drawCircle(0, 0, entity.zone!.radius);
+                                g.endFill();
+                            }}
+                        />
+                    );
+                }
+
                 if (!entity.position || !entity.appearance) return null;
                 const textures = workerTextures[entity.appearance.animation || 'idle'];
 
@@ -302,6 +377,7 @@ const AutoPlayAnimatedSprite = ({ textures, animationSpeed, anchor, ...props }: 
 // The UI Component
 export const BaseSceneUI: React.FC = () => {
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
+    const { mana, maxMana } = useGameStore();
 
     const toggleSkill = () => {
         setSelectedSkill(selectedSkill === 'whisper' ? null : 'whisper');
@@ -335,9 +411,25 @@ export const BaseSceneUI: React.FC = () => {
         transformOrigin: 'center'
     };
 
+    const manaStyle: React.CSSProperties = {
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        color: '#fff',
+        fontFamily: 'monospace',
+        fontSize: '16px',
+        pointerEvents: 'none',
+        textShadow: '1px 1px 0 #000'
+    };
+
     return (
-        <div style={containerStyle} onClick={toggleSkill}>
-            <div style={spriteStyle} />
-        </div>
+        <>
+            <div style={manaStyle}>
+                Mana: {Math.floor(mana)}/{maxMana}
+            </div>
+            <div style={containerStyle} onClick={toggleSkill}>
+                <div style={spriteStyle} />
+            </div>
+        </>
     );
 };
