@@ -94,11 +94,11 @@ export const App = () => {
                     {currentScene === 'tilemap' && <BaseSceneTest />}
                 </Application>
 
-                {/* Only show DemonKingInterface in the sprites scene for now */}
-                {/* DemonKingInterface removed from sprites scene per user request */}
+                {/* Show DemonKingInterface in the tilemap scene to test the new layout */}
+                {currentScene === 'tilemap' && <DemonKingInterface />}
 
                 {/* Base Scene UI Overlay */}
-                {currentScene === 'tilemap' && <BaseSceneUI />}
+                {/* {currentScene === 'tilemap' && <BaseSceneUI />} */}
             </>
         )}
     </div>

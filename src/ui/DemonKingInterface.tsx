@@ -81,22 +81,26 @@ export const DemonKingInterface = () => {
       <div className={`dk-minimized ${isDrawerOpen ? 'hidden' : ''}`} style={{ opacity: isDrawerOpen ? 0 : 1, transition: 'opacity 0.2s', pointerEvents: isDrawerOpen ? 'none' : 'auto' }}>
         <div className="dk-status-bar">
           <div className="dk-stat-row">
-            <div className="dk-icon dk-icon-mana dk-icon-small"></div>
-            <span className="dk-stat-label">Mana</span>
-            <span className="dk-stat-value dk-value-mana">{mana}</span>
-          </div>
-          <div className="dk-stat-row">
             <div className="dk-icon dk-icon-suspicion dk-icon-small"></div>
             <span className="dk-stat-label">Suspicion</span>
             <span className="dk-stat-value dk-value-suspicion">{suspicion}%</span>
           </div>
         </div>
 
-        <div className="dk-quick-actions">
-           {/* Placeholder actions - maybe map to skills later */}
-           <div className="dk-btn-icon" title="Fireball">🔥</div>
-           <div className="dk-btn-icon" title="Freeze">❄️</div>
-           <div className="dk-btn-icon" title="Summon">💀</div>
+        <div className="dk-controls-container">
+          <div className="dk-mana-bar-container">
+             <span className="dk-mana-label pixel-font">MANA</span>
+             <div className="dk-mana-track">
+                <div className="dk-mana-fill" style={{ width: `${(mana / 20) * 100}%` }}></div>
+             </div>
+          </div>
+
+          <div className="dk-quick-actions">
+             {/* Placeholder actions - maybe map to skills later */}
+             <div className="dk-btn-icon" title="Fireball">🔥</div>
+             <div className="dk-btn-icon" title="Freeze">❄️</div>
+             <div className="dk-btn-icon" title="Summon">💀</div>
+          </div>
         </div>
 
         <button className="dk-btn-toggle" onClick={() => toggleDrawer(true)}>
