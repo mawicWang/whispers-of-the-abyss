@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Application, extend } from '@pixi/react';
 import { Container, Sprite, Text, Graphics, TextStyle, AnimatedSprite } from 'pixi.js';
 import SimpleAnimationScene from './scenes/SimpleAnimationScene';
-import { TilemapTestScene } from './scenes/TilemapTestScene';
+import { BaseSceneTest, BaseSceneUI } from './scenes/BaseSceneTest';
 import { AssetLoader } from './utils/AssetLoader';
 import LoadingScreen from './ui/LoadingScreen';
 import { MainMenu } from './ui/MainMenu';
@@ -42,7 +42,9 @@ export const App = () => {
         // UI Icons are needed for the interface
         "UserInterface/UiIcons.png",
         // Tilemap assets
-        "Buildings/WoodenTiles.png"
+        "Buildings/WoodenTiles.png",
+        // Skill Icons
+        "Objects/FireballProjectile.png"
       ];
 
       try {
@@ -63,13 +65,13 @@ export const App = () => {
   const getSceneTitle = () => {
     switch(currentScene) {
         case 'sprites': return 'Sprites Test';
-        case 'tilemap': return 'Tile Map Test';
+        case 'tilemap': return 'Base Scene Test';
         default: return '';
     }
   };
 
   return (
-    <div className="game-container">
+    <div className="game-container" id="game-root">
         {loading ? (
             <LoadingScreen progress={progress} currentAsset={loadingText} />
         ) : (
@@ -89,11 +91,14 @@ export const App = () => {
                     {/* Render SimpleAnimationScene as background for menu */}
                     {currentScene === 'menu' && <SimpleAnimationScene />}
                     {currentScene === 'sprites' && <SimpleAnimationScene />}
-                    {currentScene === 'tilemap' && <TilemapTestScene />}
+                    {currentScene === 'tilemap' && <BaseSceneTest />}
                 </Application>
 
                 {/* Only show DemonKingInterface in the sprites scene for now */}
                 {/* DemonKingInterface removed from sprites scene per user request */}
+
+                {/* Base Scene UI Overlay */}
+                {currentScene === 'tilemap' && <BaseSceneUI />}
             </>
         )}
     </div>

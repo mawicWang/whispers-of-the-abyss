@@ -1,0 +1,332 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { AssetLoader } from '../utils/AssetLoader';
+import { Texture, BlurFilter, TextStyle } from 'pixi.js';
+import { ecs } from '../entities';
+import type { Entity } from '../entities';
+import { useTick } from '@pixi/react';
+import { useBaseSceneStore } from '../state/BaseSceneStore';
+
+// Character Factory
+const createWorker = (x: number, y: number, id: string) => {
+    ecs.add({
+        id,
+        position: { x, y },
+        appearance: {
+            sprite: 'FarmerCyan',
+            animation: 'idle',
+            direction: 'down'
+        },
+        attributes: {
+            sanity: {
+                current: Math.floor(Math.random() * 101), // Random 0-100
+                max: 100
+            }
+        },
+        aiState: 'IDLE',
+        lastMoveTime: Date.now(),
+        stateEnterTime: Date.now()
+    });
+};
+
+// Spell Effect Component
+const SpellEffect = ({ x, y, onComplete }: { x: number; y: number; onComplete: () => void }) => {
+    const [alpha, setAlpha] = useState(1);
+    const [scale, setScale] = useState(0.5);
+
+    useTick((delta) => {
+        if (alpha <= 0) {
+            onComplete();
+            return;
+        }
+        setAlpha(a => a - 0.02 * delta);
+        setScale(s => s + 0.01 * delta);
+    });
+
+    if (alpha <= 0) return null;
+
+    return (
+        <pixiGraphics
+            draw={(g) => {
+                g.clear();
+                g.beginFill(0x9d4edd, alpha); // Purple
+                g.drawCircle(0, 0, 20); // Radius 20
+                g.endFill();
+            }}
+            x={x}
+            y={y}
+            scale={{ x: scale, y: scale }}
+            filters={[new BlurFilter(4)]}
+        />
+    );
+};
+
+// Floating Text Component
+const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: string; onComplete: () => void }) => {
+    const [offsetY, setOffsetY] = useState(0);
+    const [alpha, setAlpha] = useState(1);
+
+    useTick((delta) => {
+        setOffsetY(y => y - 0.5 * delta);
+        setAlpha(a => a - 0.02 * delta);
+        if (alpha <= 0) onComplete();
+    });
+
+    if (alpha <= 0) return null;
+
+    return (
+        <pixiText
+            text={text}
+            x={x}
+            y={y + offsetY}
+            alpha={alpha}
+            style={new TextStyle({
+                fontFamily: 'monospace',
+                fontSize: 12,
+                fill: '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 2
+            })}
+            anchor={0.5}
+        />
+    );
+};
+
+// The Pixi Scene Component
+export const BaseSceneTest: React.FC = () => {
+    // Game State
+    const [entities, setEntities] = useState<Entity[]>([]);
+    const [effects, setEffects] = useState<{ id: number; x: number; y: number }[]>([]);
+    const [floatingTexts, setFloatingTexts] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
+    const [workerTextures, setWorkerTextures] = useState<Record<string, Texture[]>>({});
+
+    // Shared State
+    const { selectedSkill } = useBaseSceneStore();
+
+    // Systems Refs
+    const effectIdCounter = useRef(0);
+    const textIdCounter = useRef(0);
+
+    // Initialize
+    useEffect(() => {
+        // Clear world
+        ecs.clear();
+
+        // Spawn Workers
+        createWorker(100, 100, 'worker-1');
+        createWorker(200, 300, 'worker-2');
+        createWorker(150, 400, 'worker-3');
+
+        // Load Textures
+        const loader = AssetLoader.getInstance();
+        const loadAnims = () => {
+            const idle = loader.getAnimation('FarmerCyan_idle_down');
+            const walk = loader.getAnimation('FarmerCyan_walk_down');
+            if (idle && walk) {
+                setWorkerTextures({
+                    idle,
+                    walk
+                });
+            }
+        };
+        loadAnims();
+
+        const updateEntities = () => {
+            setEntities([...ecs.entities]);
+        };
+        updateEntities();
+
+    }, []);
+
+    // Game Loop (Logic & Render Update)
+    useTick((delta) => {
+        // 1. AI / Movement System
+        const now = Date.now();
+        for (const entity of ecs.entities) {
+            if (entity.appearance && entity.position && entity.lastMoveTime) {
+                // Random wander logic
+                if (now - entity.lastMoveTime > 1000 + Math.random() * 2000) {
+                    // Pick random direction
+                    const dx = (Math.random() - 0.5) * 64; // Move up to 32px
+                    const dy = (Math.random() - 0.5) * 64;
+
+                    // Boundary Check (0-360, 0-640)
+                    const newX = Math.max(16, Math.min(360 - 16, entity.position.x + dx));
+                    const newY = Math.max(16, Math.min(640 - 16, entity.position.y + dy));
+
+                    entity.position.x = newX;
+                    entity.position.y = newY;
+                    entity.lastMoveTime = now;
+
+                    entity.appearance.animation = 'walk';
+                } else if (now - entity.lastMoveTime > 500) {
+                    entity.appearance.animation = 'idle';
+                }
+            }
+        }
+        setEntities([...ecs.entities]);
+    });
+
+    const handleStageClick = (e: any) => {
+        if (selectedSkill === 'whisper') {
+            const clickPos = e.data.getLocalPosition(e.currentTarget);
+            castWhisper(clickPos.x, clickPos.y);
+        }
+    };
+
+    const castWhisper = (x: number, y: number) => {
+        // Visual Effect
+        const effectId = effectIdCounter.current++;
+        setEffects(prev => [...prev, { id: effectId, x, y }]);
+
+        // Logic: Hit Check (Radius ~30)
+        const radius = 30;
+        for (const entity of ecs.entities) {
+            if (entity.position && entity.attributes?.sanity) {
+                const dx = entity.position.x - x;
+                const dy = entity.position.y - y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < radius) {
+                    // Hit!
+                    const damage = Math.floor(Math.random() * 6) + 1; // 1-6
+                    entity.attributes.sanity.current = Math.max(0, entity.attributes.sanity.current - damage);
+
+                    // Floating Text
+                    const textId = textIdCounter.current++;
+                    setFloatingTexts(prev => [...prev, {
+                        id: textId,
+                        x: entity.position.x,
+                        y: entity.position.y - 20,
+                        text: `San -${damage}`
+                    }]);
+                }
+            }
+        }
+    };
+
+    return (
+        <pixiContainer eventMode="static" onPointerDown={handleStageClick}>
+            {/* Background (Interactive area) */}
+            <pixiGraphics
+                draw={(g) => {
+                    g.clear();
+                    g.beginFill(0x333333);
+                    g.drawRect(0, 0, 360, 640);
+                    g.endFill();
+                }}
+            />
+
+            {/* Entities */}
+            {entities.map((entity) => {
+                if (!entity.position || !entity.appearance) return null;
+                const textures = workerTextures[entity.appearance.animation || 'idle'];
+
+                // Fallback visual
+                if (!textures) {
+                        return (
+                        <pixiGraphics
+                            key={entity.id}
+                            x={entity.position.x}
+                            y={entity.position.y}
+                            draw={(g) => {
+                                g.beginFill(0x00ff00);
+                                g.drawCircle(0,0,8);
+                                g.endFill();
+                            }}
+                        />
+                        );
+                }
+
+                return (
+                    <pixiContainer key={entity.id} x={entity.position.x} y={entity.position.y}>
+                        <pixiAnimatedSprite
+                            textures={textures}
+                            animationSpeed={0.1}
+                            isPlaying={true}
+                            anchor={0.5}
+                        />
+                            {/* Simple Sanity Bar */}
+                            {entity.attributes?.sanity && (
+                            <pixiGraphics
+                                y={-20}
+                                draw={(g) => {
+                                    g.clear();
+                                    g.beginFill(0x000000);
+                                    g.drawRect(-10, 0, 20, 4);
+                                    g.beginFill(0x0000ff); // Blue for Sanity
+                                    const pct = entity.attributes!.sanity.current / entity.attributes!.sanity.max;
+                                    g.drawRect(-10, 0, 20 * pct, 4);
+                                }}
+                            />
+                            )}
+                    </pixiContainer>
+                );
+            })}
+
+            {/* Effects */}
+            {effects.map(ef => (
+                <SpellEffect
+                    key={ef.id}
+                    x={ef.x}
+                    y={ef.y}
+                    onComplete={() => setEffects(prev => prev.filter(e => e.id !== ef.id))}
+                />
+            ))}
+
+            {/* Floating Texts */}
+            {floatingTexts.map(ft => (
+                <FloatingText
+                    key={ft.id}
+                    x={ft.x}
+                    y={ft.y}
+                    text={ft.text}
+                    onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))}
+                />
+            ))}
+
+        </pixiContainer>
+    );
+};
+
+// The UI Component
+export const BaseSceneUI: React.FC = () => {
+    const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
+
+    const toggleSkill = () => {
+        setSelectedSkill(selectedSkill === 'whisper' ? null : 'whisper');
+    };
+
+    // Style for the button container
+    const containerStyle: React.CSSProperties = {
+        position: 'absolute',
+        bottom: '20px',
+        left: '20px',
+        width: '40px',
+        height: '40px',
+        border: selectedSkill === 'whisper' ? '2px solid #a855f7' : '2px solid #555', // Purple when active
+        borderRadius: '8px',
+        backgroundColor: '#222',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        pointerEvents: 'auto',
+        imageRendering: 'pixelated',
+        zIndex: 100
+    };
+
+    const spriteStyle: React.CSSProperties = {
+        width: '16px',
+        height: '16px',
+        backgroundImage: `url(${new URL('assets/Objects/FireballProjectile.png', document.baseURI).href})`,
+        backgroundPosition: '-48px 0',
+        transform: 'scale(2)',
+        transformOrigin: 'center'
+    };
+
+    return (
+        <div style={containerStyle} onClick={toggleSkill}>
+            <div style={spriteStyle} />
+        </div>
+    );
+};

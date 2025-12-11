@@ -1,15 +1,35 @@
 
 import { World } from 'miniplex';
 
+// Component Interfaces
+export interface BaseAttributeComponent {
+  attributes: {
+    sanity: {
+      current: number;
+      max: number;
+    };
+  };
+}
+
+export interface AppearanceComponent {
+  appearance: {
+    sprite: string; // Key for static texture or spritesheet base name
+    animation?: string; // Current animation state (e.g., 'idle', 'walk')
+    direction?: 'up' | 'down' | 'left' | 'right';
+  };
+}
+
 export type Entity = {
   // Core
   id?: string;
   name?: string;
 
-  // Render
+  // Render (Legacy/Direct)
   position?: { x: number; y: number };
-  sprite?: string; // Key for static texture (e.g., 'house_1')
-  animation?: string; // Key for animation (e.g., 'FarmerTemplate_walk_down')
+
+  // New Composition Components
+  attributes?: BaseAttributeComponent['attributes'];
+  appearance?: AppearanceComponent['appearance'];
 
   // Physics/Logic
   velocity?: { x: number; y: number };
@@ -18,7 +38,7 @@ export type Entity = {
   // Game Logic
   role?: 'CIVILIAN' | 'GUARD' | 'PRIEST' | 'TARGET' | 'GHOST';
 
-  // NPC Stats
+  // NPC Stats (Legacy - keeping for compatibility with existing systems if needed)
   stats?: {
     willpower: number;
     sanity: number;
