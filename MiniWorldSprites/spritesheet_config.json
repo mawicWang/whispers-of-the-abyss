@@ -313,7 +313,16 @@
     "Nature/CoconutTrees.png": { "spriteSize": [16, 16] },
     "Nature/DeadTrees.png": { "spriteSize": [16, 16] },
     "Nature/Trees.png": { "spriteSize": [16, 16] },
-    "Nature/Wheatfield.png": { "spriteSize": [16, 16] },
+    "Nature/Wheatfield.png": {
+      "spriteSize": [16, 16],
+      "columns": 4,
+      "tiles": {
+        "wheat_stage_1": { "frame": 0 },
+        "wheat_stage_2": { "frame": 1 },
+        "wheat_stage_3": { "frame": 2 },
+        "wheat_stage_4": { "frame": 3 }
+      }
+    },
     "Nature/WinterDeadTrees.png": { "spriteSize": [16, 16] },
 
     "Objects/ArrowLong.png": { "spriteSize": [16, 16] },

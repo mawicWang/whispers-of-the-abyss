@@ -75,6 +75,15 @@ export type Entity = {
   isObject?: boolean;
   isGhost?: boolean;
   isObstacle?: boolean;
+  isWheat?: boolean;
+
+  // New Logic
+  growth?: {
+    stage: number;
+    maxStage: number;
+    timer: number;
+    durationPerStage: number;
+  };
 };
 
 export const ecs = new World<Entity>();

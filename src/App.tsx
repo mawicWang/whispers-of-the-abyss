@@ -44,6 +44,7 @@ export const App = () => {
         // Tilemap assets
         "Buildings/WoodenTiles.png",
         "Buildings/Wood/Houses.png",
+        "Nature/Wheatfield.png",
         // Skill Icons
         "Objects/FireballProjectile.png"
       ];
