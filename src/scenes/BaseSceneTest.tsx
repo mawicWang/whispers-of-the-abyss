@@ -18,6 +18,7 @@ import { useGameStore } from '../state/store';
 import { useManaRegen } from '../hooks/useManaRegen';
 import { MoveSystem } from '../systems/MoveSystem';
 import { CharacterStatusDrawer } from '../ui/CharacterStatusDrawer';
+import { createWheatField } from '../entities/WheatField';
 
 // Character Factory
 const createWorker = (x: number, y: number, id: string) => {
@@ -183,8 +184,39 @@ export const BaseSceneTest: React.FC = () => {
         ecs.clear();
 
         // Initialize Map & Obstacles
-        const obstacles = new Set<string>(); // Stores "gridX,gridY"
+        const obstacles = new Set<string>(); // Stores "gridX,gridY" for pathfinding
+        const reservedMap = new Set<string>(); // Stores "gridX,gridY" for generation (houses/wheat)
         const houses = [];
+
+        // Grid config
+        const TILE_SIZE = 16;
+        const GRID_W = Math.floor(360 / TILE_SIZE);
+        const GRID_H = Math.floor(640 / TILE_SIZE);
+
+        // Spawn Wheat Field (4x3)
+        // Bottom 1/3 is approx y > 426. Center X is 180 (approx gridX 11).
+        const wheatCols = 4;
+        const wheatRows = 3;
+        const startGridX = Math.floor((GRID_W - wheatCols) / 2);
+        const startGridY = Math.floor(GRID_H * 0.75); // Place in lower area
+
+        for (let r = 0; r < wheatRows; r++) {
+            for (let c = 0; c < wheatCols; c++) {
+                const gx = startGridX + c;
+                const gy = startGridY + r;
+
+                createWheatField(
+                    gx * TILE_SIZE,
+                    gy * TILE_SIZE,
+                    gx,
+                    gy,
+                    c + 1 // Use different stages for visual variety (columns 1-4)
+                );
+
+                // Mark as reserved so houses don't spawn here
+                reservedMap.add(`${gx},${gy}`);
+            }
+        }
 
         // Spawn Houses
         for (let i = 0; i < 5; i++) {
@@ -194,7 +226,7 @@ export const BaseSceneTest: React.FC = () => {
              const gridY = 2 + Math.floor(Math.random() * (GRID_H - 4));
 
              const key = `${gridX},${gridY}`;
-             if (obstacles.has(key)) continue;
+             if (reservedMap.has(key) || obstacles.has(key)) continue;
 
              const x = gridX * TILE_SIZE;
              const y = gridY * TILE_SIZE;
@@ -205,6 +237,7 @@ export const BaseSceneTest: React.FC = () => {
 
              // Mark obstacle (grid coords)
              obstacles.add(key);
+             reservedMap.add(key);
 
              houses.push({x, y, gridX, gridY});
         }
@@ -242,6 +275,11 @@ export const BaseSceneTest: React.FC = () => {
             for(let i=1; i<=9; i++) {
                 const t = loader.getTexture(`House_${i}`);
                 if (t) houses[`House_${i}`] = t;
+            }
+            // Load Wheat textures
+            for(let i=1; i<=4; i++) {
+                const t = loader.getTexture(`wheat_stage_${i}`);
+                if (t) houses[`wheat_stage_${i}`] = t;
             }
             setStaticTextures(houses);
         };
@@ -425,7 +463,7 @@ export const BaseSceneTest: React.FC = () => {
                 if (!entity.position || !entity.appearance) return null;
 
                 // Determine what to render: Animation or Static Sprite
-                const isStatic = entity.isObject && entity.appearance.sprite && entity.appearance.sprite.startsWith('House_');
+                const isStatic = entity.isObject && entity.appearance.sprite && (entity.appearance.sprite.startsWith('House_') || entity.appearance.sprite.startsWith('wheat_stage_'));
 
                 const isSelected = selectedEntityId === entity.id;
                 const isFollower = entity.attributes?.sanity && entity.attributes.sanity.current <= 0;
