@@ -141,7 +141,7 @@ const DebugGrid = () => (
     <pixiGraphics
         draw={(g) => {
             g.clear();
-            g.lineStyle(1, 0x555555, 0.3);
+
             for (let x = 0; x <= 360; x += TILE_SIZE) {
                 g.moveTo(x, 0);
                 g.lineTo(x, 640);
@@ -150,6 +150,7 @@ const DebugGrid = () => (
                 g.moveTo(0, y);
                 g.lineTo(360, y);
             }
+            g.stroke({ width: 1, color: 0x888888, alpha: 0.5 });
         }}
     />
 );
