@@ -7,10 +7,12 @@ interface GameState {
   suspicion: number;
   isDrawerOpen: boolean;
   whisperLevel: number;
+  selectedEntityId: string | null;
   addMana: (amount: number) => void;
   increaseSuspicion: (amount: number) => void;
   toggleDrawer: (isOpen?: boolean) => void;
   setWhisperLevel: (level: number) => void;
+  setSelectedEntity: (id: string | null) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -19,10 +21,12 @@ export const useGameStore = create<GameState>((set) => ({
   suspicion: 0,
   isDrawerOpen: false,
   whisperLevel: 0,
+  selectedEntityId: null,
   addMana: (amount) => set((state) => ({
     mana: Math.max(0, Math.min(state.maxMana, state.mana + amount))
   })),
   increaseSuspicion: (amount) => set((state) => ({ suspicion: state.suspicion + amount })),
   toggleDrawer: (isOpen) => set((state) => ({ isDrawerOpen: isOpen !== undefined ? isOpen : !state.isDrawerOpen })),
   setWhisperLevel: (level) => set({ whisperLevel: level }),
+  setSelectedEntity: (id) => set({ selectedEntityId: id }),
 }));
