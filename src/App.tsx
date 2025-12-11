@@ -43,6 +43,7 @@ export const App = () => {
         "UserInterface/UiIcons.png",
         // Tilemap assets
         "Buildings/WoodenTiles.png",
+        "Buildings/Wood/Houses.png",
         // Skill Icons
         "Objects/FireballProjectile.png"
       ];

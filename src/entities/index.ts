@@ -42,6 +42,8 @@ export type Entity = {
     speed: number;
   };
 
+  path?: { x: number; y: number }[]; // Queue of path points
+
   // Game Logic
   role?: 'CIVILIAN' | 'GUARD' | 'PRIEST' | 'TARGET' | 'GHOST';
 
@@ -71,6 +73,7 @@ export type Entity = {
   isNPC?: boolean;
   isObject?: boolean;
   isGhost?: boolean;
+  isObstacle?: boolean;
 };
 
 export const ecs = new World<Entity>();

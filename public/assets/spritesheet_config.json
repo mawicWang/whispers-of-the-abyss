@@ -264,7 +264,21 @@
     "Buildings/Wood/CaveV2.png": { "spriteSize": [16, 16] },
     "Buildings/Wood/Chapels.png": { "spriteSize": [16, 16] },
     "Buildings/Wood/Docks.png": { "spriteSize": [16, 16] },
-    "Buildings/Wood/Houses.png": { "spriteSize": [16, 16] },
+    "Buildings/Wood/Houses.png": {
+      "spriteSize": [16, 16],
+      "columns": 3,
+      "tiles": {
+        "House_1": { "frame": 3 },
+        "House_2": { "frame": 4 },
+        "House_3": { "frame": 5 },
+        "House_4": { "frame": 6 },
+        "House_5": { "frame": 7 },
+        "House_6": { "frame": 8 },
+        "House_7": { "frame": 9 },
+        "House_8": { "frame": 10 },
+        "House_9": { "frame": 11 }
+      }
+    },
     "Buildings/Wood/Huts.png": { "spriteSize": [16, 16] },
     "Buildings/Wood/Keep.png": { "spriteSize": [16, 16] },
     "Buildings/Wood/Market.png": { "spriteSize": [16, 16] },
