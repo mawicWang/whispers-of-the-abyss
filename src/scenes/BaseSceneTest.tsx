@@ -248,6 +248,9 @@ export const BaseSceneTest: React.FC = () => {
         if (selectedSkill === 'whisper') {
             const clickPos = e.data.getLocalPosition(e.currentTarget);
             castWhisper(clickPos.x, clickPos.y);
+        } else {
+            // Not in casting mode, dismiss character sheet if clicking blank area
+            setSelectedEntity(null);
         }
     };
 
