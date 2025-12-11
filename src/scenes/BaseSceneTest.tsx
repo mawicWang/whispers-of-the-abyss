@@ -7,6 +7,10 @@ import { ecs } from '../entities';
 import type { Entity } from '../entities';
 import { findPath } from '../utils/Pathfinding';
 
+const TILE_SIZE = 16;
+const GRID_W = Math.floor(360 / TILE_SIZE);
+const GRID_H = Math.floor(640 / TILE_SIZE);
+
 const ENTITY_HIT_AREA = new Rectangle(-24, -24, 48, 48); // Large hit area for easy clicking
 import { useTick } from '@pixi/react';
 import { useBaseSceneStore } from '../state/BaseSceneStore';
@@ -132,6 +136,23 @@ const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: 
         />
     );
 };
+
+const DebugGrid = () => (
+    <pixiGraphics
+        draw={(g) => {
+            g.clear();
+            g.lineStyle(1, 0x555555, 0.3);
+            for (let x = 0; x <= 360; x += TILE_SIZE) {
+                g.moveTo(x, 0);
+                g.lineTo(x, 640);
+            }
+            for (let y = 0; y <= 640; y += TILE_SIZE) {
+                g.moveTo(0, y);
+                g.lineTo(360, y);
+            }
+        }}
+    />
+);
 
 // The Pixi Scene Component
 export const BaseSceneTest: React.FC = () => {
@@ -285,10 +306,6 @@ export const BaseSceneTest: React.FC = () => {
 
                 // Random wander logic
                 if (now - entity.lastMoveTime > 1000 + Math.random() * 2000) {
-                    const TILE_SIZE = 16;
-                    const GRID_W = Math.floor(360 / TILE_SIZE);
-                    const GRID_H = Math.floor(640 / TILE_SIZE);
-
                     // Pick random target grid
                     const targetGridX = 2 + Math.floor(Math.random() * (GRID_W - 4));
                     const targetGridY = 2 + Math.floor(Math.random() * (GRID_H - 4));
@@ -359,7 +376,7 @@ export const BaseSceneTest: React.FC = () => {
                                  const textId = textIdCounter.current++;
                                  setFloatingTexts(prev => [...prev, {
                                     id: textId,
-                                    x: target.position!.x,
+                                    x: target.position!.x + TILE_SIZE / 2,
                                     y: target.position!.y - 20,
                                     text: `San -${dmg}`
                                  }]);
@@ -421,6 +438,8 @@ export const BaseSceneTest: React.FC = () => {
                     g.endFill();
                 }}
             />
+
+            <DebugGrid />
 
             {/* Entities */}
             {entities.map((entity) => {
@@ -490,8 +509,8 @@ export const BaseSceneTest: React.FC = () => {
                 return (
                     <pixiContainer
                         key={entity.id}
-                        x={entity.position.x}
-                        y={entity.position.y}
+                        x={entity.position.x + TILE_SIZE / 2}
+                        y={entity.position.y + TILE_SIZE / 2}
                         eventMode="static"
                         hitArea={ENTITY_HIT_AREA}
                         cursor="pointer"
