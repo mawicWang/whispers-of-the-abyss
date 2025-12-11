@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
 import { Texture, BlurFilter, TextStyle, Rectangle } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
+import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
 import type { Entity } from '../entities';
 
@@ -127,8 +128,9 @@ export const BaseSceneTest: React.FC = () => {
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
     const { mana, addMana, whisperLevel, selectedEntityId, setSelectedEntity } = useGameStore();
 
-    // Create a stable OutlineFilter instance
+    // Create stable Filter instances
     const outlineFilter = useMemo(() => new OutlineFilter({ thickness: 2, color: 0xffffff }), []);
+    const followerFilter = useMemo(() => new FollowerFilter(), []);
 
     // Hook for Mana Regen
     useManaRegen();
@@ -320,6 +322,11 @@ export const BaseSceneTest: React.FC = () => {
                 if (!entity.position || !entity.appearance) return null;
                 const textures = workerTextures[entity.appearance.animation || 'idle'];
                 const isSelected = selectedEntityId === entity.id;
+                const isFollower = entity.attributes?.sanity && entity.attributes.sanity.current <= 0;
+
+                const filters = [];
+                if (isSelected) filters.push(outlineFilter);
+                if (isFollower) filters.push(followerFilter);
 
                 // Fallback visual
                 if (!textures) {
@@ -354,7 +361,7 @@ export const BaseSceneTest: React.FC = () => {
                             textures={textures}
                             animationSpeed={0.1}
                             anchor={0.5}
-                            filters={isSelected ? [outlineFilter] : null}
+                            filters={filters.length > 0 ? filters : null}
                         />
                             {/* Simple Sanity Bar */}
                             {entity.attributes?.sanity && (
