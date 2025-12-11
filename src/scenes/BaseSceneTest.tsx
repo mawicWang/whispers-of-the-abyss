@@ -411,21 +411,42 @@ export const BaseSceneUI: React.FC = () => {
         transformOrigin: 'center'
     };
 
-    const manaStyle: React.CSSProperties = {
+    const manaContainerStyle: React.CSSProperties = {
         position: 'absolute',
-        top: '20px',
-        left: '20px',
-        color: '#fff',
+        bottom: '0',
+        left: '0',
+        width: '100%',
+        height: '6px',
+        backgroundColor: '#1a1a1a',
+        borderTop: '1px solid #333',
+        zIndex: 90
+    };
+
+    const manaFillStyle: React.CSSProperties = {
+        height: '100%',
+        width: `${Math.max(0, Math.min(100, (mana / maxMana) * 100))}%`,
+        backgroundColor: '#4fc3f7',
+        transition: 'width 0.2s ease-out'
+    };
+
+    const manaTextStyle: React.CSSProperties = {
+        position: 'absolute',
+        bottom: '8px',
+        right: '4px',
+        color: '#4fc3f7',
         fontFamily: 'monospace',
-        fontSize: '16px',
+        fontSize: '10px',
         pointerEvents: 'none',
         textShadow: '1px 1px 0 #000'
     };
 
     return (
         <>
-            <div style={manaStyle}>
-                Mana: {Math.floor(mana)}/{maxMana}
+            <div style={manaTextStyle}>
+                {Math.floor(mana)}/{maxMana}
+            </div>
+            <div style={manaContainerStyle}>
+                <div style={manaFillStyle} />
             </div>
             <div style={containerStyle} onClick={toggleSkill}>
                 <div style={spriteStyle} />
