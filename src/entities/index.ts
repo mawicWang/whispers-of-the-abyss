@@ -90,6 +90,8 @@ export type Entity = {
     timer: number;
     durationPerStage: number;
   };
+
+  claimedBy?: string;
 };
 
 export const ecs = new World<Entity>();
