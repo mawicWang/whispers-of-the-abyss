@@ -8,8 +8,9 @@ import type { Graphics as PixiGraphics } from 'pixi.js';
 // Constants matching BaseSceneTest
 const TILE_SIZE = 16;
 // Viewport size for the observer - updated per user request to 2 * TILE_SIZE
-const VIEW_WIDTH = 2 * TILE_SIZE;
-const VIEW_HEIGHT = 2 * TILE_SIZE;
+const VIEW_WIDTH = 128;
+const VIEW_HEIGHT = 128;
+const ZOOM_LEVEL = 2.5;
 // How far from the center to check for entities (optimization)
 const RENDER_RADIUS = 64;
 
@@ -97,12 +98,15 @@ const ObserverScene: React.FC<{ targetId: string }> = ({ targetId }) => {
 
         // 2. Camera Follow
         if (containerRef.current) {
-            // Center the container on the target
-            // Screen Center is (VIEW_WIDTH/2, VIEW_HEIGHT/2)
-            // World Target is (tx + TILE_SIZE/2, ty + TILE_SIZE/2)  <-- Center of tile
-            // Container Pos = Screen Center - World Target
-            containerRef.current.x = VIEW_WIDTH / 2 - (tx + TILE_SIZE/2);
-            containerRef.current.y = VIEW_HEIGHT / 2 - (ty + TILE_SIZE/2);
+            containerRef.current.scale.set(ZOOM_LEVEL);
+
+            const screenCenterX = VIEW_WIDTH / 2;
+            const screenCenterY = VIEW_HEIGHT / 2;
+            const targetCenterX = tx + TILE_SIZE / 2;
+            const targetCenterY = ty + TILE_SIZE / 2;
+
+            containerRef.current.x = Math.round(screenCenterX - (targetCenterX * ZOOM_LEVEL));
+            containerRef.current.y = Math.round(screenCenterY - (targetCenterY * ZOOM_LEVEL));
         }
 
         // 3. Find nearby entities for background
@@ -149,8 +153,8 @@ const ObserverScene: React.FC<{ targetId: string }> = ({ targetId }) => {
                     key={e.id}
                     textures={textures}
                     animationSpeed={speed}
-                    x={e.position!.x + TILE_SIZE / 2}
-                    y={e.position!.y + TILE_SIZE / 2}
+                    x={Math.round(e.position!.x + TILE_SIZE / 2)}
+                    y={Math.round(e.position!.y + TILE_SIZE / 2)}
                     anchor={0.5}
                 />
             );
@@ -160,8 +164,8 @@ const ObserverScene: React.FC<{ targetId: string }> = ({ targetId }) => {
         return (
                 <pixiGraphics
                 key={e.id}
-                x={e.position!.x + TILE_SIZE / 2}
-                y={e.position!.y + TILE_SIZE / 2}
+                x={Math.round(e.position!.x + TILE_SIZE / 2)}
+                y={Math.round(e.position!.y + TILE_SIZE / 2)}
                 draw={(g: PixiGraphics) => {
                     g.beginFill(0xff0000, 0.5);
                     g.drawCircle(0,0,6);
