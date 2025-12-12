@@ -11,7 +11,8 @@ const GRID_H = Math.floor(640 / TILE_SIZE);
 const HOME_POSITION = { x: 10 * TILE_SIZE, y: 10 * TILE_SIZE }; // Example home
 const REST_RECOVERY_RATE = 1; // 1 stamina per second
 const REST_DURATION = 10000; // 10 seconds mandatory rest at door (as per prompt)
-const FARM_INTERVAL = 500; // 0.5s
+const FARM_ANIMATION_DURATION = 800; // 8 frames * 100ms
+const FARM_INTERVAL = 1000; // Total interval including animation and pause
 
 // Helper to collect obstacles (could be optimized to run once per frame if performance is an issue)
 const getObstacles = () => {
@@ -198,22 +199,36 @@ export const FarmAction: GoatAction = {
 
         const targetId = entity.goat.blackboard.targetFarmId;
         const target = ecs.entities.find(e => e.id === targetId);
+        const now = Date.now();
 
         // Validation
         if (!target || target.claimedBy !== entity.id) {
              // Lost target
+             entity.goat.blackboard.farmStartTime = undefined;
              return true; // Abort action sequence
         }
 
-        // Wait for cooldown
-        const now = Date.now();
-        const lastFarm = entity.goat.blackboard.lastFarmTime || 0;
-        if (now - lastFarm < FARM_INTERVAL) {
-            if (entity.appearance) entity.appearance.animation = 'idle';
-            return false;
+        // State: Not started
+        if (entity.goat.blackboard.farmStartTime === undefined) {
+             entity.goat.blackboard.farmStartTime = now;
+             if (entity.appearance) {
+                 entity.appearance.animation = 'attack';
+             }
+             return false; // Wait for animation
         }
 
-        // Perform action
+        // State: In Progress
+        const elapsed = now - entity.goat.blackboard.farmStartTime;
+        if (elapsed < FARM_ANIMATION_DURATION) {
+             // Ensure animation
+             if (entity.appearance && entity.appearance.animation !== 'attack') {
+                 entity.appearance.animation = 'attack';
+             }
+             return false;
+        }
+
+        // State: Complete (Animation done)
+        entity.goat.blackboard.farmStartTime = undefined;
         entity.goat.blackboard.lastFarmTime = now;
         entity.attributes.stamina.current = Math.max(0, entity.attributes.stamina.current - 1);
 
@@ -224,9 +239,9 @@ export const FarmAction: GoatAction = {
              target.appearance!.sprite = `wheat_stage_${target.growth.stage}`;
         }
 
-        // Animation
+        // Set back to idle momentarily (though next action might override)
         if (entity.appearance) {
-            entity.appearance.animation = 'attack';
+            entity.appearance.animation = 'idle';
         }
 
         return true;
