@@ -521,9 +521,17 @@ export const BaseSceneTest: React.FC = () => {
                      )
                 }
 
-                const animKey = `${entity.appearance.sprite}_${entity.appearance.animation || 'idle'}`;
+                const action = entity.appearance.animation || 'idle';
+                const animKey = `${entity.appearance.sprite}_${action}`;
                 const textures = workerTextures[animKey];
-                const isAttack = entity.appearance.animation?.startsWith('attack');
+
+                // Calculate animation speed (Logic from WorkerControl)
+                // Speed = 1 / (interval / 16.666)
+                let intervalMs = 300; // idle
+                if (action === 'walk') intervalMs = 200;
+                if (action === 'run') intervalMs = 150;
+                if (action.startsWith('attack')) intervalMs = 100;
+                const animationSpeed = 1 / (intervalMs / 16.666);
 
                 // Fallback visual
                 if (!textures) {
@@ -556,7 +564,7 @@ export const BaseSceneTest: React.FC = () => {
                     >
                         <AutoPlayAnimatedSprite
                             textures={textures}
-                            animationSpeed={isAttack ? 0.3 : 0.1}
+                            animationSpeed={animationSpeed}
                             anchor={0.5}
                             filters={filters.length > 0 ? filters : null}
                         />
