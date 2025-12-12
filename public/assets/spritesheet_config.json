@@ -17,10 +17,10 @@
         "run_up": { "frames": "26,27,28,29" },
         "run_right": { "frames": "31,32,33,34" },
         "run_left": { "frames": "36,37,38,39" },
-        "attack_down": { "frames": "40,41,42" },
-        "attack_up": { "frames": "45,46,47" },
-        "attack_right": { "frames": "50,51,52" },
-        "attack_left": { "frames": "55,56,57" }
+        "attack_down": { "frames": "40,40,40,40,40,40,41,42" },
+        "attack_up": { "frames": "45,45,45,45,45,45,46,47" },
+        "attack_right": { "frames": "50,50,50,50,50,50,51,52" },
+        "attack_left": { "frames": "55,55,55,55,55,55,56,57" }
       }
     },
     "axeman_sheet": {

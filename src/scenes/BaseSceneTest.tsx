@@ -523,6 +523,7 @@ export const BaseSceneTest: React.FC = () => {
 
                 const animKey = `${entity.appearance.sprite}_${entity.appearance.animation || 'idle'}`;
                 const textures = workerTextures[animKey];
+                const isAttack = entity.appearance.animation?.startsWith('attack');
 
                 // Fallback visual
                 if (!textures) {
@@ -555,7 +556,7 @@ export const BaseSceneTest: React.FC = () => {
                     >
                         <AutoPlayAnimatedSprite
                             textures={textures}
-                            animationSpeed={0.1}
+                            animationSpeed={isAttack ? 0.3 : 0.1}
                             anchor={0.5}
                             filters={filters.length > 0 ? filters : null}
                         />
