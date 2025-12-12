@@ -17,6 +17,7 @@ import { useBaseSceneStore } from '../state/BaseSceneStore';
 import { useGameStore } from '../state/store';
 import { useManaRegen } from '../hooks/useManaRegen';
 import { MoveSystem } from '../systems/MoveSystem';
+import { GoatSystem } from '../systems/GoatSystem';
 import { CharacterStatusDrawer } from '../ui/CharacterStatusDrawer';
 import { createWheatField } from '../entities/WheatField';
 
@@ -35,9 +36,21 @@ const createWorker = (x: number, y: number, id: string) => {
             sanity: {
                 current: Math.floor(Math.random() * 101), // Random 0-100
                 max: 100
+            },
+            stamina: {
+                current: 10,
+                max: 10
             }
         },
-        aiState: 'IDLE',
+        goat: {
+            goals: ['Farm'],
+            currentGoal: 'Farm',
+            plan: [],
+            currentActionIndex: 0,
+            blackboard: {
+                homePosition: { x, y } // Home is where they spawn
+            }
+        },
         lastMoveTime: Date.now(),
         stateEnterTime: Date.now(),
         path: [],
@@ -262,13 +275,36 @@ export const BaseSceneTest: React.FC = () => {
         // Load Textures
         const loader = AssetLoader.getInstance();
         const loadAnims = () => {
-            const idle = loader.getAnimation('FarmerCyan_idle_down');
-            const walk = loader.getAnimation('FarmerCyan_walk_down');
-            if (idle && walk) {
-                setWorkerTextures({
-                    idle,
-                    walk
-                });
+            // Load base animations for FarmerCyan
+            // We should load all basic animations to prevent fallbacks to green circles
+            const anims: Record<string, Texture[]> = {};
+
+            const actions = ['idle', 'walk', 'attack', 'run'];
+            const directions = ['down', 'up', 'left', 'right'];
+
+            actions.forEach(action => {
+                // Try to load directional specific if possible, otherwise fallback?
+                // For now, let's load what we know exists
+                // We will flatten the key: e.g. "idle" -> idle_down
+                // But robustly we should key by "action_direction" if we updated the rendering logic.
+                // However, the rendering logic below uses `workerTextures[entity.appearance.animation || 'idle']`.
+                // It does NOT use direction currently for keying textures.
+                // So all directions use the same animation set (which defaults to 'down' usually if we just pick one).
+                // But wait, the previous code loaded `FarmerCyan_idle_down` and assigned it to `idle`.
+
+                // Let's improve this: Load ALL and let the render logic pick the right one if we want.
+                // OR, simplest fix for "Green Circle": ensure 'attack' key exists.
+
+                // Load 'down' variants as default for the keys 'idle', 'walk', 'attack'
+                const downAnim = loader.getAnimation(`FarmerCyan_${action}_down`);
+                if (downAnim) {
+                    anims[action] = downAnim;
+                }
+            });
+
+            // If we found valid animations, update state
+            if (Object.keys(anims).length > 0) {
+                 setWorkerTextures(anims);
             }
 
             // Load House textures
@@ -300,8 +336,8 @@ export const BaseSceneTest: React.FC = () => {
 
         // 1. AI / Movement System
         for (const entity of ecs.entities) {
-            // Movement Logic
-            if (entity.appearance && entity.position && entity.lastMoveTime && entity.isNPC) {
+            // Legacy AI: Skip if entity has GoatComponent
+            if (entity.appearance && entity.position && entity.lastMoveTime && entity.isNPC && !entity.goat) {
                  // If currently moving or has path, skip AI decision
                 if (entity.move || (entity.path && entity.path.length > 0)) continue;
 
@@ -430,6 +466,7 @@ export const BaseSceneTest: React.FC = () => {
     return (
         <pixiContainer eventMode="static" onPointerDown={handleStageClick}>
             <MoveSystem />
+            <GoatSystem />
             {/* Background (Interactive area) */}
             <pixiGraphics
                 draw={(g) => {

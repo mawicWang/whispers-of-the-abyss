@@ -115,9 +115,14 @@ export const CharacterStatusDrawer: React.FC = () => {
     if (!entity && !isOpen) return null;
 
     const sanity = entity?.attributes?.sanity;
-    const current = sanity?.current ?? 0;
-    const max = sanity?.max ?? 100;
-    const pct = Math.max(0, Math.min(100, (current / max) * 100));
+    const currentSanity = sanity?.current ?? 0;
+    const maxSanity = sanity?.max ?? 100;
+    const sanityPct = Math.max(0, Math.min(100, (currentSanity / maxSanity) * 100));
+
+    const stamina = entity?.attributes?.stamina;
+    const currentStamina = stamina?.current ?? 0;
+    const maxStamina = stamina?.max ?? 10;
+    const staminaPct = Math.max(0, Math.min(100, (currentStamina / maxStamina) * 100));
 
     return (
         <div style={styles.drawer}>
@@ -139,13 +144,21 @@ export const CharacterStatusDrawer: React.FC = () => {
                      {entity?.id || 'Unknown'}
                 </div>
                 <div style={styles.statRow}>
-                    <span>理智:</span>
-                    <span>{Math.floor(current)}/{max}</span>
+                    <span style={{ minWidth: '40px' }}>理智:</span>
+                    <div style={styles.barContainer}>
+                        <div style={{ ...styles.barFill, width: `${sanityPct}%`, backgroundColor: '#4fc3f7' }} />
+                    </div>
+                    <span>{Math.floor(currentSanity)}/{maxSanity}</span>
                 </div>
-                {/* Visual Bar for Sanity */}
-                <div style={styles.barContainer}>
-                    <div style={{ ...styles.barFill, width: `${pct}%` }} />
-                </div>
+                {stamina && (
+                    <div style={styles.statRow}>
+                        <span style={{ minWidth: '40px' }}>精力:</span>
+                        <div style={styles.barContainer}>
+                            <div style={{ ...styles.barFill, width: `${staminaPct}%`, backgroundColor: '#4caf50' }} />
+                        </div>
+                        <span>{Math.floor(currentStamina)}/{maxStamina}</span>
+                    </div>
+                )}
             </div>
         </div>
     );

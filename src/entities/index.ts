@@ -1,5 +1,6 @@
 
 import { World } from 'miniplex';
+import type { GoatComponent } from './GoatComponent';
 
 // Component Interfaces
 export interface BaseAttributeComponent {
@@ -7,6 +8,10 @@ export interface BaseAttributeComponent {
     sanity: {
       current: number;
       max: number;
+    };
+    stamina?: {
+        current: number;
+        max: number;
     };
   };
 }
@@ -57,6 +62,7 @@ export type Entity = {
 
   // AI
   aiState?: 'IDLE' | 'WORK' | 'SUSPICIOUS' | 'FLEE' | 'SLEEP' | 'CHASING' | 'ATTACK' | 'FLEEING';
+  goat?: GoatComponent['goat'];
   stateEnterTime?: number;
   lastMoveTime?: number;
 
