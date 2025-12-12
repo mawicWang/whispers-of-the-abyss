@@ -1,7 +1,8 @@
 import { ecs } from './index';
 
-export const createWheatField = (x: number, y: number, gridX: number, gridY: number, stage: number) => {
+export const createWheatField = (x: number, y: number, gridX: number, gridY: number, stage: number, id: string) => {
     ecs.add({
+        id,
         position: { x, y },
         appearance: {
             sprite: `wheat_stage_${stage}`,

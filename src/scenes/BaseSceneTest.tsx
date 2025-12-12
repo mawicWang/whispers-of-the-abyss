@@ -224,7 +224,8 @@ export const BaseSceneTest: React.FC = () => {
                     gy * TILE_SIZE,
                     gx,
                     gy,
-                    c + 1 // Use different stages for visual variety (columns 1-4)
+                    c + 1, // Use different stages for visual variety (columns 1-4)
+                    `wheat-${gx}-${gy}`
                 );
 
                 // Mark as reserved so houses don't spawn here
