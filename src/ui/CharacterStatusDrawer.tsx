@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../state/store';
 import { ecs } from '../entities';
 import type { Entity } from '../entities';
+import { WorkerObserver } from './WorkerObserver';
 
 export const CharacterStatusDrawer: React.FC = () => {
     const selectedEntityId = useGameStore((state) => state.selectedEntityId);
@@ -127,15 +128,8 @@ export const CharacterStatusDrawer: React.FC = () => {
     return (
         <div style={styles.drawer}>
             <div style={styles.portraitContainer}>
-                {entity?.appearance?.sprite && (
-                    <div style={{
-                        width: '100%',
-                        height: '100%',
-                        backgroundImage: `url(${getPortraitUrl(entity.appearance.sprite)})`,
-                        backgroundPosition: '0 0',
-                        backgroundSize: '500% auto', // Assumes 5-column sprite sheet
-                        imageRendering: 'pixelated'
-                    }} />
+                {entity?.id && (
+                    <WorkerObserver targetId={entity.id} />
                 )}
             </div>
             <div style={styles.statsContainer}>
