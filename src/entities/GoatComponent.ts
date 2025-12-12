@@ -33,6 +33,7 @@ export interface GoatComponent {
             targetFarmId?: string;
             homePosition?: { x: number, y: number };
             lastFarmTime?: number;
+            farmStartTime?: number; // Added for animation timing
             restTimer?: number;
         };
     };
