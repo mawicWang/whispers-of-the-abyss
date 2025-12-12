@@ -7,9 +7,9 @@ import type { Graphics as PixiGraphics } from 'pixi.js';
 
 // Constants matching BaseSceneTest
 const TILE_SIZE = 16;
-// Viewport size for the observer
-const VIEW_WIDTH = 96;
-const VIEW_HEIGHT = 96;
+// Viewport size for the observer - updated per user request to 2 * TILE_SIZE
+const VIEW_WIDTH = 2 * TILE_SIZE;
+const VIEW_HEIGHT = 2 * TILE_SIZE;
 // How far from the center to check for entities (optimization)
 const RENDER_RADIUS = 64;
 
@@ -61,6 +61,27 @@ const ObserverScene: React.FC<{ targetId: string }> = ({ targetId }) => {
 
     }, []);
 
+    // Helper to load textures for an entity
+    const loadEntityTexture = (entity: Entity) => {
+        if (!entity.appearance) return;
+        const { sprite, animation } = entity.appearance;
+        const key = `${sprite}_${animation || 'idle'}`;
+
+        // Prevent redundant checks if we already have it
+        if (workerTextures[key]) return;
+
+        const loader = AssetLoader.getInstance();
+        // Try directions
+        const anims = loader.getAnimation(`${key}_down`) || loader.getAnimation(`${key}_run`);
+
+        if (anims) {
+             setWorkerTextures(prev => {
+                 if (prev[key]) return prev;
+                 return { ...prev, [key]: anims };
+             });
+        }
+    };
+
     // Loop logic
     useTick((ticker) => {
         // 1. Find target entity
@@ -77,8 +98,8 @@ const ObserverScene: React.FC<{ targetId: string }> = ({ targetId }) => {
         // 2. Camera Follow
         if (containerRef.current) {
             // Center the container on the target
-            // Screen Center is (48, 48)
-            // World Target is (tx, ty)
+            // Screen Center is (VIEW_WIDTH/2, VIEW_HEIGHT/2)
+            // World Target is (tx + TILE_SIZE/2, ty + TILE_SIZE/2)  <-- Center of tile
             // Container Pos = Screen Center - World Target
             containerRef.current.x = VIEW_WIDTH / 2 - (tx + TILE_SIZE/2);
             containerRef.current.y = VIEW_HEIGHT / 2 - (ty + TILE_SIZE/2);
@@ -97,25 +118,59 @@ const ObserverScene: React.FC<{ targetId: string }> = ({ targetId }) => {
 
         setNearbyEntities(nearby);
 
-        // 4. Update Texture for target if needed (animation change)
-        if (foundTarget.appearance) {
-             const { sprite, animation } = foundTarget.appearance;
-             const key = `${sprite}_${animation || 'idle'}`;
-             if (!workerTextures[key]) {
-                 // Try to fetch
-                 const loader = AssetLoader.getInstance();
-                 // Try directions
-                 const anims = loader.getAnimation(`${key}_down`) || loader.getAnimation(`${key}_run`);
-                 if (anims) {
-                     setWorkerTextures(prev => ({ ...prev, [key]: anims }));
-                 }
-             }
-        }
+        // 4. Update Textures for target and nearby
+        if (foundTarget) loadEntityTexture(foundTarget);
+        nearby.forEach(e => {
+            if (!e.isObject) { // Optimization: Objects are handled by staticTextures
+                loadEntityTexture(e);
+            }
+        });
     });
 
     if (!target || !target.position) return null;
 
-    // We render a container that moves opposite to the player
+    // Helper to render an entity (Target or Neighbor)
+    const renderEntity = (e: Entity) => {
+        const action = e.appearance?.animation || 'idle';
+        const spriteName = e.appearance?.sprite;
+        const animKey = `${spriteName}_${action}`;
+        const textures = workerTextures[animKey];
+
+        // Speed calc
+        let intervalMs = 300;
+        if (action === 'walk') intervalMs = 200;
+        if (action === 'run') intervalMs = 150;
+        if (action.startsWith('attack')) intervalMs = 100;
+        const speed = 1 / (intervalMs / 16.666);
+
+        if (textures) {
+            return (
+                <AutoPlayAnimatedSprite
+                    key={e.id}
+                    textures={textures}
+                    animationSpeed={speed}
+                    x={e.position!.x + TILE_SIZE / 2}
+                    y={e.position!.y + TILE_SIZE / 2}
+                    anchor={0.5}
+                />
+            );
+        }
+        // Fallback to simpler red dot if texture load failed (but not yet loaded might be transient)
+        // Or if it's truly missing.
+        return (
+                <pixiGraphics
+                key={e.id}
+                x={e.position!.x + TILE_SIZE / 2}
+                y={e.position!.y + TILE_SIZE / 2}
+                draw={(g: PixiGraphics) => {
+                    g.beginFill(0xff0000, 0.5);
+                    g.drawCircle(0,0,6);
+                    g.endFill();
+                }}
+            />
+        );
+    };
+
     return (
         <pixiContainer ref={containerRef}>
             {/* Background Grid/Color */}
@@ -163,63 +218,14 @@ const ObserverScene: React.FC<{ targetId: string }> = ({ targetId }) => {
             })}
 
             {/* Target Entity */}
-            {(() => {
-                const action = target.appearance?.animation || 'idle';
-                const spriteName = target.appearance?.sprite;
-                const animKey = `${spriteName}_${action}`;
-                const textures = workerTextures[animKey];
-
-                // Speed calc
-                let intervalMs = 300;
-                if (action === 'walk') intervalMs = 200;
-                if (action === 'run') intervalMs = 150;
-                if (action.startsWith('attack')) intervalMs = 100;
-                const speed = 1 / (intervalMs / 16.666);
-
-                if (textures) {
-                    return (
-                        <AutoPlayAnimatedSprite
-                            key={target.id}
-                            textures={textures}
-                            animationSpeed={speed}
-                            x={target.position.x + TILE_SIZE / 2}
-                            y={target.position.y + TILE_SIZE / 2}
-                            anchor={0.5}
-                        />
-                    );
-                }
-                // Fallback
-                return (
-                     <pixiGraphics
-                        x={target.position.x + TILE_SIZE / 2}
-                        y={target.position.y + TILE_SIZE / 2}
-                        draw={(g: PixiGraphics) => {
-                            g.beginFill(0x00ff00);
-                            g.drawCircle(0,0,8);
-                            g.endFill();
-                        }}
-                    />
-                );
-            })()}
+            {renderEntity(target)}
 
             {/* Other Dynamic Entities (Foreground/Neighbors) */}
             {nearbyEntities.map(e => {
                 if (e.id === targetId) return null;
                 if (e.isObject) return null; // Handled above
 
-                // Draw other workers as simple colored circles if we don't load their textures
-                return (
-                    <pixiGraphics
-                        key={e.id}
-                        x={e.position!.x + TILE_SIZE / 2}
-                        y={e.position!.y + TILE_SIZE / 2}
-                        draw={(g: PixiGraphics) => {
-                            g.beginFill(0xff0000, 0.5);
-                            g.drawCircle(0,0,6);
-                            g.endFill();
-                        }}
-                    />
-                );
+                return renderEntity(e);
             })}
 
         </pixiContainer>
