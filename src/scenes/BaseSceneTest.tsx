@@ -22,13 +22,16 @@ import { CharacterStatusDrawer } from '../ui/CharacterStatusDrawer';
 import { createWheatField } from '../entities/WheatField';
 
 // Character Factory
+const WORKER_VARIANTS = ['FarmerCyan', 'FarmerRed', 'FarmerLime', 'FarmerPurple'];
+
 const createWorker = (x: number, y: number, id: string) => {
+    const variant = WORKER_VARIANTS[Math.floor(Math.random() * WORKER_VARIANTS.length)];
     ecs.add({
         id,
         position: { x, y },
         speed: 1.0,
         appearance: {
-            sprite: 'FarmerCyan',
+            sprite: variant,
             animation: 'idle',
             direction: 'down'
         },
@@ -276,31 +279,22 @@ export const BaseSceneTest: React.FC = () => {
         // Load Textures
         const loader = AssetLoader.getInstance();
         const loadAnims = () => {
-            // Load base animations for FarmerCyan
-            // We should load all basic animations to prevent fallbacks to green circles
+            // Load base animations for all worker variants
             const anims: Record<string, Texture[]> = {};
 
             const actions = ['idle', 'walk', 'attack', 'run'];
-            const directions = ['down', 'up', 'left', 'right'];
+            // const directions = ['down', 'up', 'left', 'right']; // Not used in keying yet
 
-            actions.forEach(action => {
-                // Try to load directional specific if possible, otherwise fallback?
-                // For now, let's load what we know exists
-                // We will flatten the key: e.g. "idle" -> idle_down
-                // But robustly we should key by "action_direction" if we updated the rendering logic.
-                // However, the rendering logic below uses `workerTextures[entity.appearance.animation || 'idle']`.
-                // It does NOT use direction currently for keying textures.
-                // So all directions use the same animation set (which defaults to 'down' usually if we just pick one).
-                // But wait, the previous code loaded `FarmerCyan_idle_down` and assigned it to `idle`.
-
-                // Let's improve this: Load ALL and let the render logic pick the right one if we want.
-                // OR, simplest fix for "Green Circle": ensure 'attack' key exists.
-
-                // Load 'down' variants as default for the keys 'idle', 'walk', 'attack'
-                const downAnim = loader.getAnimation(`FarmerCyan_${action}_down`);
-                if (downAnim) {
-                    anims[action] = downAnim;
-                }
+            WORKER_VARIANTS.forEach(variant => {
+                actions.forEach(action => {
+                    // Load 'down' variants as default for now
+                    // Key format in map: "FarmerCyan_idle", "FarmerRed_walk", etc.
+                    const key = `${variant}_${action}`;
+                    const downAnim = loader.getAnimation(`${key}_down`);
+                    if (downAnim) {
+                        anims[key] = downAnim;
+                    }
+                });
             });
 
             // If we found valid animations, update state
@@ -527,7 +521,8 @@ export const BaseSceneTest: React.FC = () => {
                      )
                 }
 
-                const textures = workerTextures[entity.appearance.animation || 'idle'];
+                const animKey = `${entity.appearance.sprite}_${entity.appearance.animation || 'idle'}`;
+                const textures = workerTextures[animKey];
 
                 // Fallback visual
                 if (!textures) {
