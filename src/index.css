@@ -4,3 +4,8 @@ body {
   overflow: hidden;
   background-color: #222;
 }
+
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
