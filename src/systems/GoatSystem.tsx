@@ -10,28 +10,33 @@ const REST_DURATION = 10000; // 10 seconds mandatory rest at door (as per prompt
 const FARM_INTERVAL = 500; // 0.5s
 
 // Actions
-const GoHomeAction: GoatAction = {
+export const GoHomeAction: GoatAction = {
     name: 'GoHome',
     cost: 1,
     preconditions: (state) => true, // Can always try to go home
     effects: (state) => ({ atHome: true }),
     execute: (entity, deltaTime) => {
         const home = entity.goat?.blackboard.homePosition || HOME_POSITION;
-        // Simple move logic - this should ideally integrate with pathfinding
-        // For now, let's use direct movement
+
         if (!entity.position) return false;
 
         const dx = home.x - entity.position.x;
         const dy = home.y - entity.position.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 5) {
+        // Strict arrival check
+        if (dist < 4) {
             entity.position.x = home.x;
             entity.position.y = home.y;
+            // Stop movement
+            if (entity.move) {
+                entity.move.targetX = home.x;
+                entity.move.targetY = home.y;
+            }
             return true;
         }
 
-        // Set move target for MoveSystem if available, or move directly
+        // Use MoveSystem if available
         if (entity.move) {
             entity.move.targetX = home.x;
             entity.move.targetY = home.y;
@@ -44,8 +49,8 @@ const GoHomeAction: GoatAction = {
             entity.position.y += moveY;
         }
 
-        // Face direction
-        if (entity.appearance) {
+        // Face direction logic should be handled by MoveSystem or here if fallback
+        if (!entity.move && entity.appearance) {
             if (Math.abs(dx) > Math.abs(dy)) {
                 entity.appearance.direction = dx > 0 ? 'right' : 'left';
             } else {
@@ -58,7 +63,7 @@ const GoHomeAction: GoatAction = {
     }
 };
 
-const RestAction: GoatAction = {
+export const RestAction: GoatAction = {
     name: 'Rest',
     cost: 1,
     preconditions: (state) => state.atHome,
@@ -75,19 +80,13 @@ const RestAction: GoatAction = {
         entity.goat.blackboard.restTimer += deltaTime;
 
         // Recover stamina: 1 per second
-        // We can accumulate and add integer amounts or just add fractional
-        // Prompt says "Every second recovers 1 point"
-        // Let's do it continuously
         const recovery = (deltaTime / 1000) * REST_RECOVERY_RATE;
         entity.attributes.stamina.current = Math.min(
             entity.attributes.stamina.max,
             entity.attributes.stamina.current + recovery
         );
 
-        // Completion condition: Full stamina AND maybe strict 10s wait?
-        // Prompt: "Rest, then pathfind home then rest at door for 10s"
-        // Also "Stamina full -> can work". 10s is exactly time to fill 0->10.
-        // Let's use stamina full as the condition.
+        // Condition: Full stamina
         if (entity.attributes.stamina.current >= entity.attributes.stamina.max) {
              entity.goat.blackboard.restTimer = undefined; // Reset
              return true;
@@ -97,7 +96,7 @@ const RestAction: GoatAction = {
     }
 };
 
-const FindFarmAction: GoatAction = {
+export const FindFarmAction: GoatAction = {
     name: 'FindFarm',
     cost: 1,
     preconditions: (state) => !state.hasFarmTarget,
@@ -110,17 +109,9 @@ const FindFarmAction: GoatAction = {
         // Get all wheat fields
         const fields = ecs.entities.filter(e => e.isWheat && e.position);
 
-        // Simple check for "unoccupied"
-        // We need to check if any OTHER entity has this field as target
-        const occupiedFieldIds = new Set<string>();
-        ecs.entities.forEach(e => {
-            if (e !== entity && e.goat?.blackboard.targetFarmId) {
-                occupiedFieldIds.add(e.goat.blackboard.targetFarmId);
-            }
-        });
-
         for (const field of fields) {
-             if (occupiedFieldIds.has(field.id!)) continue; // Skip occupied
+             // Check reservation: Must be null OR claimed by me
+             if (field.claimedBy && field.claimedBy !== entity.id) continue;
 
              if (entity.position && field.position) {
                  const dist = Math.hypot(field.position.x - entity.position.x, field.position.y - entity.position.y);
@@ -133,31 +124,36 @@ const FindFarmAction: GoatAction = {
 
         if (closestField) {
             if (entity.goat) {
+                // CLAIM THE FIELD
+                closestField.claimedBy = entity.id;
                 entity.goat.blackboard.targetFarmId = closestField.id;
             }
             return true;
         }
 
-        // No field found, keep searching (return false implies action continues, maybe fail?)
-        // If we can't find a field, maybe we should just idle or wait.
-        // For now, let's return false to retry next frame.
+        // No field found
         return false;
     }
 };
 
-const GoToFarmAction: GoatAction = {
+export const GoToFarmAction: GoatAction = {
     name: 'GoToFarm',
-    cost: 2, // Prefer nearby?
+    cost: 2,
     preconditions: (state) => state.hasFarmTarget,
     effects: (state) => ({ atFarm: true }),
     execute: (entity, deltaTime) => {
-        if (!entity.goat?.blackboard.targetFarmId) return true; // Should ideally fail plan if target lost
+        if (!entity.goat?.blackboard.targetFarmId) return true; // Fail/Abort
 
         const target = ecs.entities.find(e => e.id === entity.goat!.blackboard.targetFarmId);
-        if (!target || !target.position) {
-            // Target lost
+
+        // Validation: Target exists AND is claimed by me
+        if (!target || !target.position || target.claimedBy !== entity.id) {
+            // Target lost or stolen (shouldn't happen with claimedBy, but safety first)
+            if (target && target.claimedBy === entity.id) {
+                target.claimedBy = undefined; // Release if we are aborting?
+            }
             entity.goat!.blackboard.targetFarmId = undefined;
-            return false; // Fail action
+            return false;
         }
 
         if (!entity.position) return false;
@@ -166,9 +162,14 @@ const GoToFarmAction: GoatAction = {
         const dy = target.position.y - entity.position.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 5) {
+        // Strict arrival check
+        if (dist < 4) {
              entity.position.x = target.position.x;
              entity.position.y = target.position.y;
+             if (entity.move) {
+                 entity.move.targetX = target.position.x;
+                 entity.move.targetY = target.position.y;
+             }
              return true;
         }
 
@@ -184,7 +185,7 @@ const GoToFarmAction: GoatAction = {
             entity.position.y += moveY;
         }
 
-        if (entity.appearance) {
+        if (!entity.move && entity.appearance) {
              if (Math.abs(dx) > Math.abs(dy)) {
                 entity.appearance.direction = dx > 0 ? 'right' : 'left';
             } else {
@@ -197,7 +198,7 @@ const GoToFarmAction: GoatAction = {
     }
 };
 
-const FarmAction: GoatAction = {
+export const FarmAction: GoatAction = {
     name: 'Farm',
     cost: 5,
     preconditions: (state) => state.atFarm && state.stamina > 0 && state.farmCooldown <= 0,
@@ -208,8 +209,10 @@ const FarmAction: GoatAction = {
         const targetId = entity.goat.blackboard.targetFarmId;
         const target = ecs.entities.find(e => e.id === targetId);
 
-        if (!target) {
-             return true; // Target gone, action done (sort of)
+        // Validation
+        if (!target || target.claimedBy !== entity.id) {
+             // Lost target
+             return true; // Abort action sequence
         }
 
         // Wait for cooldown
@@ -227,16 +230,6 @@ const FarmAction: GoatAction = {
         // Update target field stage
         if (target.growth) {
             target.growth.stage++;
-            if (target.growth.stage > 12) target.growth.stage = 1;
-            // Update appearance
-            // target.appearance!.sprite = `wheat_stage_${target.growth.stage}`;
-            // Assuming wheat field logic handles appearance based on stage, or we update it here
-            // The prompt says "stage 1234-12 loop". Wait "1234-12". Maybe 1,2,3,4 then 1,2,3,4?
-            // "阶段1234-12循环" -> "Stages 1,2,3,4 - 1,2 loop". Or "1 to 12".
-            // "1234-12循环" is ambiguous. "1,2,3,4 -> 1,2..." or "1..12".
-            // Common implementation is 1->2->3->4->1...
-            // But "1234-12" might mean 1,2,3,4,1,2,3,4...
-            // I'll assume 1-4 loop.
             if (target.growth.stage > 4) target.growth.stage = 1;
              target.appearance!.sprite = `wheat_stage_${target.growth.stage}`;
         }
@@ -244,27 +237,14 @@ const FarmAction: GoatAction = {
         // Animation
         if (entity.appearance) {
             entity.appearance.animation = 'attack';
-            // Direction is already set by approach
         }
 
-        // Action complete (one swing)
-        // Since we return true, the plan advances. But if we want to loop farming,
-        // the planner needs to re-plan or we have a "FarmUntilDone" action.
-        // Prompt: "Every swing...". "Think next action... choose Rest or Farm".
-        // If we choose Farm, we farm once? Or we farm until tired?
-        // "Think next action... select Rest or Farm. If Farm... check time... then do action."
-        // This implies one action cycle.
         return true;
     }
 };
 
-const ALL_ACTIONS = [GoHomeAction, RestAction, FindFarmAction, GoToFarmAction, FarmAction];
-
 export const GoatSystem = () => {
   useTick((ticker) => {
-    // Ticker provides deltaTime in MS if configured, or frame count.
-    // Pixi 8 Ticker gives deltaTime (scalar relative to target FPS) and elapsedMS.
-    // Let's safe check.
     const deltaMS = ticker.elapsedMS;
 
     for (const entity of ecs.entities) {
@@ -273,76 +253,71 @@ export const GoatSystem = () => {
         const goat = entity.goat;
 
         // 1. Check Goal
-        // Logic: if stamina == 0 -> Goal = RecoverStamina.
-        // If stamina full -> Goal = Farm.
-        // If mid stamina -> keep current goal?
         const stamina = entity.attributes?.stamina?.current || 0;
         const maxStamina = entity.attributes?.stamina?.max || 10;
 
+        // Transition Logic
         if (stamina <= 0) {
+             // If we were farming, release claim
+             if (goat.currentGoal === 'Farm' && goat.blackboard.targetFarmId) {
+                 const t = ecs.entities.find(e => e.id === goat.blackboard.targetFarmId);
+                 if (t && t.claimedBy === entity.id) {
+                     t.claimedBy = undefined;
+                 }
+                 goat.blackboard.targetFarmId = undefined;
+             }
             goat.currentGoal = 'RecoverStamina';
         } else if (stamina >= maxStamina && goat.currentGoal === 'RecoverStamina') {
             goat.currentGoal = 'Farm';
         } else if (!goat.currentGoal) {
-            goat.currentGoal = 'Farm'; // Default
+            goat.currentGoal = 'Farm';
         }
 
         // 2. Planning
-        // If no plan or current plan invalid/finished, make new plan.
-        // Simple planner:
-        // Identify desired state based on Goal.
-        // Backtrack from desired state using Actions.
-
         if (goat.plan.length === 0 || goat.currentActionIndex >= goat.plan.length) {
             // Re-plan
             const currentState: GoatState = {
                 stamina: stamina,
-                atHome: false, // Calculate real state
+                atHome: false,
                 atFarm: false,
                 hasFarmTarget: !!goat.blackboard.targetFarmId,
                 isResting: false,
                 farmCooldown: 0
             };
 
-            // Refine current state checks
+            // State Sensing
             if (entity.position) {
                  const home = goat.blackboard.homePosition || HOME_POSITION;
                  const dHome = Math.hypot(entity.position.x - home.x, entity.position.y - home.y);
-                 currentState.atHome = dHome < 10;
+                 currentState.atHome = dHome < 5;
 
                  if (goat.blackboard.targetFarmId) {
                      const target = ecs.entities.find(e => e.id === goat.blackboard.targetFarmId);
-                     if (target && target.position) {
+                     // Check if valid AND claimed by us
+                     if (target && target.position && target.claimedBy === entity.id) {
                          const dFarm = Math.hypot(entity.position.x - target.position.x, entity.position.y - target.position.y);
-                         currentState.atFarm = dFarm < 10;
+                         currentState.atFarm = dFarm < 5;
                      } else {
+                         // Lost claim or target
                          goat.blackboard.targetFarmId = undefined;
                          currentState.hasFarmTarget = false;
                      }
                  }
             }
 
-            // Desired state
-            // Goal: RecoverStamina -> Effects include { stamina: 10 } (provided by Rest)
-            // Goal: Farm -> Effects include { stamina: stamina - 1 } (provided by Farm)
-
-            // Manual hardcoded plans for simplicity given the small scope
+            // Plan Generation
             if (goat.currentGoal === 'RecoverStamina') {
-                // Plan: GoHome -> Rest
                 goat.plan = [];
                 if (!currentState.atHome) {
                     goat.plan.push(GoHomeAction);
                 }
                 goat.plan.push(RestAction);
             } else if (goat.currentGoal === 'Farm') {
-                // Plan: FindFarm -> GoToFarm -> Farm
                 goat.plan = [];
                 if (!currentState.hasFarmTarget) {
                     goat.plan.push(FindFarmAction);
                 }
-                if (!currentState.atFarm) {
-                    goat.plan.push(GoToFarmAction);
-                }
+                goat.plan.push(GoToFarmAction);
                 goat.plan.push(FarmAction);
             }
 
@@ -352,6 +327,18 @@ export const GoatSystem = () => {
         // 3. Execution
         const currentAction = goat.plan[goat.currentActionIndex];
         if (currentAction) {
+            // Safety: Ensure we still own the target if we are acting on it
+            if ((currentAction.name === 'GoToFarm' || currentAction.name === 'Farm') && goat.blackboard.targetFarmId) {
+                 const t = ecs.entities.find(e => e.id === goat.blackboard.targetFarmId);
+                 if (!t || t.claimedBy !== entity.id) {
+                     // Abort plan
+                     goat.plan = [];
+                     goat.currentActionIndex = 0;
+                     goat.blackboard.targetFarmId = undefined;
+                     continue;
+                 }
+            }
+
             const completed = currentAction.execute(entity, deltaMS);
             if (completed) {
                 goat.currentActionIndex++;
