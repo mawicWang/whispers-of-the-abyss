@@ -78,14 +78,17 @@ export const CharacterStatusDrawer: React.FC = () => {
             boxShadow: '0 4px 8px rgba(0,0,0,0.5)'
         },
         portraitContainer: {
-            width: '32px',  // Updated to 32px (2 * TILE_SIZE) per user request
-            height: '32px', // Updated to 32px (2 * TILE_SIZE) per user request
+            width: '120px',
+            height: '120px',
             marginRight: '24px',
             backgroundColor: '#000',
-            border: '2px solid #6d6d8d', // Reduced border thickness slightly for smaller size
+            border: '2px solid #6d6d8d',
+            borderRadius: '4px',
             flexShrink: 0, // Prevent shrinking
             overflow: 'hidden',
-            position: 'relative'
+            position: 'relative',
+            boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
+            imageRendering: 'pixelated'
         },
         statsContainer: {
             display: 'flex',
