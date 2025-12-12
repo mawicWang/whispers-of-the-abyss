@@ -2,12 +2,82 @@
 import { useTick } from '@pixi/react';
 import { ecs, type Entity } from '../entities';
 import type { GoatAction, GoatState } from '../entities/GoatComponent';
+import { findPath } from '../utils/Pathfinding';
 
 const TILE_SIZE = 16;
+const GRID_W = Math.floor(360 / TILE_SIZE);
+const GRID_H = Math.floor(640 / TILE_SIZE);
+
 const HOME_POSITION = { x: 10 * TILE_SIZE, y: 10 * TILE_SIZE }; // Example home
 const REST_RECOVERY_RATE = 1; // 1 stamina per second
 const REST_DURATION = 10000; // 10 seconds mandatory rest at door (as per prompt)
 const FARM_INTERVAL = 500; // 0.5s
+
+// Helper to collect obstacles (could be optimized to run once per frame if performance is an issue)
+const getObstacles = () => {
+    const obstacles = new Set<string>();
+    for(const e of ecs.entities) {
+        if (e.isObstacle && e.position) {
+            const gx = Math.round(e.position.x / TILE_SIZE);
+            const gy = Math.round(e.position.y / TILE_SIZE);
+            obstacles.add(`${gx},${gy}`);
+        }
+    }
+    return obstacles;
+};
+
+// Helper for pathfinding move
+const navigateTo = (entity: Entity, targetX: number, targetY: number) => {
+    if (!entity.position) return false;
+
+    // Check if we are close enough to be considered "there"
+    const dx = targetX - entity.position.x;
+    const dy = targetY - entity.position.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 4) {
+        // Arrived
+        entity.path = []; // Clear path
+        if (entity.move) delete entity.move;
+        return true;
+    }
+
+    // If we are already moving along a path, let MoveSystem handle it
+    if (entity.path && entity.path.length > 0) return false;
+    // If we have a move target but no path, it might be the last step or a direct move.
+    // However, if we are far away, we should pathfind.
+
+    // If we don't have a path, find one
+    const startGridX = Math.round(entity.position.x / TILE_SIZE);
+    const startGridY = Math.round(entity.position.y / TILE_SIZE);
+    const targetGridX = Math.round(targetX / TILE_SIZE);
+    const targetGridY = Math.round(targetY / TILE_SIZE);
+
+    const obstacles = getObstacles();
+
+    const gridPath = findPath(
+        { x: startGridX, y: startGridY },
+        { x: targetGridX, y: targetGridY },
+        obstacles,
+        { minX: 0, maxX: GRID_W, minY: 0, maxY: GRID_H }
+    );
+
+    if (gridPath.length > 0) {
+        entity.path = gridPath.map(p => ({
+            x: p.x * TILE_SIZE,
+            y: p.y * TILE_SIZE
+        }));
+        // Path will be picked up by MoveSystem
+        return false;
+    } else {
+        // No path found?
+        // Fallback: if very close (adjacent), maybe direct move?
+        // Or wait/fail.
+        // For now, let's just fail silently (wait) to avoid teleporting through walls.
+        return false;
+    }
+};
+
 
 // Actions
 export const GoHomeAction: GoatAction = {
@@ -17,49 +87,7 @@ export const GoHomeAction: GoatAction = {
     effects: (state) => ({ atHome: true }),
     execute: (entity, deltaTime) => {
         const home = entity.goat?.blackboard.homePosition || HOME_POSITION;
-
-        if (!entity.position) return false;
-
-        const dx = home.x - entity.position.x;
-        const dy = home.y - entity.position.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        // Strict arrival check
-        if (dist < 4) {
-            entity.position.x = home.x;
-            entity.position.y = home.y;
-            // Stop movement
-            if (entity.move) {
-                entity.move.targetX = home.x;
-                entity.move.targetY = home.y;
-            }
-            return true;
-        }
-
-        // Use MoveSystem if available
-        if (entity.move) {
-            entity.move.targetX = home.x;
-            entity.move.targetY = home.y;
-        } else {
-             // Fallback direct move if no MoveSystem
-            const speed = (entity.speed || 1) * deltaTime * 0.06; // adjust for delta
-            const moveX = (dx / dist) * speed;
-            const moveY = (dy / dist) * speed;
-            entity.position.x += moveX;
-            entity.position.y += moveY;
-        }
-
-        // Face direction logic should be handled by MoveSystem or here if fallback
-        if (!entity.move && entity.appearance) {
-            if (Math.abs(dx) > Math.abs(dy)) {
-                entity.appearance.direction = dx > 0 ? 'right' : 'left';
-            } else {
-                entity.appearance.direction = dy > 0 ? 'down' : 'up';
-            }
-            entity.appearance.animation = 'walk';
-        }
-
-        return false;
+        return navigateTo(entity, home.x, home.y);
     }
 };
 
@@ -156,45 +184,7 @@ export const GoToFarmAction: GoatAction = {
             return false;
         }
 
-        if (!entity.position) return false;
-
-        const dx = target.position.x - entity.position.x;
-        const dy = target.position.y - entity.position.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        // Strict arrival check
-        if (dist < 4) {
-             entity.position.x = target.position.x;
-             entity.position.y = target.position.y;
-             if (entity.move) {
-                 entity.move.targetX = target.position.x;
-                 entity.move.targetY = target.position.y;
-             }
-             return true;
-        }
-
-        if (entity.move) {
-            entity.move.targetX = target.position.x;
-            entity.move.targetY = target.position.y;
-        } else {
-             // Fallback
-            const speed = (entity.speed || 1) * deltaTime * 0.06;
-            const moveX = (dx / dist) * speed;
-            const moveY = (dy / dist) * speed;
-            entity.position.x += moveX;
-            entity.position.y += moveY;
-        }
-
-        if (!entity.move && entity.appearance) {
-             if (Math.abs(dx) > Math.abs(dy)) {
-                entity.appearance.direction = dx > 0 ? 'right' : 'left';
-            } else {
-                entity.appearance.direction = dy > 0 ? 'down' : 'up';
-            }
-            entity.appearance.animation = 'walk';
-        }
-
-        return false;
+        return navigateTo(entity, target.position.x, target.position.y);
     }
 };
 
