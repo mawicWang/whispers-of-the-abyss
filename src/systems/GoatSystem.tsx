@@ -142,7 +142,7 @@ export const GoToFarmAction: GoatAction = {
     preconditions: (state) => state.hasFarmTarget,
     effects: (state) => ({ atFarm: true }),
     execute: (entity, deltaTime) => {
-        if (!entity.goat?.blackboard.targetFarmId) return true; // Fail/Abort
+        if (!entity.goat?.blackboard.targetFarmId) return false; // Fail/Abort (Do not return true, or it skips to Farm)
 
         const target = ecs.entities.find(e => e.id === entity.goat!.blackboard.targetFarmId);
 
