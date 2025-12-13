@@ -6,6 +6,7 @@ import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
 import type { Entity } from '../entities';
 import { findPath } from '../utils/Pathfinding';
+import { SuspicionGauge } from '../ui/SuspicionGauge';
 
 const TILE_SIZE = 16;
 const GRID_W = Math.floor(360 / TILE_SIZE);
@@ -182,7 +183,7 @@ export const BaseSceneTest: React.FC = () => {
 
     // Shared State
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
-    const { mana, addMana, whisperLevel, selectedEntityId, setSelectedEntity } = useGameStore();
+    const { mana, addMana, whisperLevel, selectedEntityId, setSelectedEntity, suspicion, increaseSuspicion } = useGameStore();
 
     // Create stable Filter instances
     const outlineFilter = useMemo(() => new OutlineFilter({ thickness: 2, color: 0xffffff }), []);
@@ -194,6 +195,30 @@ export const BaseSceneTest: React.FC = () => {
     // Systems Refs
     const effectIdCounter = useRef(0);
     const textIdCounter = useRef(0);
+
+    // Passive Decay: Decrease suspicion by 1 every 60 seconds
+    useEffect(() => {
+        const timer = setInterval(() => {
+            if (useGameStore.getState().suspicion > 0) {
+                increaseSuspicion(-1);
+            }
+        }, 60000);
+        return () => clearInterval(timer);
+    }, [increaseSuspicion]);
+
+    // Game Over Check
+    useEffect(() => {
+        if (suspicion >= 100) {
+            // Delay slightly to ensure render updates
+            setTimeout(() => {
+                // Check again to be sure
+                if (useGameStore.getState().suspicion >= 100) {
+                    alert("Game Over! Suspicion reached 100%. Click OK to restart.");
+                    window.location.reload();
+                }
+            }, 100);
+        }
+    }, [suspicion]);
 
     // Initialize
     useEffect(() => {
@@ -380,17 +405,20 @@ export const BaseSceneTest: React.FC = () => {
 
             // Zone Logic
             if (entity.zone) {
-                entity.zone.duration -= (delta / 60); // Approx seconds
-                entity.zone.tickTimer += (delta / 60);
+                const zone = entity.zone; // Alias for TS
+                zone.duration -= (delta / 60); // Approx seconds
+                zone.tickTimer += (delta / 60);
 
-                if (entity.zone.duration <= 0) {
+                if (zone.duration <= 0) {
                     ecs.remove(entity);
                     continue;
                 }
 
                 // Process Tick (Every 1 second)
-                if (entity.zone.tickTimer >= 1.0) {
-                    entity.zone.tickTimer = 0;
+                if (zone.tickTimer >= 1.0) {
+                    zone.tickTimer = 0;
+
+                    const targetsHit: Entity[] = [];
 
                     // Find targets in range
                     for (const target of ecs.entities) {
@@ -399,21 +427,33 @@ export const BaseSceneTest: React.FC = () => {
                              const dy = target.position.y - entity.position!.y;
                              const dist = Math.sqrt(dx * dx + dy * dy);
 
-                             if (dist <= entity.zone.radius) {
-                                 // Apply Damage
-                                 const dmg = Math.floor(Math.random() * (entity.zone.damageMax - entity.zone.damageMin + 1)) + entity.zone.damageMin;
-                                 target.attributes.sanity.current = Math.max(0, target.attributes.sanity.current - dmg);
-
-                                 // Floating Text
-                                 const textId = textIdCounter.current++;
-                                 setFloatingTexts(prev => [...prev, {
-                                    id: textId,
-                                    x: target.position!.x + TILE_SIZE / 2,
-                                    y: target.position!.y - 20,
-                                    text: `San -${dmg}`
-                                 }]);
+                             if (dist <= zone.radius) {
+                                 targetsHit.push(target);
                              }
                         }
+                    }
+
+                    // Apply Damage and Effects
+                    targetsHit.forEach(target => {
+                         const dmg = Math.floor(Math.random() * (zone.damageMax - zone.damageMin + 1)) + zone.damageMin;
+                         target.attributes!.sanity.current = Math.max(0, target.attributes!.sanity.current - dmg);
+
+                         // Floating Text
+                         const textId = textIdCounter.current++;
+                         setFloatingTexts(prev => [...prev, {
+                            id: textId,
+                            x: target.position!.x + TILE_SIZE / 2,
+                            y: target.position!.y - 20,
+                            text: `San -${dmg}`
+                         }]);
+                    });
+
+                    // Calculate Suspicion Increase
+                    const n = targetsHit.length;
+                    if (n > 0) {
+                        // Formula: n * (5 * 2^(n-1))
+                        const increase = n * (5 * Math.pow(2, n - 1));
+                        increaseSuspicion(increase);
                     }
                 }
             }
@@ -625,7 +665,7 @@ const AutoPlayAnimatedSprite = ({ textures, animationSpeed, anchor, ...props }: 
 // The UI Component
 export const BaseSceneUI: React.FC = () => {
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
-    const { mana, maxMana } = useGameStore();
+    const { mana, maxMana, suspicion } = useGameStore();
 
     const toggleSkill = () => {
         setSelectedSkill(selectedSkill === 'whisper' ? null : 'whisper');
@@ -688,6 +728,13 @@ export const BaseSceneUI: React.FC = () => {
         textShadow: '1px 1px 0 #000'
     };
 
+    const suspicionStyle: React.CSSProperties = {
+        position: 'absolute',
+        top: '60px',
+        right: '20px',
+        zIndex: 100
+    };
+
     return (
         <>
             <CharacterStatusDrawer />
@@ -699,6 +746,9 @@ export const BaseSceneUI: React.FC = () => {
             </div>
             <div style={containerStyle} onClick={toggleSkill}>
                 <div style={spriteStyle} />
+            </div>
+            <div style={suspicionStyle}>
+                <SuspicionGauge value={suspicion} />
             </div>
         </>
     );
