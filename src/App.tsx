@@ -46,7 +46,8 @@ export const App = () => {
         "Buildings/Wood/Houses.png",
         "Nature/Wheatfield.png",
         // Skill Icons
-        "Objects/FireballProjectile.png"
+        "Objects/FireballProjectile.png",
+        "UserInterface/InfluenceIcon.png"
       ];
 
       try {
