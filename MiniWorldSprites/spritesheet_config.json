@@ -59,6 +59,13 @@
     "Characters/Workers/RedWorker/FarmerRed.png": { "$ref": "#/defaults/character_sheet" },
     "Characters/Workers/LimeWorker/FarmerLime.png": { "$ref": "#/defaults/character_sheet" },
     "Characters/Workers/PurpleWorker/FarmerPurple.png": { "$ref": "#/defaults/character_sheet" },
+    "UserInterface/InfluenceIcon.png": {
+      "spriteSize": [16, 16],
+      "columns": 1,
+      "tiles": {
+        "influence_icon": { "frame": 0 }
+      }
+    },
     "UserInterface/UiIcons.png": {
       "spriteSize": [32, 32],
       "columns": 4,
