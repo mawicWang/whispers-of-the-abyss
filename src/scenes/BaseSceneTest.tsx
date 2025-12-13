@@ -4,7 +4,7 @@ import { Texture, BlurFilter, TextStyle, Rectangle } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
-import type { Entity } from '../entities';
+import type { Entity, Debuff } from '../entities';
 import { findPath } from '../utils/Pathfinding';
 import { SuspicionGauge } from '../ui/SuspicionGauge';
 
@@ -58,6 +58,7 @@ const createWorker = (x: number, y: number, id: string) => {
         lastMoveTime: Date.now(),
         stateEnterTime: Date.now(),
         path: [],
+        debuffs: [],
         isNPC: true
     });
 };
@@ -180,6 +181,7 @@ export const BaseSceneTest: React.FC = () => {
     const [floatingTexts, setFloatingTexts] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
     const [workerTextures, setWorkerTextures] = useState<Record<string, Texture[]>>({});
     const [staticTextures, setStaticTextures] = useState<Record<string, Texture>>({});
+    const [influenceIcon, setInfluenceIcon] = useState<Texture | null>(null);
 
     // Shared State
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
@@ -339,6 +341,10 @@ export const BaseSceneTest: React.FC = () => {
                 if (t) houses[`wheat_stage_${i}`] = t;
             }
             setStaticTextures(houses);
+
+            // Load Influence Icon
+            const infIcon = loader.getTexture('influence_icon');
+            if (infIcon) setInfluenceIcon(infIcon);
         };
         loadAnims();
 
@@ -356,6 +362,40 @@ export const BaseSceneTest: React.FC = () => {
 
         // 1. AI / Movement System
         for (const entity of ecs.entities) {
+            // Debuff Logic
+            if (entity.debuffs && entity.debuffs.length > 0) {
+                // Process in reverse to safely remove
+                for (let i = entity.debuffs.length - 1; i >= 0; i--) {
+                    const debuff = entity.debuffs[i];
+                    debuff.duration -= (delta / 60);
+                    debuff.tickTimer += (delta / 60);
+
+                    // Expired
+                    if (debuff.duration <= 0) {
+                        entity.debuffs.splice(i, 1);
+                        continue;
+                    }
+
+                    // Tick (Influence: 1 sanity every 2 seconds)
+                    if (debuff.type === 'INFLUENCE' && debuff.tickTimer >= 2.0) {
+                        debuff.tickTimer = 0;
+                        if (entity.attributes?.sanity) {
+                            entity.attributes.sanity.current = Math.max(0, entity.attributes.sanity.current - 1);
+
+                            // Visual feedback
+                            const textId = textIdCounter.current++;
+                            setFloatingTexts(prev => [...prev, {
+                                id: textId,
+                                x: (entity.position?.x ?? 0) + TILE_SIZE / 2,
+                                y: (entity.position?.y ?? 0) - 20,
+                                text: `San -1`
+                            }]);
+                        }
+                    }
+                }
+            }
+
+
             // Legacy AI: Skip if entity has GoatComponent
             if (entity.appearance && entity.position && entity.lastMoveTime && entity.isNPC && !entity.goat) {
                  // If currently moving or has path, skip AI decision
@@ -473,19 +513,19 @@ export const BaseSceneTest: React.FC = () => {
 
     const castWhisper = (x: number, y: number) => {
         // Mana Check
-        if (mana < 1) {
+        if (mana < 5) { // Updated cost
              const textId = textIdCounter.current++;
              setFloatingTexts(prev => [...prev, {
                 id: textId,
                 x: x,
                 y: y,
-                text: `No Mana!`
+                text: `Need 5 Mana!`
              }]);
              return;
         }
 
         // Deduct Mana
-        addMana(-1);
+        addMana(-5);
 
         // Increase Suspicion (Cost of casting)
         increaseSuspicion(1);
@@ -625,6 +665,31 @@ export const BaseSceneTest: React.FC = () => {
                                 }}
                             />
                             )}
+
+                            {/* Debuff Icons */}
+                            {entity.debuffs && entity.debuffs.length > 0 && influenceIcon && (
+                                <pixiContainer y={-35}>
+                                    {entity.debuffs.map((d, i) => {
+                                        // Layout: max 3 per row
+                                        const row = Math.floor(i / 3);
+                                        const col = i % 3;
+                                        // Center the row
+                                        const rowCount = Math.min(entity.debuffs!.length - row*3, 3);
+                                        const startX = -((rowCount * 10) / 2) + 5; // 10px spacing
+                                        return (
+                                            <pixiSprite
+                                                key={`debuff-${i}`}
+                                                texture={influenceIcon}
+                                                x={startX + col * 10}
+                                                y={-row * 10}
+                                                width={8}
+                                                height={8}
+                                                anchor={0.5}
+                                            />
+                                        );
+                                    })}
+                                </pixiContainer>
+                            )}
                     </pixiContainer>
                 );
             })}
@@ -668,10 +733,40 @@ const AutoPlayAnimatedSprite = ({ textures, animationSpeed, anchor, ...props }: 
 // The UI Component
 export const BaseSceneUI: React.FC = () => {
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
-    const { mana, maxMana, suspicion } = useGameStore();
+    const { mana, maxMana, suspicion, selectedEntityId, addMana } = useGameStore();
 
     const toggleSkill = () => {
         setSelectedSkill(selectedSkill === 'whisper' ? null : 'whisper');
+    };
+
+    const castInfluence = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!selectedEntityId) return;
+        if (mana < 1) return;
+
+        // Apply debuff logic directly here or signal
+        // Since we have direct access to ECS here (it's in the same file module scope for this demo,
+        // though normally should be separated), we can modify the entity directly.
+
+        // Find entity
+        const entity = ecs.entities.find(e => e.id === selectedEntityId);
+        if (entity) {
+            // Check mana again
+            if (mana >= 1) {
+                addMana(-1);
+                // Add Debuff
+                if (!entity.debuffs) entity.debuffs = [];
+                entity.debuffs.push({
+                    type: 'INFLUENCE',
+                    duration: 20,
+                    tickTimer: 0,
+                    icon: 'influence_icon'
+                });
+
+                // Force update? The scene useTick handles state updates, but we might want a signal.
+                // React state 'entities' will update on next tick or setEntities call in loop.
+            }
+        }
     };
 
     // Style for the button container
@@ -687,10 +782,31 @@ export const BaseSceneUI: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        cursor: 'pointer',
+        cursor: mana >= 5 ? 'pointer' : 'not-allowed', // Whisper cost 5
         pointerEvents: 'auto',
         imageRendering: 'pixelated',
-        zIndex: 100
+        zIndex: 100,
+        opacity: mana >= 5 ? 1 : 0.5
+    };
+
+    const influenceBtnStyle: React.CSSProperties = {
+        position: 'absolute',
+        bottom: '20px',
+        left: '70px', // Next to whisper
+        width: '40px',
+        height: '40px',
+        border: '2px solid #555',
+        borderRadius: '8px',
+        backgroundColor: '#222',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: (selectedEntityId && mana >= 1) ? 'pointer' : 'not-allowed',
+        pointerEvents: 'auto',
+        imageRendering: 'pixelated',
+        zIndex: 100,
+        opacity: (selectedEntityId && mana >= 1) ? 1 : 0.3,
+        borderColor: (selectedEntityId && mana >= 1) ? '#ffffff' : '#555' // Light up when active
     };
 
     const spriteStyle: React.CSSProperties = {
@@ -699,6 +815,15 @@ export const BaseSceneUI: React.FC = () => {
         backgroundImage: `url(${new URL('assets/Objects/FireballProjectile.png', document.baseURI).href})`,
         backgroundPosition: '-48px 0',
         transform: 'scale(2)',
+        transformOrigin: 'center'
+    };
+
+    const influenceIconStyle: React.CSSProperties = {
+        width: '16px',
+        height: '16px',
+        backgroundImage: `url(${new URL('assets/UserInterface/InfluenceIcon.png', document.baseURI).href})`,
+        backgroundSize: '100%',
+        transform: 'scale(1.5)',
         transformOrigin: 'center'
     };
 
@@ -747,9 +872,17 @@ export const BaseSceneUI: React.FC = () => {
             <div style={manaContainerStyle}>
                 <div style={manaFillStyle} />
             </div>
-            <div style={containerStyle} onClick={toggleSkill}>
+
+            {/* Whisper Skill */}
+            <div style={containerStyle} onClick={toggleSkill} title="Whisper (Cost: 5 Mana)">
                 <div style={spriteStyle} />
             </div>
+
+            {/* Influence Skill */}
+            <div style={influenceBtnStyle} onClick={castInfluence} title="Influence (Cost: 1 Mana)">
+                 <div style={influenceIconStyle} />
+            </div>
+
             <div style={suspicionStyle}>
                 <SuspicionGauge value={suspicion} />
             </div>

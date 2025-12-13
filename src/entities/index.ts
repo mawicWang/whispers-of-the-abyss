@@ -24,6 +24,13 @@ export interface AppearanceComponent {
   };
 }
 
+export interface Debuff {
+  type: 'INFLUENCE';
+  duration: number; // Seconds remaining
+  tickTimer: number; // For periodic effects
+  icon: string; // Texture key or icon name
+}
+
 export type Entity = {
   // Core
   id?: string;
@@ -75,6 +82,9 @@ export type Entity = {
     damageMax: number;
     tickTimer: number; // Accumulates delta time
   };
+
+  // Debuffs
+  debuffs?: Debuff[];
 
   // Tags
   isNPC?: boolean;
