@@ -756,12 +756,20 @@ export const BaseSceneUI: React.FC = () => {
                 addMana(-1);
                 // Add Debuff
                 if (!entity.debuffs) entity.debuffs = [];
-                entity.debuffs.push({
-                    type: 'INFLUENCE',
-                    duration: 20,
-                    tickTimer: 0,
-                    icon: 'influence_icon'
-                });
+
+                // Check for existing Influence debuff to prevent stacking
+                const existingDebuff = entity.debuffs.find(d => d.type === 'INFLUENCE');
+                if (existingDebuff) {
+                    existingDebuff.duration = 20;
+                    existingDebuff.tickTimer = 0;
+                } else {
+                    entity.debuffs.push({
+                        type: 'INFLUENCE',
+                        duration: 20,
+                        tickTimer: 0,
+                        icon: 'influence_icon'
+                    });
+                }
 
                 // Force update? The scene useTick handles state updates, but we might want a signal.
                 // React state 'entities' will update on next tick or setEntities call in loop.
