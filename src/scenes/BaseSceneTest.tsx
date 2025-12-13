@@ -487,6 +487,9 @@ export const BaseSceneTest: React.FC = () => {
         // Deduct Mana
         addMana(-1);
 
+        // Increase Suspicion (Cost of casting)
+        increaseSuspicion(1);
+
         // Visual Effect
         const effectId = effectIdCounter.current++;
         setEffects(prev => [...prev, { id: effectId, x, y }]);
