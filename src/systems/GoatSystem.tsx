@@ -211,8 +211,17 @@ export const FarmAction: GoatAction = {
         // State: Not started
         if (entity.goat.blackboard.farmStartTime === undefined) {
              entity.goat.blackboard.farmStartTime = now;
-             if (entity.appearance) {
+             if (entity.appearance && target.position && entity.position) {
                  entity.appearance.animation = 'attack';
+
+                 // Face the target
+                 const dx = target.position.x - entity.position.x;
+                 const dy = target.position.y - entity.position.y;
+                 if (Math.abs(dx) > Math.abs(dy)) {
+                     entity.appearance.direction = dx > 0 ? 'right' : 'left';
+                 } else {
+                     entity.appearance.direction = dy > 0 ? 'down' : 'up';
+                 }
              }
              return false; // Wait for animation
         }
