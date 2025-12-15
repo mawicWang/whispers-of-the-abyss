@@ -56,6 +56,13 @@ export const CharacterStatusDrawer: React.FC = () => {
         return new URL(`assets/MiniWorldSprites/Characters/Workers/${subfolder}${spriteName}.png`, document.baseURI).href;
     };
 
+    const getDebuffIconUrl = (iconKey: string) => {
+        if (iconKey === 'influence_icon') {
+            return new URL('assets/UserInterface/InfluenceIcon.png', document.baseURI).href;
+        }
+        return '';
+    };
+
     const styles: Record<string, React.CSSProperties> = {
         drawer: {
             position: 'fixed',
@@ -94,7 +101,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            gap: '12px'
+            gap: '8px' // Reduced gap slightly to fit debuffs
         },
         statRow: {
             fontSize: '16px',
@@ -113,6 +120,32 @@ export const CharacterStatusDrawer: React.FC = () => {
             height: '100%',
             backgroundColor: '#4fc3f7', // Cyan for sanity
             transition: 'width 0.2s'
+        },
+        debuffContainer: {
+            display: 'flex',
+            gap: '6px',
+            minHeight: '28px', // Reserve space even if empty, or let it collapse? User said "Teng chu yidian difang" (make space)
+            alignItems: 'center',
+            marginTop: '-4px',
+            marginBottom: '4px'
+        },
+        debuffItem: {
+             position: 'relative',
+             width: '24px',
+             height: '24px',
+             backgroundColor: 'rgba(0,0,0,0.3)',
+             border: '1px solid #555',
+             borderRadius: '4px',
+        },
+        debuffTimer: {
+            position: 'absolute',
+            bottom: '-6px',
+            right: '-4px',
+            fontSize: '10px',
+            color: '#fff',
+            textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
+            fontWeight: 'bold',
+            zIndex: 2
         }
     };
 
@@ -136,10 +169,29 @@ export const CharacterStatusDrawer: React.FC = () => {
                 )}
             </div>
             <div style={styles.statsContainer}>
-                <div style={{ fontSize: '18px', marginBottom: '8px', color: '#ffd700' }}>
+                <div style={{ fontSize: '18px', color: '#ffd700' }}>
                      {/* Name or ID */}
                      {entity?.id || 'Unknown'}
                 </div>
+
+                {/* Debuffs Section */}
+                <div style={styles.debuffContainer}>
+                     {entity?.debuffs && entity.debuffs.map((debuff, i) => (
+                        <div key={i} style={styles.debuffItem} title={`${debuff.type} (${Math.ceil(debuff.duration)}s)`}>
+                            <div style={{
+                                width: '100%',
+                                height: '100%',
+                                backgroundImage: `url(${getDebuffIconUrl(debuff.icon)})`,
+                                backgroundSize: '16px 16px',
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'center',
+                                imageRendering: 'pixelated'
+                            }} />
+                            <div style={styles.debuffTimer}>{Math.ceil(debuff.duration)}s</div>
+                        </div>
+                     ))}
+                </div>
+
                 <div style={styles.statRow}>
                     <span style={{ minWidth: '40px' }}>理智:</span>
                     <div style={styles.barContainer}>
