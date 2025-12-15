@@ -311,17 +311,18 @@ export const BaseSceneTest: React.FC = () => {
             const anims: Record<string, Texture[]> = {};
 
             const actions = ['idle', 'walk', 'attack', 'run'];
-            // const directions = ['down', 'up', 'left', 'right']; // Not used in keying yet
+            const directions = ['down', 'up', 'left', 'right'];
 
             WORKER_VARIANTS.forEach(variant => {
                 actions.forEach(action => {
-                    // Load 'down' variants as default for now
-                    // Key format in map: "FarmerCyan_idle", "FarmerRed_walk", etc.
-                    const key = `${variant}_${action}`;
-                    const downAnim = loader.getAnimation(`${key}_down`);
-                    if (downAnim) {
-                        anims[key] = downAnim;
-                    }
+                    directions.forEach(direction => {
+                        const key = `${variant}_${action}_${direction}`;
+                        // The config uses keys like "FarmerCyan_idle_down"
+                        const anim = loader.getAnimation(key);
+                        if (anim) {
+                            anims[key] = anim;
+                        }
+                    });
                 });
             });
 
@@ -611,8 +612,11 @@ export const BaseSceneTest: React.FC = () => {
                 }
 
                 const action = entity.appearance.animation || 'idle';
-                const animKey = `${entity.appearance.sprite}_${action}`;
-                const textures = workerTextures[animKey];
+                const direction = entity.appearance.direction || 'down';
+                const animKey = `${entity.appearance.sprite}_${action}_${direction}`;
+
+                // Fallback to down if direction missing (shouldn't happen often)
+                const textures = workerTextures[animKey] || workerTextures[`${entity.appearance.sprite}_${action}_down`];
 
                 // Calculate animation speed (Logic from WorkerControl)
                 // Speed = 1 / (interval / 16.666)
