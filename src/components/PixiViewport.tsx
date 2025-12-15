@@ -35,10 +35,19 @@ export const PixiViewport = forwardRef<Viewport, PixiViewportProps>((props, ref)
         if (!viewport || !app) return;
 
         // Apply plugins after mount
+        // Configuration to match user requirements:
+        // Windows: Click-Drag Pan, Mouse Wheel Zoom
+        // Mac: Click-Drag Pan, Two-finger Zoom (Pinch/Scroll)
+        // Mobile: One-finger Pan, Two-finger Zoom (Pinch)
         viewport
-            .drag()
-            .pinch()
-            .wheel()
+            .drag({
+                mouseButtons: 'left', // Ensure only left click drags
+            })
+            .pinch() // Support touch pinch on mobile
+            .wheel({
+                trackpadPinch: true, // Support native Mac trackpad pinch gesture (Ctrl + Wheel)
+                wheelZoom: true,     // Support standard wheel zooming
+            })
             .decelerate()
             .bounce();
 
