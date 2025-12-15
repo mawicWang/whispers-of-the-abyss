@@ -7,6 +7,7 @@ import { ecs } from '../entities';
 import type { Entity, Debuff } from '../entities';
 import { findPath } from '../utils/Pathfinding';
 import { SuspicionGauge } from '../ui/SuspicionGauge';
+import { PixiViewport } from '../components/PixiViewport';
 
 const TILE_SIZE = 16;
 const GRID_W = Math.floor(360 / TILE_SIZE);
@@ -542,7 +543,12 @@ export const BaseSceneTest: React.FC = () => {
     };
 
     return (
-        <pixiContainer eventMode="static" onPointerDown={handleStageClick}>
+        <PixiViewport
+            worldWidth={360}
+            worldHeight={640}
+            onPointerDown={handleStageClick}
+            eventMode="static"
+        >
             <MoveSystem />
             <GoatSystem />
             {/* Background (Interactive area) */}
@@ -715,7 +721,7 @@ export const BaseSceneTest: React.FC = () => {
                 />
             ))}
 
-        </pixiContainer>
+        </PixiViewport>
     );
 };
 
