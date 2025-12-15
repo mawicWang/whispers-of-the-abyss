@@ -654,7 +654,7 @@ export const BaseSceneTest: React.FC = () => {
                             {/* Simple Sanity Bar */}
                             {entity.attributes?.sanity && (
                             <pixiGraphics
-                                y={-20}
+                                y={-15}
                                 draw={(g) => {
                                     g.clear();
                                     g.beginFill(0x000000);
@@ -668,7 +668,7 @@ export const BaseSceneTest: React.FC = () => {
 
                             {/* Debuff Icons */}
                             {entity.debuffs && entity.debuffs.length > 0 && influenceIcon && (
-                                <pixiContainer y={-35}>
+                                <pixiContainer y={-22}>
                                     {entity.debuffs.map((d, i) => {
                                         // Layout: max 3 per row
                                         const row = Math.floor(i / 3);
