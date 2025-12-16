@@ -45,6 +45,10 @@ const createWorker = (x: number, y: number, id: string) => {
             stamina: {
                 current: 10,
                 max: 10
+            },
+            corruption: {
+                current: 0,
+                max: 100
             }
         },
         goat: {
@@ -380,6 +384,15 @@ export const BaseSceneTest: React.FC = () => {
                         if (entity.attributes?.sanity) {
                             entity.attributes.sanity.current = Math.max(0, entity.attributes.sanity.current - 1);
 
+                            // Unlock Corruption if Sanity is 0
+                            if (entity.attributes.sanity.current <= 0) {
+                                if (entity.attributes.corruption) {
+                                    // Slow passive corruption increase when insane?
+                                    // User requirements said unlocked. I'll add a small increment here for effect
+                                    entity.attributes.corruption.current = Math.min(100, entity.attributes.corruption.current + 1);
+                                }
+                            }
+
                             // Visual feedback
                             const textId = textIdCounter.current++;
                             setFloatingTexts(prev => [...prev, {
@@ -475,6 +488,14 @@ export const BaseSceneTest: React.FC = () => {
                     targetsHit.forEach(target => {
                          const dmg = Math.floor(Math.random() * (zone.damageMax - zone.damageMin + 1)) + zone.damageMin;
                          target.attributes!.sanity.current = Math.max(0, target.attributes!.sanity.current - dmg);
+
+                         // Unlock Corruption if Sanity is 0
+                         if (target.attributes!.sanity.current <= 0) {
+                             if (target.attributes!.corruption) {
+                                 // Increase corruption slightly when hit while insane
+                                 target.attributes!.corruption.current = Math.min(100, target.attributes!.corruption.current + 2);
+                             }
+                         }
 
                          // Floating Text
                          const textId = textIdCounter.current++;

@@ -20,9 +20,6 @@ export const CharacterStatusDrawer: React.FC = () => {
             interval = setInterval(() => {
                 const current = ecs.entities.find(e => e.id === selectedEntityId);
                 if (current) {
-                    // Force update by cloning or setting state if values changed
-                    // Since Miniplex mutates objects, we rely on React detecting the object ref or we force update
-                    // Here we just set it again. To ensure re-render on mutation, we might need a version counter or spread.
                     setEntity({ ...current });
                 } else {
                     setEntity(null);
@@ -36,16 +33,13 @@ export const CharacterStatusDrawer: React.FC = () => {
 
     const isOpen = !!entity;
 
-    // Resolve Portrait URL
+    // Resolve Portrait URL (Restored)
     const getPortraitUrl = (spriteName?: string) => {
         if (!spriteName) return '';
         // Mapping based on file structure observed in public/assets
         // public/assets/MiniWorldSprites/Characters/Workers/CyanWorker/FarmerCyan.png
         // We need to infer the subfolder from the sprite name if possible, or try a best guess.
         // Given 'FarmerCyan', the folder is 'CyanWorker'.
-        // Logic: 'Farmer' + Color -> Color + 'Worker' folder?
-        // Or simpler: The user probably wants it to work for the test workers.
-        // Worker names: FarmerCyan, FarmerRed, etc.
         let subfolder = '';
         if (spriteName.includes('Cyan')) subfolder = 'CyanWorker/';
         else if (spriteName.includes('Red')) subfolder = 'RedWorker/';
@@ -63,13 +57,53 @@ export const CharacterStatusDrawer: React.FC = () => {
         return '';
     };
 
+    const sanity = entity?.attributes?.sanity;
+    const currentSanity = sanity?.current ?? 0;
+    const maxSanity = sanity?.max ?? 100;
+    const sanityPct = Math.max(0, Math.min(100, (currentSanity / maxSanity) * 100));
+
+    const stamina = entity?.attributes?.stamina;
+    const currentStamina = stamina?.current ?? 0;
+    const maxStamina = stamina?.max ?? 10;
+    const staminaPct = Math.max(0, Math.min(100, (currentStamina / maxStamina) * 100));
+
+    const corruption = entity?.attributes?.corruption;
+    const currentCorruption = corruption?.current ?? 0;
+    const maxCorruption = corruption?.max ?? 100;
+    const corruptionPct = Math.max(0, Math.min(100, (currentCorruption / maxCorruption) * 100));
+
+    // Determine Title and Color
+    let title = '';
+    let nameColor = '#ffffff'; // White default
+
+    // Corruption logic
+    if (currentSanity <= 0) {
+        // "My Believer"
+        if (currentCorruption >= 100) {
+             title = '代行者 (Avatar)';
+             nameColor = '#ff4500'; // OrangeRed
+        } else if (currentCorruption >= 81) {
+             title = '先驱 (Harbinger)';
+             nameColor = '#9d4edd'; // Purple
+        } else if (currentCorruption >= 51) {
+             title = '狂信徒 (Zealot)';
+             nameColor = '#2196f3'; // Blue
+        } else if (currentCorruption >= 21) {
+             title = '受膏者 (Anointed)';
+             nameColor = '#4caf50'; // Green
+        } else {
+             title = '聆听者 (Listener)';
+             nameColor = '#ffffff'; // White
+        }
+    }
+
     const styles: Record<string, React.CSSProperties> = {
         drawer: {
             position: 'fixed',
             top: 0,
             left: 0,
             width: '100%',
-            height: '128px', // Approx 4 characters high (32 * 4)
+            height: '148px', // Increased height to fit Corruption
             backgroundColor: 'rgba(20, 20, 30, 0.95)',
             borderBottom: '4px solid #4a4a6a',
             transform: isOpen ? 'translateY(0)' : 'translateY(-100%)',
@@ -91,7 +125,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             backgroundColor: '#000',
             border: '2px solid #6d6d8d',
             borderRadius: '4px',
-            flexShrink: 0, // Prevent shrinking
+            flexShrink: 0,
             overflow: 'hidden',
             position: 'relative',
             boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
@@ -101,38 +135,37 @@ export const CharacterStatusDrawer: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            gap: '8px' // Reduced gap slightly to fit debuffs
+            gap: '6px' // Reduced gap to fit all bars
         },
         statRow: {
-            fontSize: '16px',
+            fontSize: '14px', // Reduced font size slightly
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
         },
         barContainer: {
             width: '150px',
-            height: '12px',
+            height: '10px', // Reduced height slightly
             backgroundColor: '#333',
             border: '2px solid #555',
             position: 'relative'
         },
         barFill: {
             height: '100%',
-            backgroundColor: '#4fc3f7', // Cyan for sanity
             transition: 'width 0.2s'
         },
         debuffContainer: {
             display: 'flex',
             gap: '6px',
-            minHeight: '28px', // Reserve space even if empty, or let it collapse? User said "Teng chu yidian difang" (make space)
+            minHeight: '24px',
             alignItems: 'center',
-            marginTop: '-4px',
-            marginBottom: '4px'
+            marginTop: '-2px',
+            marginBottom: '2px'
         },
         debuffItem: {
              position: 'relative',
-             width: '24px',
-             height: '24px',
+             width: '20px',
+             height: '20px',
              backgroundColor: 'rgba(0,0,0,0.3)',
              border: '1px solid #555',
              borderRadius: '4px',
@@ -141,25 +174,21 @@ export const CharacterStatusDrawer: React.FC = () => {
             position: 'absolute',
             bottom: '-6px',
             right: '-4px',
-            fontSize: '10px',
+            fontSize: '9px',
             color: '#fff',
-            textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
+            textShadow: '1px 1px 0 #000',
             fontWeight: 'bold',
             zIndex: 2
+        },
+        titleText: {
+            fontSize: '12px',
+            color: '#aaa',
+            marginLeft: '8px',
+            fontStyle: 'italic'
         }
     };
 
     if (!entity && !isOpen) return null;
-
-    const sanity = entity?.attributes?.sanity;
-    const currentSanity = sanity?.current ?? 0;
-    const maxSanity = sanity?.max ?? 100;
-    const sanityPct = Math.max(0, Math.min(100, (currentSanity / maxSanity) * 100));
-
-    const stamina = entity?.attributes?.stamina;
-    const currentStamina = stamina?.current ?? 0;
-    const maxStamina = stamina?.max ?? 10;
-    const staminaPct = Math.max(0, Math.min(100, (currentStamina / maxStamina) * 100));
 
     return (
         <div style={styles.drawer}>
@@ -169,9 +198,10 @@ export const CharacterStatusDrawer: React.FC = () => {
                 )}
             </div>
             <div style={styles.statsContainer}>
-                <div style={{ fontSize: '18px', color: '#ffd700' }}>
+                <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline' }}>
                      {/* Name or ID */}
                      {entity?.id || 'Unknown'}
+                     {title && <span style={styles.titleText}>{title}</span>}
                 </div>
 
                 {/* Debuffs Section */}
@@ -193,19 +223,35 @@ export const CharacterStatusDrawer: React.FC = () => {
                 </div>
 
                 <div style={styles.statRow}>
-                    <span style={{ minWidth: '40px' }}>理智:</span>
+                    <span style={{ minWidth: '50px' }}>理智:</span>
                     <div style={styles.barContainer}>
                         <div style={{ ...styles.barFill, width: `${sanityPct}%`, backgroundColor: '#4fc3f7' }} />
                     </div>
                     <span>{Math.floor(currentSanity)}/{maxSanity}</span>
                 </div>
+
                 {stamina && (
                     <div style={styles.statRow}>
-                        <span style={{ minWidth: '40px' }}>精力:</span>
+                        <span style={{ minWidth: '50px' }}>精力:</span>
                         <div style={styles.barContainer}>
                             <div style={{ ...styles.barFill, width: `${staminaPct}%`, backgroundColor: '#4caf50' }} />
                         </div>
                         <span>{Math.floor(currentStamina)}/{maxStamina}</span>
+                    </div>
+                )}
+
+                {/* Corruption Bar - Always visible if unlocked (sanity <= 0) OR if manually set > 0?
+                    User said "If sanity 0, unlock corruption".
+                    But if we just unlocked it, it might be 0.
+                    Let's show it if Sanity <= 0 OR corruption > 0.
+                */}
+                {(currentSanity <= 0 || currentCorruption > 0) && (
+                    <div style={styles.statRow}>
+                        <span style={{ minWidth: '50px', color: '#9d4edd' }}>侵蚀:</span>
+                        <div style={styles.barContainer}>
+                            <div style={{ ...styles.barFill, width: `${corruptionPct}%`, backgroundColor: '#9d4edd' }} />
+                        </div>
+                        <span style={{color: '#9d4edd'}}>{Math.floor(currentCorruption)}/{maxCorruption}</span>
                     </div>
                 )}
             </div>

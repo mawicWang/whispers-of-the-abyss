@@ -13,6 +13,10 @@ export interface BaseAttributeComponent {
         current: number;
         max: number;
     };
+    corruption?: {
+        current: number;
+        max: number;
+    };
   };
 }
 
