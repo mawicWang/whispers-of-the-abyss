@@ -48,6 +48,10 @@ const createWorker = (x: number, y: number, id: string) => {
             corruption: {
                 current: 0,
                 max: 100
+            },
+            boredom: {
+                current: Math.floor(Math.random() * 50), // Random initial boredom
+                max: 100
             }
         },
         goat: {

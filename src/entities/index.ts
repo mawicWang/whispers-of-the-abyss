@@ -17,6 +17,10 @@ export interface BaseAttributeComponent {
         current: number;
         max: number;
     };
+    boredom?: {
+        current: number;
+        max: number;
+    };
   };
 }
 
