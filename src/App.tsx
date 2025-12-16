@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Application, extend } from '@pixi/react';
-import { Container, Sprite, Text, Graphics, TextStyle, AnimatedSprite } from 'pixi.js';
+import { Container, Sprite, Text, Graphics, TextStyle, AnimatedSprite, TilingSprite } from 'pixi.js';
 import SimpleAnimationScene from './scenes/SimpleAnimationScene';
 import { BaseSceneTest, BaseSceneUI } from './scenes/BaseSceneTest';
 import { AssetLoader } from './utils/AssetLoader';
@@ -11,7 +11,7 @@ import { DemonKingInterface } from './ui/DemonKingInterface';
 import './App.css';
 
 // Register PixiJS components
-extend({ Container, Sprite, Text, Graphics, AnimatedSprite });
+extend({ Container, Sprite, Text, Graphics, AnimatedSprite, TilingSprite });
 
 type SceneState = 'menu' | 'sprites' | 'tilemap';
 
@@ -47,7 +47,10 @@ export const App = () => {
         "Nature/Wheatfield.png",
         // Skill Icons
         "Objects/FireballProjectile.png",
-        "UserInterface/InfluenceIcon.png"
+        "UserInterface/InfluenceIcon.png",
+        // Templates
+        "Templates/16x16Large.png",
+        "Templates/16x16Small.png"
       ];
 
       try {

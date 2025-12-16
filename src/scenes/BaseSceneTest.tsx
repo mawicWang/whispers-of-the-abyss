@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
-import { Texture, BlurFilter, TextStyle, Rectangle } from 'pixi.js';
+import { Texture, BlurFilter, TextStyle, Rectangle, Assets } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
@@ -156,24 +156,6 @@ const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: 
     );
 };
 
-const DebugGrid = () => (
-    <pixiGraphics
-        draw={(g) => {
-            g.clear();
-
-            for (let x = 0; x <= 360; x += TILE_SIZE) {
-                g.moveTo(x, 0);
-                g.lineTo(x, 640);
-            }
-            for (let y = 0; y <= 640; y += TILE_SIZE) {
-                g.moveTo(0, y);
-                g.lineTo(360, y);
-            }
-            g.stroke({ width: 1, color: 0x888888, alpha: 0.5 });
-        }}
-    />
-);
-
 // The Pixi Scene Component
 export const BaseSceneTest: React.FC = () => {
     // Game State
@@ -183,6 +165,7 @@ export const BaseSceneTest: React.FC = () => {
     const [workerTextures, setWorkerTextures] = useState<Record<string, Texture[]>>({});
     const [staticTextures, setStaticTextures] = useState<Record<string, Texture>>({});
     const [influenceIcon, setInfluenceIcon] = useState<Texture | null>(null);
+    const [backgroundTexture, setBackgroundTexture] = useState<Texture | null>(null);
 
     // Shared State
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
@@ -306,7 +289,20 @@ export const BaseSceneTest: React.FC = () => {
 
         // Load Textures
         const loader = AssetLoader.getInstance();
-        const loadAnims = () => {
+        const loadAnims = async () => {
+            // Load Background
+            try {
+                const baseUrl = import.meta.env.BASE_URL;
+                const bgUrl = `${baseUrl}assets/Templates/16x16Large.png`;
+                const bgTex = await Assets.load(bgUrl);
+                if (bgTex) {
+                    bgTex.source.scaleMode = 'nearest';
+                    setBackgroundTexture(bgTex);
+                }
+            } catch (e) {
+                console.error("Failed to load background", e);
+            }
+
             // Load base animations for all worker variants
             const anims: Record<string, Texture[]> = {};
 
@@ -553,16 +549,23 @@ export const BaseSceneTest: React.FC = () => {
             <MoveSystem />
             <GoatSystem />
             {/* Background (Interactive area) */}
-            <pixiGraphics
-                draw={(g) => {
-                    g.clear();
-                    g.beginFill(0x333333);
-                    g.drawRect(0, 0, 360, 640);
-                    g.endFill();
-                }}
-            />
-
-            <DebugGrid />
+            {backgroundTexture ? (
+                <pixiTilingSprite
+                    texture={backgroundTexture}
+                    width={360}
+                    height={640}
+                    tilePosition={{ x: 0, y: 0 }}
+                />
+            ) : (
+                <pixiGraphics
+                    draw={(g) => {
+                        g.clear();
+                        g.beginFill(0x333333);
+                        g.drawRect(0, 0, 360, 640);
+                        g.endFill();
+                    }}
+                />
+            )}
 
             {/* Entities */}
             {entities.map((entity) => {
