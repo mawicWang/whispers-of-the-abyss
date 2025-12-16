@@ -159,7 +159,7 @@ const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: 
 // Avatar Monitor Component
 const AvatarOverlay = ({ texture, targetId }: { texture: Texture, targetId: string }) => {
     const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
-    const maskRef = useRef<any>(null);
+    const [maskObj, setMaskObj] = useState<any>(null);
 
     useTick(() => {
         const t = ecs.entities.find(e => e.id === targetId);
@@ -187,7 +187,7 @@ const AvatarOverlay = ({ texture, targetId }: { texture: Texture, targetId: stri
     return (
         <pixiContainer x={monitorX} y={monitorY}>
              <pixiGraphics
-                 ref={maskRef}
+                 ref={setMaskObj}
                  draw={g => {
                      g.clear();
                      g.beginFill(0x000000);
@@ -199,7 +199,7 @@ const AvatarOverlay = ({ texture, targetId }: { texture: Texture, targetId: stri
                  texture={texture}
                  scale={{ x: zoom, y: zoom }}
                  position={{ x: (monitorW/2) - tx * zoom, y: (monitorH/2) - ty * zoom }}
-                 mask={maskRef.current}
+                 mask={maskObj}
              />
         </pixiContainer>
     );
@@ -266,7 +266,8 @@ export const BaseSceneTest: React.FC = () => {
             const HIT_RADIUS_SQ = 24 * 24;
 
             for(const ent of ecs.entities) {
-                if (ent.position) {
+                // Only select NPCs (ignore buildings, wheat, etc.)
+                if (ent.position && ent.isNPC) {
                     const cx = ent.position.x + 8;
                     const cy = ent.position.y + 8;
                     const dx = wx - cx;
