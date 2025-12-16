@@ -201,7 +201,9 @@ export const BaseSceneTest: React.FC = () => {
         monitorContainer.addChild(monitorSprite);
         monitorSprite.mask = maskGraphic;
 
+        let isExtracting = false;
         const intervalId = setInterval(async () => {
+            if (isExtracting) return;
             const targetId = useGameStore.getState().selectedEntityId;
             if (!targetId) {
                 useGameStore.getState().setAvatarImage(null);
@@ -210,6 +212,7 @@ export const BaseSceneTest: React.FC = () => {
 
             const target = ecs.entities.find(e => e.id === targetId);
             if (target && target.position) {
+                isExtracting = true;
                 const tx = target.position.x + 8;
                 const ty = target.position.y + 8;
 
@@ -229,9 +232,11 @@ export const BaseSceneTest: React.FC = () => {
                     setAvatarImage(dataUrl);
                 } catch (e) {
                     console.error("Failed to extract avatar image", e);
+                } finally {
+                    isExtracting = false;
                 }
             }
-        }, 200); // 5 FPS
+        }, 33); // ~30 FPS
 
         return () => {
             clearInterval(intervalId);
