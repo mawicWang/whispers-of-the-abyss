@@ -3,15 +3,17 @@
 
 import type { Entity } from './index';
 
-export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate';
+export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom';
 
 export interface GoatState {
     stamina: number;
     sanity: number;
+    boredom: number;
     atHome: boolean;
     atFarm: boolean;
     atQuietSpot: boolean; // Added
     hasFarmTarget: boolean;
+    hasNeighbor: boolean; // Added for Social
     isResting: boolean;
     farmCooldown: number;
 }
@@ -35,11 +37,16 @@ export interface GoatComponent {
             targetFarmId?: string;
             homePosition?: { x: number, y: number };
             targetSpot?: { x: number, y: number }; // Added
+            socialTargetId?: string; // Added for Social
+            socialRequestFrom?: string; // Added for Handshake
+            socialAccepted?: boolean; // Added for Handshake
+            socialTimer?: number;
             lastFarmTime?: number;
             farmStartTime?: number;
             restTimer?: number;
             prayTimer?: number;
             meditateTimer?: number;
+            wanderTimer?: number;
         };
     };
 }

@@ -13,6 +13,8 @@ const REST_RECOVERY_RATE = 1; // 1 stamina per second
 const REST_DURATION = 10000; // 10 seconds mandatory rest at door (as per prompt)
 const PRAY_DURATION = 10000; // 10 seconds
 const MEDITATE_DURATION = 30000; // 30 seconds (representing 30m)
+const WANDER_DURATION = 5000; // 5 seconds
+const CHAT_DURATION = 5000; // 5 seconds
 const FARM_ANIMATION_DURATION = 800; // 8 frames * 100ms
 const FARM_INTERVAL = 1000; // Total interval including animation and pause
 
@@ -325,6 +327,93 @@ export const PrayAction: GoatAction = {
     }
 };
 
+export const WanderAction: GoatAction = {
+    name: 'Wander',
+    cost: 1,
+    preconditions: (state) => state.atQuietSpot,
+    effects: (state) => ({ boredom: 0 }),
+    execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "闲逛中";
+        if (!entity.goat) return false;
+
+        if (entity.goat.blackboard.wanderTimer === undefined) {
+            entity.goat.blackboard.wanderTimer = 0;
+            if (entity.appearance) entity.appearance.animation = 'idle';
+        }
+
+        entity.goat.blackboard.wanderTimer += deltaTime;
+
+        if (entity.goat.blackboard.wanderTimer >= WANDER_DURATION) {
+            entity.goat.blackboard.wanderTimer = undefined;
+            entity.goat.blackboard.targetSpot = undefined;
+
+            if (entity.attributes?.boredom) {
+                entity.attributes.boredom.current = Math.max(0, entity.attributes.boredom.current - 50); // Significant reduction
+            }
+            return true;
+        }
+        return false;
+    }
+};
+
+export const ChatWithOtherAction: GoatAction = {
+    name: 'ChatWithOther',
+    cost: 0,
+    preconditions: (state) => state.hasNeighbor,
+    effects: (state) => ({ boredom: 0 }),
+    execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "交流中";
+        if (!entity.goat) return false;
+
+        const targetId = entity.goat.blackboard.socialTargetId;
+        if (!targetId) return true; // Abort if no target
+
+        const target = ecs.entities.find(e => e.id === targetId);
+        // Handshake check
+        // We assume handshake logic happens in the System loop or before this action logic kicks in fully
+        // But we need to verify here if we are "connected"
+
+        // Wait for handshake if initiator
+        // If we are initiator, we set 'socialRequestFrom' on target.
+        // We wait for 'socialAccepted' on us.
+
+        // If we are receiver, we set 'socialAccepted' on target (the initiator), and we run this action too.
+
+        // Let's simplify:
+        // If we are in this action, we assume the handshake succeeded or is in progress.
+        // We just play animation and wait.
+
+        if (entity.goat.blackboard.socialTimer === undefined) {
+             entity.goat.blackboard.socialTimer = 0;
+             if (entity.appearance && target && target.position && entity.position) {
+                 entity.appearance.animation = 'attack'; // Use attack as 'talking' gesture as requested/implied
+                 // Face target
+                 const dx = target.position.x - entity.position.x;
+                 const dy = target.position.y - entity.position.y;
+                 if (Math.abs(dx) > Math.abs(dy)) entity.appearance.direction = dx > 0 ? 'right' : 'left';
+                 else entity.appearance.direction = dy > 0 ? 'down' : 'up';
+             }
+        }
+
+        entity.goat.blackboard.socialTimer += deltaTime;
+
+        if (entity.goat.blackboard.socialTimer >= CHAT_DURATION) {
+            entity.goat.blackboard.socialTimer = undefined;
+            // Clean up
+            entity.goat.blackboard.socialTargetId = undefined;
+            entity.goat.blackboard.socialRequestFrom = undefined;
+            entity.goat.blackboard.socialAccepted = undefined;
+
+             if (entity.attributes?.boredom) {
+                entity.attributes.boredom.current = 0; // Fully satisfy boredom
+            }
+            return true;
+        }
+
+        return false;
+    }
+};
+
 export const MeditateAction: GoatAction = {
     name: 'Meditate',
     cost: 0,
@@ -360,6 +449,29 @@ export const MeditateAction: GoatAction = {
 };
 
 
+// Sensor Helper
+const UpdateSensors = (entity: Entity) => {
+    if (!entity.position || !entity.goat) return;
+    const goat = entity.goat;
+
+    // Check for Neighbors if we are looking for social interaction
+    if (goat.currentGoal === 'KillBoredom' && !goat.blackboard.socialTargetId) {
+        const neighbor = ecs.entities.find(e => {
+            if (e.id === entity.id || !e.goat || !e.position || !entity.position) return false;
+            const dist = Math.hypot(e.position.x - entity.position.x, e.position.y - entity.position.y);
+            return dist < 48;
+        });
+
+        if (neighbor) {
+            if (neighbor.goat && !neighbor.goat.blackboard.socialRequestFrom && !neighbor.goat.blackboard.socialTargetId) {
+                // Send request
+                neighbor.goat.blackboard.socialRequestFrom = entity.id;
+                goat.blackboard.socialTargetId = neighbor.id;
+            }
+        }
+    }
+};
+
 export const GoatSystem = () => {
   useTick((ticker) => {
     const deltaMS = ticker.elapsedMS;
@@ -369,10 +481,33 @@ export const GoatSystem = () => {
 
         const goat = entity.goat;
 
-        // 1. Check Goal
+        // 1. Update State & Boredom
+        if (entity.attributes?.boredom) {
+             // Increase boredom over time
+             const boredomIncrease = (deltaMS / 1000) * 1; // 1 per second
+             entity.attributes.boredom.current = Math.min(
+                 entity.attributes.boredom.max,
+                 entity.attributes.boredom.current + boredomIncrease
+             );
+        }
+
         const stamina = entity.attributes?.stamina?.current || 0;
         const maxStamina = entity.attributes?.stamina?.max || 10;
         const sanity = entity.attributes?.sanity?.current ?? 100;
+        const boredom = entity.attributes?.boredom?.current || 0;
+
+        // Check for social requests (Passive)
+        if (goat.blackboard.socialRequestFrom && !goat.currentGoal && entity.attributes?.boredom && entity.attributes.boredom.current > 30) {
+            // Accept invitation if we are bored enough and idle
+            const requester = ecs.entities.find(e => e.id === goat.blackboard.socialRequestFrom);
+            if (requester && requester.goat) {
+                // Accept!
+                requester.goat.blackboard.socialAccepted = true;
+                goat.blackboard.socialTargetId = requester.id;
+                goat.currentGoal = 'KillBoredom'; // Force social goal
+                // We will plan for ChatWithOther next
+            }
+        }
 
         // Transition Logic
         if (stamina <= 0 && goat.currentGoal !== 'RecoverStamina') {
@@ -384,15 +519,13 @@ export const GoatSystem = () => {
                  }
                  goat.blackboard.targetFarmId = undefined;
              }
-             // Prioritize Stamina? Or if corrupted, maybe random?
-             // Let's keep stamina priority for survival, then behaviors
             goat.currentGoal = 'RecoverStamina';
         }
         else if (stamina >= maxStamina && goat.currentGoal === 'RecoverStamina') {
             goat.currentGoal = undefined; // Needs new goal
         }
         else if (!goat.currentGoal) {
-            // Goal Selection
+            // Goal Selection priority
             if (sanity <= 0) {
                 // Corrupted Behavior
                 const rand = Math.random();
@@ -403,6 +536,8 @@ export const GoatSystem = () => {
                 } else {
                     goat.currentGoal = 'Farm';
                 }
+            } else if (boredom > 80) { // High boredom
+                 goat.currentGoal = 'KillBoredom';
             } else {
                 goat.currentGoal = 'Farm';
             }
@@ -414,10 +549,12 @@ export const GoatSystem = () => {
             const currentState: GoatState = {
                 stamina: stamina,
                 sanity: sanity,
+                boredom: boredom,
                 atHome: false,
                 atFarm: false,
                 atQuietSpot: false,
                 hasFarmTarget: !!goat.blackboard.targetFarmId,
+                hasNeighbor: !!goat.blackboard.socialTargetId, // We assume if we have a target ID we have found/accepted them
                 isResting: false,
                 farmCooldown: 0
             };
@@ -444,6 +581,33 @@ export const GoatSystem = () => {
                          // Lost claim or target
                          goat.blackboard.targetFarmId = undefined;
                          currentState.hasFarmTarget = false;
+                     }
+                 }
+
+                 // Update Sensors
+                 if (entity.position) {
+                     UpdateSensors(entity);
+                 }
+
+                 // Check if accepted
+                 if (goat.blackboard.socialTargetId) {
+                     const target = ecs.entities.find(e => e.id === goat.blackboard.socialTargetId);
+
+                     // Condition 1: We are Initiator, and Target accepted us (set our flag)
+                     const initiatorAccepted = !!goat.blackboard.socialAccepted;
+
+                     // Condition 2: We are Acceptor, and Target (Initiator) is targeting us
+                     const acceptorConnected = target && target.goat && target.goat.blackboard.socialTargetId === entity.id;
+
+                     if (initiatorAccepted || acceptorConnected) {
+                         currentState.hasNeighbor = true;
+                     } else if (target && target.goat && target.goat.blackboard.socialRequestFrom === entity.id) {
+                         // Still waiting (Initiator side)...
+                         currentState.hasNeighbor = false;
+                     } else {
+                         // Rejected, lost, or timed out
+                         goat.blackboard.socialTargetId = undefined;
+                         currentState.hasNeighbor = false;
                      }
                  }
             }
@@ -474,6 +638,21 @@ export const GoatSystem = () => {
                      goat.plan.push(GoHomeAction);
                  }
                  goat.plan.push(MeditateAction);
+            } else if (goat.currentGoal === 'KillBoredom') {
+                goat.plan = [];
+                if (currentState.hasNeighbor) {
+                    // Go to them? Or just chat if close?
+                    // For now, assuming close enough if sensor picked them up (48px)
+                    // We might need a "GoToNeighbor" if we want to be right next to them
+                    // But sensor was 48, so let's just chat.
+                    goat.plan.push(ChatWithOtherAction);
+                } else {
+                     // No friend found, wander alone
+                     if (!currentState.atQuietSpot) {
+                        goat.plan.push(GoToRandomSpotAction);
+                     }
+                     goat.plan.push(WanderAction);
+                }
             }
 
             goat.currentActionIndex = 0;
