@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../state/store';
 import { ecs } from '../entities';
 import type { Entity } from '../entities';
-import { WorkerObserver } from './WorkerObserver';
 
 export const CharacterStatusDrawer: React.FC = () => {
     const selectedEntityId = useGameStore((state) => state.selectedEntityId);
@@ -32,23 +31,6 @@ export const CharacterStatusDrawer: React.FC = () => {
     }, [selectedEntityId]);
 
     const isOpen = !!entity;
-
-    // Resolve Portrait URL (Restored)
-    const getPortraitUrl = (spriteName?: string) => {
-        if (!spriteName) return '';
-        // Mapping based on file structure observed in public/assets
-        // public/assets/MiniWorldSprites/Characters/Workers/CyanWorker/FarmerCyan.png
-        // We need to infer the subfolder from the sprite name if possible, or try a best guess.
-        // Given 'FarmerCyan', the folder is 'CyanWorker'.
-        let subfolder = '';
-        if (spriteName.includes('Cyan')) subfolder = 'CyanWorker/';
-        else if (spriteName.includes('Red')) subfolder = 'RedWorker/';
-        else if (spriteName.includes('Lime')) subfolder = 'LimeWorker/';
-        else if (spriteName.includes('Purple')) subfolder = 'PurpleWorker/';
-
-        // Path is public/assets/MiniWorldSprites/Characters/Workers/{Subfolder}{SpriteName}.png
-        return new URL(`assets/MiniWorldSprites/Characters/Workers/${subfolder}${spriteName}.png`, document.baseURI).href;
-    };
 
     const getDebuffIconUrl = (iconKey: string) => {
         if (iconKey === 'influence_icon') {
@@ -122,7 +104,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             width: '120px',
             height: '120px',
             marginRight: '24px',
-            backgroundColor: '#000',
+            backgroundColor: 'transparent', // Transparent to let Pixi monitor show through
             border: '2px solid #6d6d8d',
             borderRadius: '4px',
             flexShrink: 0,
@@ -188,14 +170,20 @@ export const CharacterStatusDrawer: React.FC = () => {
         }
     };
 
+    // Keep drawer rendered but hidden if not open? No, transition needs it in DOM.
+    // If not entity, we can still render if transitioning. But easier to rely on isOpen.
+    // However, if we unmount, transition might be lost.
+    // For now, let's just return null if no entity.
     if (!entity && !isOpen) return null;
 
     return (
         <div style={styles.drawer}>
             <div style={styles.portraitContainer}>
-                {entity?.id && (
-                    <WorkerObserver targetId={entity.id} />
-                )}
+                {/*
+                   WorkerObserver removed.
+                   The Avatar Monitor is now rendered in the main Pixi scene
+                   positioned underneath this transparent container.
+                */}
             </div>
             <div style={styles.statsContainer}>
                 <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline' }}>
@@ -240,11 +228,6 @@ export const CharacterStatusDrawer: React.FC = () => {
                     </div>
                 )}
 
-                {/* Corruption Bar - Always visible if unlocked (sanity <= 0) OR if manually set > 0?
-                    User said "If sanity 0, unlock corruption".
-                    But if we just unlocked it, it might be 0.
-                    Let's show it if Sanity <= 0 OR corruption > 0.
-                */}
                 {(currentSanity <= 0 || currentCorruption > 0) && (
                     <div style={styles.statRow}>
                         <span style={{ minWidth: '50px', color: '#9d4edd' }}>侵蚀:</span>
