@@ -549,21 +549,21 @@ export const BaseSceneTest: React.FC = () => {
             <MoveSystem />
             <GoatSystem />
             {/* Background (Interactive area) */}
-            {backgroundTexture ? (
+            <pixiGraphics
+                draw={(g) => {
+                    g.clear();
+                    g.beginFill(0x333333);
+                    g.drawRect(0, 0, 360, 640);
+                    g.endFill();
+                }}
+            />
+            {backgroundTexture && (
                 <pixiTilingSprite
                     texture={backgroundTexture}
                     width={360}
                     height={640}
                     tilePosition={{ x: 0, y: 0 }}
-                />
-            ) : (
-                <pixiGraphics
-                    draw={(g) => {
-                        g.clear();
-                        g.beginFill(0x333333);
-                        g.drawRect(0, 0, 360, 640);
-                        g.endFill();
-                    }}
+                    alpha={0.5}
                 />
             )}
 
