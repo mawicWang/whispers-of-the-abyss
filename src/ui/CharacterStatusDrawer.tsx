@@ -5,6 +5,7 @@ import type { Entity } from '../entities';
 
 export const CharacterStatusDrawer: React.FC = () => {
     const selectedEntityId = useGameStore((state) => state.selectedEntityId);
+    const avatarImage = useGameStore((state) => state.avatarImage);
     const [entity, setEntity] = useState<Entity | null>(null);
 
     // Poll for entity updates (since ECS is outside React state)
@@ -104,7 +105,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             width: '120px',
             height: '120px',
             marginRight: '24px',
-            backgroundColor: 'transparent', // Transparent to let Pixi monitor show through
+            backgroundColor: '#000',
             border: '2px solid #6d6d8d',
             borderRadius: '4px',
             flexShrink: 0,
@@ -179,11 +180,13 @@ export const CharacterStatusDrawer: React.FC = () => {
     return (
         <div style={styles.drawer}>
             <div style={styles.portraitContainer}>
-                {/*
-                   WorkerObserver removed.
-                   The Avatar Monitor is now rendered in the main Pixi scene
-                   positioned underneath this transparent container.
-                */}
+                {avatarImage && (
+                    <img
+                        src={avatarImage}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                        alt="Target Monitor"
+                    />
+                )}
             </div>
             <div style={styles.statsContainer}>
                 <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline' }}>
