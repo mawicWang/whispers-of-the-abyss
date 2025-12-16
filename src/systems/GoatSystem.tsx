@@ -11,6 +11,8 @@ const GRID_H = Math.floor(640 / TILE_SIZE);
 const HOME_POSITION = { x: 10 * TILE_SIZE, y: 10 * TILE_SIZE }; // Example home
 const REST_RECOVERY_RATE = 1; // 1 stamina per second
 const REST_DURATION = 10000; // 10 seconds mandatory rest at door (as per prompt)
+const PRAY_DURATION = 10000; // 10 seconds
+const MEDITATE_DURATION = 30000; // 30 seconds (representing 30m)
 const FARM_ANIMATION_DURATION = 800; // 8 frames * 100ms
 const FARM_INTERVAL = 1000; // Total interval including animation and pause
 
@@ -87,6 +89,7 @@ export const GoHomeAction: GoatAction = {
     preconditions: (state) => true, // Can always try to go home
     effects: (state) => ({ atHome: true }),
     execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "回家中";
         const home = entity.goat?.blackboard.homePosition || HOME_POSITION;
         return navigateTo(entity, home.x, home.y);
     }
@@ -98,6 +101,7 @@ export const RestAction: GoatAction = {
     preconditions: (state) => state.atHome,
     effects: (state) => ({ stamina: 10 }), // Full stamina
     execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "休息中";
         if (!entity.goat || !entity.attributes?.stamina) return false;
 
         // Init rest timer
@@ -131,6 +135,7 @@ export const FindFarmAction: GoatAction = {
     preconditions: (state) => !state.hasFarmTarget,
     effects: (state) => ({ hasFarmTarget: true }),
     execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "寻找农田";
         // Find closest unoccupied wheat field
         let closestField: Entity | null = null;
         let minDist = Infinity;
@@ -171,6 +176,7 @@ export const GoToFarmAction: GoatAction = {
     preconditions: (state) => state.hasFarmTarget,
     effects: (state) => ({ atFarm: true }),
     execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "前往农田";
         if (!entity.goat?.blackboard.targetFarmId) return false; // Fail/Abort (Do not return true, or it skips to Farm)
 
         const target = ecs.entities.find(e => e.id === entity.goat!.blackboard.targetFarmId);
@@ -195,6 +201,7 @@ export const FarmAction: GoatAction = {
     preconditions: (state) => state.atFarm && state.stamina > 0 && state.farmCooldown <= 0,
     effects: (state) => ({ stamina: state.stamina - 1 }),
     execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "耕作中";
         if (!entity.goat || !entity.attributes?.stamina) return false;
 
         const targetId = entity.goat.blackboard.targetFarmId;
@@ -257,6 +264,102 @@ export const FarmAction: GoatAction = {
     }
 };
 
+// --- New Actions for Corrupted State ---
+
+export const GoToRandomSpotAction: GoatAction = {
+    name: 'GoToRandomSpot',
+    cost: 1,
+    preconditions: (state) => true,
+    effects: (state) => ({ atQuietSpot: true }),
+    execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "前往角落";
+        if (!entity.goat) return false;
+
+        // If no target spot, pick one
+        if (!entity.goat.blackboard.targetSpot) {
+            // Pick a random spot in the world
+            // Avoid 0,0 top left
+            const rx = Math.floor(Math.random() * (GRID_W - 2) + 1) * TILE_SIZE;
+            const ry = Math.floor(Math.random() * (GRID_H - 2) + 1) * TILE_SIZE;
+            entity.goat.blackboard.targetSpot = { x: rx, y: ry };
+        }
+
+        const target = entity.goat.blackboard.targetSpot;
+        return navigateTo(entity, target.x, target.y);
+    }
+};
+
+export const PrayAction: GoatAction = {
+    name: 'Pray',
+    cost: 0,
+    preconditions: (state) => state.atQuietSpot,
+    effects: (state) => ({ }), // May increase corruption
+    execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "祈祷中";
+        if (!entity.goat) return false;
+
+        if (entity.goat.blackboard.prayTimer === undefined) {
+            entity.goat.blackboard.prayTimer = 0;
+            if (entity.appearance) entity.appearance.animation = 'idle'; // Or specific pray animation if available
+        }
+
+        entity.goat.blackboard.prayTimer += deltaTime;
+
+        if (entity.goat.blackboard.prayTimer >= PRAY_DURATION) {
+            // Finish
+            entity.goat.blackboard.prayTimer = undefined;
+            entity.goat.blackboard.targetSpot = undefined; // Clear spot for next time
+
+            // Chance to increase corruption
+            // Small chance (e.g. 30%)
+            if (Math.random() < 0.3 && entity.attributes?.corruption) {
+                entity.attributes.corruption.current = Math.min(
+                    entity.attributes.corruption.max,
+                    entity.attributes.corruption.current + 1
+                );
+            }
+            return true;
+        }
+
+        return false;
+    }
+};
+
+export const MeditateAction: GoatAction = {
+    name: 'Meditate',
+    cost: 0,
+    preconditions: (state) => state.atHome,
+    effects: (state) => ({ }), // May increase corruption
+    execute: (entity, deltaTime) => {
+        if (entity.goat) entity.goat.currentActionName = "冥想中";
+        if (!entity.goat) return false;
+
+        if (entity.goat.blackboard.meditateTimer === undefined) {
+            entity.goat.blackboard.meditateTimer = 0;
+            if (entity.appearance) entity.appearance.animation = 'idle';
+        }
+
+        entity.goat.blackboard.meditateTimer += deltaTime;
+
+        if (entity.goat.blackboard.meditateTimer >= MEDITATE_DURATION) {
+            entity.goat.blackboard.meditateTimer = undefined;
+
+            // Chance to increase corruption
+            // High chance (e.g. 80%)
+            if (Math.random() < 0.8 && entity.attributes?.corruption) {
+                entity.attributes.corruption.current = Math.min(
+                    entity.attributes.corruption.max,
+                    entity.attributes.corruption.current + 1
+                );
+            }
+            return true;
+        }
+
+        return false;
+    }
+};
+
+
 export const GoatSystem = () => {
   useTick((ticker) => {
     const deltaMS = ticker.elapsedMS;
@@ -269,9 +372,10 @@ export const GoatSystem = () => {
         // 1. Check Goal
         const stamina = entity.attributes?.stamina?.current || 0;
         const maxStamina = entity.attributes?.stamina?.max || 10;
+        const sanity = entity.attributes?.sanity?.current ?? 100;
 
         // Transition Logic
-        if (stamina <= 0) {
+        if (stamina <= 0 && goat.currentGoal !== 'RecoverStamina') {
              // If we were farming, release claim
              if (goat.currentGoal === 'Farm' && goat.blackboard.targetFarmId) {
                  const t = ecs.entities.find(e => e.id === goat.blackboard.targetFarmId);
@@ -280,11 +384,28 @@ export const GoatSystem = () => {
                  }
                  goat.blackboard.targetFarmId = undefined;
              }
+             // Prioritize Stamina? Or if corrupted, maybe random?
+             // Let's keep stamina priority for survival, then behaviors
             goat.currentGoal = 'RecoverStamina';
-        } else if (stamina >= maxStamina && goat.currentGoal === 'RecoverStamina') {
-            goat.currentGoal = 'Farm';
-        } else if (!goat.currentGoal) {
-            goat.currentGoal = 'Farm';
+        }
+        else if (stamina >= maxStamina && goat.currentGoal === 'RecoverStamina') {
+            goat.currentGoal = undefined; // Needs new goal
+        }
+        else if (!goat.currentGoal) {
+            // Goal Selection
+            if (sanity <= 0) {
+                // Corrupted Behavior
+                const rand = Math.random();
+                if (rand < 0.3) {
+                    goat.currentGoal = 'Pray';
+                } else if (rand < 0.5) { // 30-50%
+                    goat.currentGoal = 'Meditate';
+                } else {
+                    goat.currentGoal = 'Farm';
+                }
+            } else {
+                goat.currentGoal = 'Farm';
+            }
         }
 
         // 2. Planning
@@ -292,8 +413,10 @@ export const GoatSystem = () => {
             // Re-plan
             const currentState: GoatState = {
                 stamina: stamina,
+                sanity: sanity,
                 atHome: false,
                 atFarm: false,
+                atQuietSpot: false,
                 hasFarmTarget: !!goat.blackboard.targetFarmId,
                 isResting: false,
                 farmCooldown: 0
@@ -304,6 +427,12 @@ export const GoatSystem = () => {
                  const home = goat.blackboard.homePosition || HOME_POSITION;
                  const dHome = Math.hypot(entity.position.x - home.x, entity.position.y - home.y);
                  currentState.atHome = dHome < 5;
+
+                 if (goat.blackboard.targetSpot) {
+                     const ts = goat.blackboard.targetSpot;
+                     const dSpot = Math.hypot(entity.position.x - ts.x, entity.position.y - ts.y);
+                     currentState.atQuietSpot = dSpot < 5;
+                 }
 
                  if (goat.blackboard.targetFarmId) {
                      const target = ecs.entities.find(e => e.id === goat.blackboard.targetFarmId);
@@ -333,6 +462,18 @@ export const GoatSystem = () => {
                 }
                 goat.plan.push(GoToFarmAction);
                 goat.plan.push(FarmAction);
+            } else if (goat.currentGoal === 'Pray') {
+                goat.plan = [];
+                if (!currentState.atQuietSpot) {
+                    goat.plan.push(GoToRandomSpotAction);
+                }
+                goat.plan.push(PrayAction);
+            } else if (goat.currentGoal === 'Meditate') {
+                 goat.plan = [];
+                 if (!currentState.atHome) {
+                     goat.plan.push(GoHomeAction);
+                 }
+                 goat.plan.push(MeditateAction);
             }
 
             goat.currentActionIndex = 0;
@@ -356,6 +497,10 @@ export const GoatSystem = () => {
             const completed = currentAction.execute(entity, deltaMS);
             if (completed) {
                 goat.currentActionIndex++;
+                // If plan finished, clear currentGoal to allow re-selection
+                if (goat.currentActionIndex >= goat.plan.length) {
+                    goat.currentGoal = undefined;
+                }
             }
         }
     }
