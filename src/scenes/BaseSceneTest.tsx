@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
-import { Texture, BlurFilter, TextStyle, Rectangle, Assets, RenderTexture, Container } from 'pixi.js';
+import { Texture, BlurFilter, TextStyle, Rectangle, Assets, RenderTexture, Container, Sprite, Graphics } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
@@ -156,55 +156,6 @@ const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: 
     );
 };
 
-// Avatar Monitor Component
-const AvatarOverlay = ({ texture, targetId }: { texture: Texture, targetId: string }) => {
-    const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
-    const [maskObj, setMaskObj] = useState<any>(null);
-
-    useTick(() => {
-        const t = ecs.entities.find(e => e.id === targetId);
-        if (t && t.position) {
-            setTargetPos({ x: t.position.x, y: t.position.y });
-        }
-    });
-
-    const tx = targetPos.x + 8; // Center of tile
-    const ty = targetPos.y + 8;
-
-    // Monitor config
-    const monitorX = 16;
-    const monitorY = 16;
-    const monitorW = 120;
-    const monitorH = 120;
-    const zoom = 2.5;
-
-    // We want to center (tx, ty) within the 120x120 box.
-    // Box Center is (60, 60) relative to monitor origin.
-    // If we scale the world by 2.5, then the point (tx, ty) becomes (tx*2.5, ty*2.5).
-    // We want that point to be at (60, 60).
-    // So shift = 60 - tx*2.5.
-
-    return (
-        <pixiContainer x={monitorX} y={monitorY}>
-             <pixiGraphics
-                 ref={setMaskObj}
-                 draw={g => {
-                     g.clear();
-                     g.beginFill(0x000000);
-                     g.drawRoundedRect(0, 0, monitorW, monitorH, 4);
-                     g.endFill();
-                 }}
-             />
-             <pixiSprite
-                 texture={texture}
-                 scale={{ x: zoom, y: zoom }}
-                 position={{ x: (monitorW/2) - tx * zoom, y: (monitorH/2) - ty * zoom }}
-                 mask={maskObj}
-             />
-        </pixiContainer>
-    );
-};
-
 export const BaseSceneTest: React.FC = () => {
     const [entities, setEntities] = useState<Entity[]>([]);
     const [effects, setEffects] = useState<{ id: number; x: number; y: number }[]>([]);
@@ -215,7 +166,7 @@ export const BaseSceneTest: React.FC = () => {
     const [backgroundTexture, setBackgroundTexture] = useState<Texture | null>(null);
 
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
-    const { mana, addMana, whisperLevel, selectedEntityId, setSelectedEntity, suspicion, increaseSuspicion } = useGameStore();
+    const { mana, addMana, whisperLevel, selectedEntityId, setSelectedEntity, suspicion, increaseSuspicion, setAvatarImage } = useGameStore();
 
     const outlineFilter = useMemo(() => new OutlineFilter({ thickness: 2, color: 0xffffff }), []);
     const followerFilter = useMemo(() => new FollowerFilter(), []);
@@ -230,6 +181,64 @@ export const BaseSceneTest: React.FC = () => {
     const worldRef = useRef<Container>(null);
     // Create RenderTexture once
     const renderTexture = useMemo(() => RenderTexture.create({ width: 360, height: 640, scaleMode: 'nearest' }), []);
+
+    // Avatar Extraction Effect
+    useEffect(() => {
+        if (!app) return;
+
+        const monitorW = 120;
+        const monitorH = 120;
+        const zoom = 2.5;
+        const monitorRT = RenderTexture.create({ width: monitorW, height: monitorH, scaleMode: 'nearest' });
+        const monitorSprite = new Sprite(renderTexture);
+        const maskGraphic = new Graphics();
+        maskGraphic.beginFill(0x000000);
+        maskGraphic.drawRoundedRect(0, 0, monitorW, monitorH, 4);
+        maskGraphic.endFill();
+
+        const monitorContainer = new Container();
+        monitorContainer.addChild(maskGraphic);
+        monitorContainer.addChild(monitorSprite);
+        monitorSprite.mask = maskGraphic;
+
+        const intervalId = setInterval(async () => {
+            const targetId = useGameStore.getState().selectedEntityId;
+            if (!targetId) {
+                useGameStore.getState().setAvatarImage(null);
+                return;
+            }
+
+            const target = ecs.entities.find(e => e.id === targetId);
+            if (target && target.position) {
+                const tx = target.position.x + 8;
+                const ty = target.position.y + 8;
+
+                // Transform to center target
+                monitorSprite.scale.set(zoom);
+                monitorSprite.position.set(
+                    (monitorW / 2) - tx * zoom,
+                    (monitorH / 2) - ty * zoom
+                );
+
+                // Render to RT
+                app.renderer.render({ container: monitorContainer, target: monitorRT });
+
+                // Extract to Base64
+                try {
+                    const dataUrl = await app.renderer.extract.base64(monitorRT);
+                    setAvatarImage(dataUrl);
+                } catch (e) {
+                    console.error("Failed to extract avatar image", e);
+                }
+            }
+        }, 200); // 5 FPS
+
+        return () => {
+            clearInterval(intervalId);
+            monitorRT.destroy(true);
+            monitorContainer.destroy({ children: true });
+        };
+    }, [app, renderTexture, setAvatarImage]);
 
     // Manual Hit Testing Logic
     const handleViewportClick = (e: any) => {
@@ -715,10 +724,6 @@ export const BaseSceneTest: React.FC = () => {
                  <pixiSprite texture={renderTexture} />
             </PixiViewport>
 
-            {/* AVATAR MONITOR OVERLAY */}
-            {selectedEntityId && (
-                <AvatarOverlay texture={renderTexture} targetId={selectedEntityId} />
-            )}
         </pixiContainer>
     );
 };
