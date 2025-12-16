@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
-import { Texture, BlurFilter, TextStyle, Rectangle, Assets } from 'pixi.js';
+import { Texture, BlurFilter, TextStyle, Rectangle, Assets, RenderTexture, Container } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
@@ -8,13 +8,7 @@ import type { Entity, Debuff } from '../entities';
 import { findPath } from '../utils/Pathfinding';
 import { SuspicionGauge } from '../ui/SuspicionGauge';
 import { PixiViewport } from '../components/PixiViewport';
-
-const TILE_SIZE = 16;
-const GRID_W = Math.floor(360 / TILE_SIZE);
-const GRID_H = Math.floor(640 / TILE_SIZE);
-
-const ENTITY_HIT_AREA = new Rectangle(-24, -24, 48, 48); // Large hit area for easy clicking
-import { useTick } from '@pixi/react';
+import { useTick, useApplication } from '@pixi/react';
 import { useBaseSceneStore } from '../state/BaseSceneStore';
 import { useGameStore } from '../state/store';
 import { useManaRegen } from '../hooks/useManaRegen';
@@ -22,6 +16,11 @@ import { MoveSystem } from '../systems/MoveSystem';
 import { GoatSystem } from '../systems/GoatSystem';
 import { CharacterStatusDrawer } from '../ui/CharacterStatusDrawer';
 import { createWheatField } from '../entities/WheatField';
+
+const TILE_SIZE = 16;
+const GRID_W = Math.floor(360 / TILE_SIZE);
+const GRID_H = Math.floor(640 / TILE_SIZE);
+const ENTITY_HIT_AREA = new Rectangle(-24, -24, 48, 48);
 
 // Character Factory
 const WORKER_VARIANTS = ['FarmerCyan', 'FarmerRed', 'FarmerLime', 'FarmerPurple'];
@@ -39,7 +38,7 @@ const createWorker = (x: number, y: number, id: string) => {
         },
         attributes: {
             sanity: {
-                current: Math.floor(Math.random() * 101), // Random 0-100
+                current: Math.floor(Math.random() * 101),
                 max: 100
             },
             stamina: {
@@ -57,7 +56,7 @@ const createWorker = (x: number, y: number, id: string) => {
             plan: [],
             currentActionIndex: 0,
             blackboard: {
-                homePosition: { x, y } // Home is where they spawn
+                homePosition: { x, y }
             }
         },
         lastMoveTime: Date.now(),
@@ -73,14 +72,13 @@ const createHouse = (x: number, y: number, variant: number, id: string) => {
         id,
         position: { x, y },
         appearance: {
-            sprite: `House_${variant}`, // Uses the named tiles we defined in spritesheet_config
+            sprite: `House_${variant}`,
         },
         isObstacle: true,
         isObject: true
     });
 }
 
-// Whisper Zone Factory
 const createWhisperZone = (x: number, y: number, level: number) => {
     const isLevel1 = level >= 1;
     ecs.add({
@@ -96,7 +94,6 @@ const createWhisperZone = (x: number, y: number, level: number) => {
     });
 };
 
-// Spell Effect Component
 const SpellEffect = ({ x, y, onComplete }: { x: number; y: number; onComplete: () => void }) => {
     const [alpha, setAlpha] = useState(1);
     const [scale, setScale] = useState(0.5);
@@ -117,8 +114,8 @@ const SpellEffect = ({ x, y, onComplete }: { x: number; y: number; onComplete: (
         <pixiGraphics
             draw={(g) => {
                 g.clear();
-                g.beginFill(0x9d4edd, alpha); // Purple
-                g.drawCircle(0, 0, 20); // Radius 20
+                g.beginFill(0x9d4edd, alpha);
+                g.drawCircle(0, 0, 20);
                 g.endFill();
             }}
             x={x}
@@ -129,7 +126,6 @@ const SpellEffect = ({ x, y, onComplete }: { x: number; y: number; onComplete: (
     );
 };
 
-// Floating Text Component
 const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: string; onComplete: () => void }) => {
     const [offsetY, setOffsetY] = useState(0);
     const [alpha, setAlpha] = useState(1);
@@ -160,9 +156,56 @@ const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: 
     );
 };
 
-// The Pixi Scene Component
+// Avatar Monitor Component
+const AvatarOverlay = ({ texture, targetId }: { texture: Texture, targetId: string }) => {
+    const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
+    const maskRef = useRef<any>(null);
+
+    useTick(() => {
+        const t = ecs.entities.find(e => e.id === targetId);
+        if (t && t.position) {
+            setTargetPos({ x: t.position.x, y: t.position.y });
+        }
+    });
+
+    const tx = targetPos.x + 8; // Center of tile
+    const ty = targetPos.y + 8;
+
+    // Monitor config
+    const monitorX = 16;
+    const monitorY = 16;
+    const monitorW = 120;
+    const monitorH = 120;
+    const zoom = 2.5;
+
+    // We want to center (tx, ty) within the 120x120 box.
+    // Box Center is (60, 60) relative to monitor origin.
+    // If we scale the world by 2.5, then the point (tx, ty) becomes (tx*2.5, ty*2.5).
+    // We want that point to be at (60, 60).
+    // So shift = 60 - tx*2.5.
+
+    return (
+        <pixiContainer x={monitorX} y={monitorY}>
+             <pixiGraphics
+                 ref={maskRef}
+                 draw={g => {
+                     g.clear();
+                     g.beginFill(0x000000);
+                     g.drawRoundedRect(0, 0, monitorW, monitorH, 4);
+                     g.endFill();
+                 }}
+             />
+             <pixiSprite
+                 texture={texture}
+                 scale={{ x: zoom, y: zoom }}
+                 position={{ x: (monitorW/2) - tx * zoom, y: (monitorH/2) - ty * zoom }}
+                 mask={maskRef.current}
+             />
+        </pixiContainer>
+    );
+};
+
 export const BaseSceneTest: React.FC = () => {
-    // Game State
     const [entities, setEntities] = useState<Entity[]>([]);
     const [effects, setEffects] = useState<{ id: number; x: number; y: number }[]>([]);
     const [floatingTexts, setFloatingTexts] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
@@ -171,22 +214,73 @@ export const BaseSceneTest: React.FC = () => {
     const [influenceIcon, setInfluenceIcon] = useState<Texture | null>(null);
     const [backgroundTexture, setBackgroundTexture] = useState<Texture | null>(null);
 
-    // Shared State
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
     const { mana, addMana, whisperLevel, selectedEntityId, setSelectedEntity, suspicion, increaseSuspicion } = useGameStore();
 
-    // Create stable Filter instances
     const outlineFilter = useMemo(() => new OutlineFilter({ thickness: 2, color: 0xffffff }), []);
     const followerFilter = useMemo(() => new FollowerFilter(), []);
 
-    // Hook for Mana Regen
     useManaRegen();
 
-    // Systems Refs
     const effectIdCounter = useRef(0);
     const textIdCounter = useRef(0);
 
-    // Passive Decay: Decrease suspicion by 1 every 60 seconds
+    // Rendering to Texture Setup
+    const { app } = useApplication();
+    const worldRef = useRef<Container>(null);
+    // Create RenderTexture once
+    const renderTexture = useMemo(() => RenderTexture.create({ width: 360, height: 640, scaleMode: 'nearest' }), []);
+
+    // Manual Hit Testing Logic
+    const handleViewportClick = (e: any) => {
+        // e.detail or e.data contains global position?
+        // Pixi event structure: e.global or e.data.global
+        const globalPos = e.data.global;
+
+        // Convert to World Coordinates using Viewport
+        // If Viewport is controlling the Sprite, we need to ask Viewport.
+        // But here we are passing `handleViewportClick` to `PixiViewport`.
+        // The `PixiViewport` component forwards `onPointerDown`.
+        // The viewport instance is usually available via ref if we had one.
+        // Instead, we can use `e.target` if it is the viewport?
+        // Or we can use `toLocal` on the WorldContainer?
+        // Wait, the WorldContainer is hidden and untransformed (0,0).
+        // BUT the user sees the Viewport's content (Sprite).
+        // The Viewport transforms the Sprite.
+        // So `e.currentTarget` is the Viewport.
+        // `e.data.getLocalPosition(viewport)` gives coordinates inside the viewport world.
+        // Since the Sprite inside is at 0,0, this matches the Texture coordinates.
+        // And Texture coordinates match World coordinates (1:1).
+
+        const localPos = e.data.getLocalPosition(e.currentTarget);
+        const wx = localPos.x;
+        const wy = localPos.y;
+
+        if (selectedSkill === 'whisper') {
+            castWhisper(wx, wy);
+        } else {
+            // Find Entity
+            let foundId: string | null = null;
+            // Check distance to entity centers
+            // Hit radius approx 24px
+            const HIT_RADIUS_SQ = 24 * 24;
+
+            for(const ent of ecs.entities) {
+                if (ent.position) {
+                    const cx = ent.position.x + 8;
+                    const cy = ent.position.y + 8;
+                    const dx = wx - cx;
+                    const dy = wy - cy;
+                    if (dx*dx + dy*dy < HIT_RADIUS_SQ) {
+                        foundId = ent.id || null;
+                        break; // Pick first
+                    }
+                }
+            }
+            setSelectedEntity(foundId);
+        }
+    };
+
     useEffect(() => {
         const timer = setInterval(() => {
             if (useGameStore.getState().suspicion > 0) {
@@ -196,12 +290,9 @@ export const BaseSceneTest: React.FC = () => {
         return () => clearInterval(timer);
     }, [increaseSuspicion]);
 
-    // Game Over Check
     useEffect(() => {
         if (suspicion >= 100) {
-            // Delay slightly to ensure render updates
             setTimeout(() => {
-                // Check again to be sure
                 if (useGameStore.getState().suspicion >= 100) {
                     alert("Game Over! Suspicion reached 100%. Click OK to restart.");
                     window.location.reload();
@@ -210,91 +301,53 @@ export const BaseSceneTest: React.FC = () => {
         }
     }, [suspicion]);
 
-    // Initialize
+    // Initial Setup (Spawning)
     useEffect(() => {
-        // Clear world
         ecs.clear();
-
-        // Initialize Map & Obstacles
-        const obstacles = new Set<string>(); // Stores "gridX,gridY" for pathfinding
-        const reservedMap = new Set<string>(); // Stores "gridX,gridY" for generation (houses/wheat)
+        const obstacles = new Set<string>();
+        const reservedMap = new Set<string>();
         const houses = [];
-
-        // Grid config
-        const TILE_SIZE = 16;
-        const GRID_W = Math.floor(360 / TILE_SIZE);
-        const GRID_H = Math.floor(640 / TILE_SIZE);
-
-        // Spawn Wheat Field (4x3)
-        // Bottom 1/3 is approx y > 426. Center X is 180 (approx gridX 11).
         const wheatCols = 4;
         const wheatRows = 3;
         const startGridX = Math.floor((GRID_W - wheatCols) / 2);
-        const startGridY = Math.floor(GRID_H * 0.75); // Place in lower area
+        const startGridY = Math.floor(GRID_H * 0.75);
 
         for (let r = 0; r < wheatRows; r++) {
             for (let c = 0; c < wheatCols; c++) {
                 const gx = startGridX + c;
                 const gy = startGridY + r;
-
-                createWheatField(
-                    gx * TILE_SIZE,
-                    gy * TILE_SIZE,
-                    gx,
-                    gy,
-                    c + 1, // Use different stages for visual variety (columns 1-4)
-                    `wheat-${gx}-${gy}`
-                );
-
-                // Mark as reserved so houses don't spawn here
+                createWheatField(gx * TILE_SIZE, gy * TILE_SIZE, gx, gy, c + 1, `wheat-${gx}-${gy}`);
                 reservedMap.add(`${gx},${gy}`);
             }
         }
 
-        // Spawn Houses
         for (let i = 0; i < 5; i++) {
-             // Random position (aligned to 16px grid)
-             // Padding: keep away from edges
              const gridX = 2 + Math.floor(Math.random() * (GRID_W - 4));
              const gridY = 2 + Math.floor(Math.random() * (GRID_H - 4));
-
              const key = `${gridX},${gridY}`;
              if (reservedMap.has(key) || obstacles.has(key)) continue;
-
              const x = gridX * TILE_SIZE;
              const y = gridY * TILE_SIZE;
-
-             // Add House
-             const variant = Math.floor(Math.random() * 9) + 1; // 1-9
+             const variant = Math.floor(Math.random() * 9) + 1;
              createHouse(x, y, variant, `house-${i}`);
-
-             // Mark obstacle (grid coords)
              obstacles.add(key);
              reservedMap.add(key);
-
              houses.push({x, y, gridX, gridY});
         }
 
-        // Spawn Workers
         houses.forEach((house, idx) => {
-             // Spawn below the house
              const workerGridX = house.gridX;
              const workerGridY = house.gridY + 1;
              const workerKey = `${workerGridX},${workerGridY}`;
-
-             // Check valid spawn
              if (!obstacles.has(workerKey)) {
                 createWorker(workerGridX * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`);
              } else {
-                 // Try neighbor (right)
                  createWorker((workerGridX + 1) * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`);
              }
         });
 
-        // Load Textures
         const loader = AssetLoader.getInstance();
         const loadAnims = async () => {
-            // Load Background
             try {
                 const baseUrl = import.meta.env.BASE_URL;
                 const bgUrl = `${baseUrl}assets/Templates/16x16Large.png`;
@@ -306,94 +359,60 @@ export const BaseSceneTest: React.FC = () => {
             } catch (e) {
                 console.error("Failed to load background", e);
             }
-
-            // Load base animations for all worker variants
             const anims: Record<string, Texture[]> = {};
-
             const actions = ['idle', 'walk', 'attack', 'run'];
             const directions = ['down', 'up', 'left', 'right'];
-
             WORKER_VARIANTS.forEach(variant => {
                 actions.forEach(action => {
                     directions.forEach(direction => {
                         const key = `${variant}_${action}_${direction}`;
-                        // The config uses keys like "FarmerCyan_idle_down"
                         const anim = loader.getAnimation(key);
-                        if (anim) {
-                            anims[key] = anim;
-                        }
+                        if (anim) anims[key] = anim;
                     });
                 });
             });
-
-            // If we found valid animations, update state
-            if (Object.keys(anims).length > 0) {
-                 setWorkerTextures(anims);
-            }
-
-            // Load House textures
+            if (Object.keys(anims).length > 0) setWorkerTextures(anims);
             const houses: Record<string, Texture> = {};
             for(let i=1; i<=9; i++) {
                 const t = loader.getTexture(`House_${i}`);
                 if (t) houses[`House_${i}`] = t;
             }
-            // Load Wheat textures
             for(let i=1; i<=4; i++) {
                 const t = loader.getTexture(`wheat_stage_${i}`);
                 if (t) houses[`wheat_stage_${i}`] = t;
             }
             setStaticTextures(houses);
-
-            // Load Influence Icon
             const infIcon = loader.getTexture('influence_icon');
             if (infIcon) setInfluenceIcon(infIcon);
         };
         loadAnims();
-
-        const updateEntities = () => {
-            setEntities([...ecs.entities]);
-        };
-        updateEntities();
-
+        setEntities([...ecs.entities]);
     }, []);
 
-    // Game Loop (Logic & Render Update)
     useTick((ticker: any) => {
         const delta = ticker.deltaTime ?? ticker;
         const now = Date.now();
 
-        // 1. AI / Movement System
+        // Game Logic Loop
         for (const entity of ecs.entities) {
-            // Debuff Logic
             if (entity.debuffs && entity.debuffs.length > 0) {
-                // Process in reverse to safely remove
                 for (let i = entity.debuffs.length - 1; i >= 0; i--) {
                     const debuff = entity.debuffs[i];
                     debuff.duration -= (delta / 60);
                     debuff.tickTimer += (delta / 60);
-
-                    // Expired
                     if (debuff.duration <= 0) {
                         entity.debuffs.splice(i, 1);
                         continue;
                     }
-
-                    // Tick (Influence: 1 sanity every 2 seconds)
                     if (debuff.type === 'INFLUENCE' && debuff.tickTimer >= 2.0) {
                         debuff.tickTimer = 0;
                         if (entity.attributes?.sanity) {
                             entity.attributes.sanity.current = Math.max(0, entity.attributes.sanity.current - 1);
-
-                            // Unlock Corruption if Sanity is 0
                             if (entity.attributes.sanity.current <= 0) {
                                 if (entity.attributes.corruption) {
-                                    // Slow passive corruption increase when insane?
-                                    // User requirements said unlocked. I'll add a small increment here for effect
                                     entity.attributes.corruption.current = Math.min(100, entity.attributes.corruption.current + 1);
                                 }
                             }
-
-                            // Visual feedback
                             const textId = textIdCounter.current++;
                             setFloatingTexts(prev => [...prev, {
                                 id: textId,
@@ -406,22 +425,13 @@ export const BaseSceneTest: React.FC = () => {
                 }
             }
 
-
-            // Legacy AI: Skip if entity has GoatComponent
             if (entity.appearance && entity.position && entity.lastMoveTime && entity.isNPC && !entity.goat) {
-                 // If currently moving or has path, skip AI decision
                 if (entity.move || (entity.path && entity.path.length > 0)) continue;
-
-                // Random wander logic
                 if (now - entity.lastMoveTime > 1000 + Math.random() * 2000) {
-                    // Pick random target grid
                     const targetGridX = 2 + Math.floor(Math.random() * (GRID_W - 4));
                     const targetGridY = 2 + Math.floor(Math.random() * (GRID_H - 4));
-
                     const startGridX = Math.round(entity.position.x / TILE_SIZE);
                     const startGridY = Math.round(entity.position.y / TILE_SIZE);
-
-                    // Build Obstacle Set (Grid Coordinates)
                     const obstacles = new Set<string>();
                     for(const e of ecs.entities) {
                         if (e.isObstacle && e.position) {
@@ -430,17 +440,13 @@ export const BaseSceneTest: React.FC = () => {
                             obstacles.add(`${gx},${gy}`);
                         }
                     }
-
-                    // Find Path (Grid Space)
                     const gridPath = findPath(
                         { x: startGridX, y: startGridY },
                         { x: targetGridX, y: targetGridY },
                         obstacles,
                         { minX: 0, maxX: GRID_W, minY: 0, maxY: GRID_H }
                     );
-
                     if (gridPath.length > 0) {
-                        // Convert Grid Path back to World Coordinates
                         entity.path = gridPath.map(p => ({
                             x: p.x * TILE_SIZE,
                             y: p.y * TILE_SIZE
@@ -454,50 +460,33 @@ export const BaseSceneTest: React.FC = () => {
                 }
             }
 
-            // Zone Logic
             if (entity.zone) {
-                const zone = entity.zone; // Alias for TS
-                zone.duration -= (delta / 60); // Approx seconds
+                const zone = entity.zone;
+                zone.duration -= (delta / 60);
                 zone.tickTimer += (delta / 60);
-
                 if (zone.duration <= 0) {
                     ecs.remove(entity);
                     continue;
                 }
-
-                // Process Tick (Every 1 second)
                 if (zone.tickTimer >= 1.0) {
                     zone.tickTimer = 0;
-
                     const targetsHit: Entity[] = [];
-
-                    // Find targets in range
                     for (const target of ecs.entities) {
                         if (target !== entity && target.position && target.attributes?.sanity) {
                              const dx = target.position.x - entity.position!.x;
                              const dy = target.position.y - entity.position!.y;
                              const dist = Math.sqrt(dx * dx + dy * dy);
-
-                             if (dist <= zone.radius) {
-                                 targetsHit.push(target);
-                             }
+                             if (dist <= zone.radius) targetsHit.push(target);
                         }
                     }
-
-                    // Apply Damage and Effects
                     targetsHit.forEach(target => {
                          const dmg = Math.floor(Math.random() * (zone.damageMax - zone.damageMin + 1)) + zone.damageMin;
                          target.attributes!.sanity.current = Math.max(0, target.attributes!.sanity.current - dmg);
-
-                         // Unlock Corruption if Sanity is 0
                          if (target.attributes!.sanity.current <= 0) {
                              if (target.attributes!.corruption) {
-                                 // Increase corruption slightly when hit while insane
                                  target.attributes!.corruption.current = Math.min(100, target.attributes!.corruption.current + 2);
                              }
                          }
-
-                         // Floating Text
                          const textId = textIdCounter.current++;
                          setFloatingTexts(prev => [...prev, {
                             id: textId,
@@ -506,186 +495,156 @@ export const BaseSceneTest: React.FC = () => {
                             text: `San -${dmg}`
                          }]);
                     });
-
-                    // Calculate Suspicion Increase
                     const n = targetsHit.length;
                     if (n > 0) {
-                        // Formula: n * (5 * 2^(n-1))
-                        const increase = n * (5 * Math.pow(2, n - 1));
-                        increaseSuspicion(increase);
+                        increaseSuspicion(n * (5 * Math.pow(2, n - 1)));
                     }
                 }
             }
         }
         setEntities([...ecs.entities]);
+
+        // --- RENDER TEXTURE UPDATE ---
+        if (worldRef.current && app) {
+            // Render the hidden world container to the texture
+            // worldRef is visible=false so it won't render to screen
+            // But we can force render it
+            // Toggle visibility for render pass? No, just pass skipUpdateTransform: false
+
+            // Actually, if visible=false, Pixi renderers often skip.
+            // We'll set it to visible, render, then invisible?
+            // Or rely on `render` method behavior.
+
+            // Let's try:
+            worldRef.current.visible = true;
+            app.renderer.render({ container: worldRef.current, target: renderTexture });
+            worldRef.current.visible = false;
+        }
     });
 
-    const handleStageClick = (e: any) => {
-        if (selectedSkill === 'whisper') {
-            const clickPos = e.data.getLocalPosition(e.currentTarget);
-            castWhisper(clickPos.x, clickPos.y);
-        } else {
-            // Not in casting mode, dismiss character sheet if clicking blank area
-            setSelectedEntity(null);
-        }
-    };
-
     const castWhisper = (x: number, y: number) => {
-        // Mana Check
-        if (mana < 5) { // Updated cost
+        if (mana < 5) {
              const textId = textIdCounter.current++;
-             setFloatingTexts(prev => [...prev, {
-                id: textId,
-                x: x,
-                y: y,
-                text: `Need 5 Mana!`
-             }]);
+             setFloatingTexts(prev => [...prev, { id: textId, x, y, text: `Need 5 Mana!` }]);
              return;
         }
-
-        // Deduct Mana
         addMana(-5);
-
-        // Increase Suspicion (Cost of casting)
         increaseSuspicion(1);
-
-        // Visual Effect
         const effectId = effectIdCounter.current++;
         setEffects(prev => [...prev, { id: effectId, x, y }]);
-
-        // Create Zone Entity
         createWhisperZone(x, y, whisperLevel);
-
-        // Cancel selection
         setSelectedSkill(null);
     };
 
     return (
-        <PixiViewport
-            worldWidth={360}
-            worldHeight={640}
-            onPointerDown={handleStageClick}
-            eventMode="static"
-        >
-            <MoveSystem />
-            <GoatSystem />
-            {/* Background (Interactive area) */}
-            <pixiGraphics
-                draw={(g) => {
-                    g.clear();
-                    g.beginFill(0x333333);
-                    g.drawRect(0, 0, 360, 640);
-                    g.endFill();
-                }}
-            />
-            {backgroundTexture && (
-                <pixiTilingSprite
-                    texture={backgroundTexture}
-                    width={360}
-                    height={640}
-                    tilePosition={{ x: 0, y: 0 }}
-                    alpha={0.5}
+        <pixiContainer>
+            {/* HIDDEN WORLD CONTAINER */}
+            <pixiContainer ref={worldRef} visible={false}>
+                {/* Systems */}
+                <MoveSystem />
+                <GoatSystem />
+
+                {/* Background */}
+                <pixiGraphics
+                    draw={(g) => {
+                        g.clear();
+                        g.beginFill(0x333333);
+                        g.drawRect(0, 0, 360, 640);
+                        g.endFill();
+                    }}
                 />
-            )}
+                {backgroundTexture && (
+                    <pixiTilingSprite
+                        texture={backgroundTexture}
+                        width={360}
+                        height={640}
+                        tilePosition={{ x: 0, y: 0 }}
+                        alpha={0.5}
+                    />
+                )}
 
-            {/* Entities */}
-            {entities.map((entity) => {
-                // Render Zone Debug
-                if (entity.zone && entity.position) {
-                    return (
-                        <pixiGraphics
-                            key={`zone-${entity.id || Math.random()}`}
-                            x={entity.position.x}
-                            y={entity.position.y}
-                            draw={(g) => {
-                                g.clear();
-                                g.beginFill(0x9d4edd, 0.2);
-                                g.drawCircle(0, 0, entity.zone!.radius);
-                                g.endFill();
-                            }}
-                        />
-                    );
-                }
-
-                if (!entity.position || !entity.appearance) return null;
-
-                // Determine what to render: Animation or Static Sprite
-                const isStatic = entity.isObject && entity.appearance.sprite && (entity.appearance.sprite.startsWith('House_') || entity.appearance.sprite.startsWith('wheat_stage_'));
-
-                const isSelected = selectedEntityId === entity.id;
-                const isFollower = entity.attributes?.sanity && entity.attributes.sanity.current <= 0;
-
-                const filters = [];
-                if (isSelected) filters.push(outlineFilter);
-                if (isFollower) filters.push(followerFilter);
-
-                if (isStatic) {
-                     const texture = staticTextures[entity.appearance.sprite];
-                     if (!texture) return null; // Wait for load
-
-                     return (
-                        <pixiSprite
-                            key={entity.id}
-                            texture={texture}
-                            x={entity.position.x}
-                            y={entity.position.y}
-                            eventMode="static"
-                            anchor={0}
-                        />
-                     )
-                }
-
-                const action = entity.appearance.animation || 'idle';
-                const direction = entity.appearance.direction || 'down';
-                const animKey = `${entity.appearance.sprite}_${action}_${direction}`;
-
-                // Fallback to down if direction missing (shouldn't happen often)
-                const textures = workerTextures[animKey] || workerTextures[`${entity.appearance.sprite}_${action}_down`];
-
-                // Calculate animation speed (Logic from WorkerControl)
-                // Speed = 1 / (interval / 16.666)
-                let intervalMs = 300; // idle
-                if (action === 'walk') intervalMs = 200;
-                if (action === 'run') intervalMs = 150;
-                if (action.startsWith('attack')) intervalMs = 100;
-                const animationSpeed = 1 / (intervalMs / 16.666);
-
-                // Fallback visual
-                if (!textures) {
+                {/* Entities */}
+                {entities.map((entity) => {
+                    // Zone Debug
+                    if (entity.zone && entity.position) {
                         return (
-                        <pixiGraphics
-                            key={entity.id}
-                            x={entity.position.x}
-                            y={entity.position.y}
-                            draw={(g) => {
-                                g.beginFill(0x00ff00);
-                                g.drawCircle(0,0,8);
-                                g.endFill();
-                            }}
-                        />
+                            <pixiGraphics
+                                key={`zone-${entity.id}`}
+                                x={entity.position.x}
+                                y={entity.position.y}
+                                draw={(g) => {
+                                    g.clear();
+                                    g.beginFill(0x9d4edd, 0.2);
+                                    g.drawCircle(0, 0, entity.zone!.radius);
+                                    g.endFill();
+                                }}
+                            />
                         );
-                }
+                    }
 
-                return (
-                    <pixiContainer
-                        key={entity.id}
-                        x={entity.position.x + TILE_SIZE / 2}
-                        y={entity.position.y + TILE_SIZE / 2}
-                        eventMode="static"
-                        hitArea={ENTITY_HIT_AREA}
-                        cursor="pointer"
-                        onPointerDown={(e: any) => {
-                            e.stopPropagation();
-                            setSelectedEntity(entity.id || null);
-                        }}
-                    >
-                        <AutoPlayAnimatedSprite
-                            textures={textures}
-                            animationSpeed={animationSpeed}
-                            anchor={0.5}
-                            filters={filters.length > 0 ? filters : null}
-                        />
-                            {/* Simple Sanity Bar */}
+                    if (!entity.position || !entity.appearance) return null;
+
+                    const isStatic = entity.isObject && entity.appearance.sprite && (entity.appearance.sprite.startsWith('House_') || entity.appearance.sprite.startsWith('wheat_stage_'));
+                    const isSelected = selectedEntityId === entity.id;
+                    const isFollower = entity.attributes?.sanity && entity.attributes.sanity.current <= 0;
+
+                    const filters = [];
+                    if (isSelected) filters.push(outlineFilter);
+                    if (isFollower) filters.push(followerFilter);
+
+                    if (isStatic) {
+                         const texture = staticTextures[entity.appearance.sprite];
+                         if (!texture) return null;
+                         return (
+                            <pixiSprite
+                                key={entity.id}
+                                texture={texture}
+                                x={entity.position.x}
+                                y={entity.position.y}
+                                anchor={0}
+                            />
+                         )
+                    }
+
+                    const action = entity.appearance.animation || 'idle';
+                    const direction = entity.appearance.direction || 'down';
+                    const animKey = `${entity.appearance.sprite}_${action}_${direction}`;
+                    const textures = workerTextures[animKey] || workerTextures[`${entity.appearance.sprite}_${action}_down`];
+
+                    let intervalMs = 300;
+                    if (action === 'walk') intervalMs = 200;
+                    if (action === 'run') intervalMs = 150;
+                    if (action.startsWith('attack')) intervalMs = 100;
+                    const animationSpeed = 1 / (intervalMs / 16.666);
+
+                    if (!textures) {
+                            return (
+                            <pixiGraphics
+                                key={entity.id}
+                                x={entity.position.x}
+                                y={entity.position.y}
+                                draw={(g) => {
+                                    g.beginFill(0x00ff00);
+                                    g.drawCircle(0,0,8);
+                                    g.endFill();
+                                }}
+                            />
+                            );
+                    }
+
+                    return (
+                        <pixiContainer
+                            key={entity.id}
+                            x={entity.position.x + TILE_SIZE / 2}
+                            y={entity.position.y + TILE_SIZE / 2}
+                        >
+                            <AutoPlayAnimatedSprite
+                                textures={textures}
+                                animationSpeed={animationSpeed}
+                                anchor={0.5}
+                                filters={filters.length > 0 ? filters : null}
+                            />
+                            {/* Sanity Bar */}
                             {entity.attributes?.sanity && (
                             <pixiGraphics
                                 y={-15}
@@ -693,23 +652,20 @@ export const BaseSceneTest: React.FC = () => {
                                     g.clear();
                                     g.beginFill(0x000000);
                                     g.drawRect(-10, 0, 20, 4);
-                                    g.beginFill(0x0000ff); // Blue for Sanity
+                                    g.beginFill(0x0000ff);
                                     const pct = entity.attributes!.sanity.current / entity.attributes!.sanity.max;
                                     g.drawRect(-10, 0, 20 * pct, 4);
                                 }}
                             />
                             )}
-
-                            {/* Debuff Icons */}
+                            {/* Debuffs */}
                             {entity.debuffs && entity.debuffs.length > 0 && influenceIcon && (
                                 <pixiContainer y={-22}>
                                     {entity.debuffs.map((d, i) => {
-                                        // Layout: max 3 per row
                                         const row = Math.floor(i / 3);
                                         const col = i % 3;
-                                        // Center the row
                                         const rowCount = Math.min(entity.debuffs!.length - row*3, 3);
-                                        const startX = -((rowCount * 10) / 2) + 5; // 10px spacing
+                                        const startX = -((rowCount * 10) / 2) + 5;
                                         return (
                                             <pixiSprite
                                                 key={`debuff-${i}`}
@@ -724,36 +680,49 @@ export const BaseSceneTest: React.FC = () => {
                                     })}
                                 </pixiContainer>
                             )}
-                    </pixiContainer>
-                );
-            })}
+                        </pixiContainer>
+                    );
+                })}
 
-            {/* Effects */}
-            {effects.map(ef => (
-                <SpellEffect
-                    key={ef.id}
-                    x={ef.x}
-                    y={ef.y}
-                    onComplete={() => setEffects(prev => prev.filter(e => e.id !== ef.id))}
-                />
-            ))}
+                {effects.map(ef => (
+                    <SpellEffect
+                        key={ef.id}
+                        x={ef.x}
+                        y={ef.y}
+                        onComplete={() => setEffects(prev => prev.filter(e => e.id !== ef.id))}
+                    />
+                ))}
 
-            {/* Floating Texts */}
-            {floatingTexts.map(ft => (
-                <FloatingText
-                    key={ft.id}
-                    x={ft.x}
-                    y={ft.y}
-                    text={ft.text}
-                    onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))}
-                />
-            ))}
+                {floatingTexts.map(ft => (
+                    <FloatingText
+                        key={ft.id}
+                        x={ft.x}
+                        y={ft.y}
+                        text={ft.text}
+                        onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))}
+                    />
+                ))}
+            </pixiContainer>
 
-        </PixiViewport>
+            {/* VISIBLE VIEWPORT SHOWING TEXTURE */}
+            <PixiViewport
+                worldWidth={360}
+                worldHeight={640}
+                onPointerDown={handleViewportClick}
+                eventMode="static"
+            >
+                 <pixiSprite texture={renderTexture} />
+            </PixiViewport>
+
+            {/* AVATAR MONITOR OVERLAY */}
+            {selectedEntityId && (
+                <AvatarOverlay texture={renderTexture} targetId={selectedEntityId} />
+            )}
+        </pixiContainer>
     );
 };
 
-// Helper for animated sprite
+// Helper
 const AutoPlayAnimatedSprite = ({ textures, animationSpeed, anchor, ...props }: any) => {
     const ref = useRef<any>(null);
     useEffect(() => {
@@ -764,7 +733,6 @@ const AutoPlayAnimatedSprite = ({ textures, animationSpeed, anchor, ...props }: 
     return <pixiAnimatedSprite ref={ref} textures={textures} animationSpeed={animationSpeed} anchor={anchor} {...props} />;
 };
 
-// The UI Component
 export const BaseSceneUI: React.FC = () => {
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
     const { mana, maxMana, suspicion, selectedEntityId, addMana } = useGameStore();
@@ -777,21 +745,11 @@ export const BaseSceneUI: React.FC = () => {
         e.stopPropagation();
         if (!selectedEntityId) return;
         if (mana < 1) return;
-
-        // Apply debuff logic directly here or signal
-        // Since we have direct access to ECS here (it's in the same file module scope for this demo,
-        // though normally should be separated), we can modify the entity directly.
-
-        // Find entity
         const entity = ecs.entities.find(e => e.id === selectedEntityId);
         if (entity) {
-            // Check mana again
             if (mana >= 1) {
                 addMana(-1);
-                // Add Debuff
                 if (!entity.debuffs) entity.debuffs = [];
-
-                // Check for existing Influence debuff to prevent stacking
                 const existingDebuff = entity.debuffs.find(d => d.type === 'INFLUENCE');
                 if (existingDebuff) {
                     existingDebuff.duration = 20;
@@ -804,27 +762,23 @@ export const BaseSceneUI: React.FC = () => {
                         icon: 'influence_icon'
                     });
                 }
-
-                // Force update? The scene useTick handles state updates, but we might want a signal.
-                // React state 'entities' will update on next tick or setEntities call in loop.
             }
         }
     };
 
-    // Style for the button container
     const containerStyle: React.CSSProperties = {
         position: 'absolute',
         bottom: '20px',
         left: '20px',
         width: '40px',
         height: '40px',
-        border: selectedSkill === 'whisper' ? '2px solid #a855f7' : '2px solid #555', // Purple when active
+        border: selectedSkill === 'whisper' ? '2px solid #a855f7' : '2px solid #555',
         borderRadius: '8px',
         backgroundColor: '#222',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        cursor: mana >= 5 ? 'pointer' : 'not-allowed', // Whisper cost 5
+        cursor: mana >= 5 ? 'pointer' : 'not-allowed',
         pointerEvents: 'auto',
         imageRendering: 'pixelated',
         zIndex: 100,
@@ -834,7 +788,7 @@ export const BaseSceneUI: React.FC = () => {
     const influenceBtnStyle: React.CSSProperties = {
         position: 'absolute',
         bottom: '20px',
-        left: '70px', // Next to whisper
+        left: '70px',
         width: '40px',
         height: '40px',
         border: '2px solid #555',
@@ -848,7 +802,7 @@ export const BaseSceneUI: React.FC = () => {
         imageRendering: 'pixelated',
         zIndex: 100,
         opacity: (selectedEntityId && mana >= 1) ? 1 : 0.3,
-        borderColor: (selectedEntityId && mana >= 1) ? '#ffffff' : '#555' // Light up when active
+        borderColor: (selectedEntityId && mana >= 1) ? '#ffffff' : '#555'
     };
 
     const spriteStyle: React.CSSProperties = {
@@ -914,17 +868,12 @@ export const BaseSceneUI: React.FC = () => {
             <div style={manaContainerStyle}>
                 <div style={manaFillStyle} />
             </div>
-
-            {/* Whisper Skill */}
             <div style={containerStyle} onClick={toggleSkill} title="Whisper (Cost: 5 Mana)">
                 <div style={spriteStyle} />
             </div>
-
-            {/* Influence Skill */}
             <div style={influenceBtnStyle} onClick={castInfluence} title="Influence (Cost: 1 Mana)">
                  <div style={influenceIconStyle} />
             </div>
-
             <div style={suspicionStyle}>
                 <SuspicionGauge value={suspicion} />
             </div>
