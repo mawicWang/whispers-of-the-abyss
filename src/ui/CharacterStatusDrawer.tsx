@@ -79,13 +79,15 @@ export const CharacterStatusDrawer: React.FC = () => {
         }
     }
 
+    const currentAction = entity?.goat?.currentActionName;
+
     const styles: Record<string, React.CSSProperties> = {
         drawer: {
             position: 'fixed',
             top: 0,
             left: 0,
             width: '100%',
-            height: '148px', // Increased height to fit Corruption
+            height: '168px', // Increased height to fit Action Row
             backgroundColor: 'rgba(20, 20, 30, 0.95)',
             borderBottom: '4px solid #4a4a6a',
             transform: isOpen ? 'translateY(0)' : 'translateY(-100%)',
@@ -167,6 +169,12 @@ export const CharacterStatusDrawer: React.FC = () => {
             color: '#aaa',
             marginLeft: '8px',
             fontStyle: 'italic'
+        },
+        actionText: {
+            fontSize: '12px',
+            color: '#aaa',
+            fontStyle: 'italic',
+            marginLeft: 'auto'
         }
     };
 
@@ -186,7 +194,7 @@ export const CharacterStatusDrawer: React.FC = () => {
                 */}
             </div>
             <div style={styles.statsContainer}>
-                <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline' }}>
+                <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline', minWidth: '300px' }}>
                      {/* Name or ID */}
                      {entity?.id || 'Unknown'}
                      {title && <span style={styles.titleText}>{title}</span>}
@@ -235,6 +243,14 @@ export const CharacterStatusDrawer: React.FC = () => {
                             <div style={{ ...styles.barFill, width: `${corruptionPct}%`, backgroundColor: '#9d4edd' }} />
                         </div>
                         <span style={{color: '#9d4edd'}}>{Math.floor(currentCorruption)}/{maxCorruption}</span>
+                    </div>
+                )}
+
+                {/* Current Action Display */}
+                {currentAction && (
+                    <div style={{ ...styles.statRow, marginTop: '4px', color: '#ffd700' }}>
+                        <span style={{ minWidth: '50px' }}>状态:</span>
+                        <span>{currentAction}</span>
                     </div>
                 )}
             </div>
