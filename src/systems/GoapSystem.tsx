@@ -75,7 +75,26 @@ const navigateTo = (entity: Entity, targetX: number, targetY: number) => {
         // Path will be picked up by MoveSystem
         return false;
     } else {
-        // No path found?
+        // No grid path found.
+        // This usually means startGrid == targetGrid (we are in the target cell).
+        // Or the target is blocked.
+
+        if (startGridX === targetGridX && startGridY === targetGridY) {
+            // We are in the correct grid cell. Move to exact sub-pixel position.
+
+            // Check if we already have a move target for this exact spot
+            if (entity.move && Math.abs(entity.move.targetX - targetX) < 1 && Math.abs(entity.move.targetY - targetY) < 1) {
+                return false; // Already moving there
+            }
+
+            ecs.addComponent(entity, 'move', {
+                targetX: targetX,
+                targetY: targetY,
+                speed: entity.speed ?? 1.0
+            });
+            return false;
+        }
+
         // Fallback: if very close (adjacent), maybe direct move?
         // Or wait/fail.
         // For now, let's just fail silently (wait) to avoid teleporting through walls.
