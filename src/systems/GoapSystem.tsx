@@ -1,7 +1,7 @@
 
 import { useTick } from '@pixi/react';
 import { ecs, type Entity } from '../entities';
-import type { GoatAction, GoatState } from '../entities/GoatComponent';
+import type { GoapAction, GoapState } from '../entities/GoapComponent';
 import { findPath } from '../utils/Pathfinding';
 
 const TILE_SIZE = 16;
@@ -85,34 +85,34 @@ const navigateTo = (entity: Entity, targetX: number, targetY: number) => {
 
 
 // Actions
-export const GoHomeAction: GoatAction = {
+export const GoHomeAction: GoapAction = {
     name: 'GoHome',
     cost: 1,
     preconditions: (state) => true, // Can always try to go home
     effects: (state) => ({ atHome: true }),
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "回家中";
-        const home = entity.goat?.blackboard.homePosition || HOME_POSITION;
+        if (entity.goap) entity.goap.currentActionName = "回家中";
+        const home = entity.goap?.blackboard.homePosition || HOME_POSITION;
         return navigateTo(entity, home.x, home.y);
     }
 };
 
-export const RestAction: GoatAction = {
+export const RestAction: GoapAction = {
     name: 'Rest',
     cost: 1,
     preconditions: (state) => state.atHome,
     effects: (state) => ({ stamina: 10 }), // Full stamina
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "休息中";
-        if (!entity.goat || !entity.attributes?.stamina) return false;
+        if (entity.goap) entity.goap.currentActionName = "休息中";
+        if (!entity.goap || !entity.attributes?.stamina) return false;
 
         // Init rest timer
-        if (entity.goat.blackboard.restTimer === undefined) {
-             entity.goat.blackboard.restTimer = 0;
+        if (entity.goap.blackboard.restTimer === undefined) {
+             entity.goap.blackboard.restTimer = 0;
              if (entity.appearance) entity.appearance.animation = 'idle';
         }
 
-        entity.goat.blackboard.restTimer += deltaTime;
+        entity.goap.blackboard.restTimer += deltaTime;
 
         // Recover stamina: 1 per second
         const recovery = (deltaTime / 1000) * REST_RECOVERY_RATE;
@@ -123,7 +123,7 @@ export const RestAction: GoatAction = {
 
         // Condition: Full stamina
         if (entity.attributes.stamina.current >= entity.attributes.stamina.max) {
-             entity.goat.blackboard.restTimer = undefined; // Reset
+             entity.goap.blackboard.restTimer = undefined; // Reset
              return true;
         }
 
@@ -131,13 +131,13 @@ export const RestAction: GoatAction = {
     }
 };
 
-export const FindFarmAction: GoatAction = {
+export const FindFarmAction: GoapAction = {
     name: 'FindFarm',
     cost: 1,
     preconditions: (state) => !state.hasFarmTarget,
     effects: (state) => ({ hasFarmTarget: true }),
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "寻找农田";
+        if (entity.goap) entity.goap.currentActionName = "寻找农田";
         // Find closest unoccupied wheat field
         let closestField: Entity | null = null;
         let minDist = Infinity;
@@ -159,10 +159,10 @@ export const FindFarmAction: GoatAction = {
         }
 
         if (closestField) {
-            if (entity.goat) {
+            if (entity.goap) {
                 // CLAIM THE FIELD
                 closestField.claimedBy = entity.id;
-                entity.goat.blackboard.targetFarmId = closestField.id;
+                entity.goap.blackboard.targetFarmId = closestField.id;
             }
             return true;
         }
@@ -172,16 +172,16 @@ export const FindFarmAction: GoatAction = {
     }
 };
 
-export const GoToFarmAction: GoatAction = {
+export const GoToFarmAction: GoapAction = {
     name: 'GoToFarm',
     cost: 2,
     preconditions: (state) => state.hasFarmTarget,
     effects: (state) => ({ atFarm: true }),
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "前往农田";
-        if (!entity.goat?.blackboard.targetFarmId) return false; // Fail/Abort (Do not return true, or it skips to Farm)
+        if (entity.goap) entity.goap.currentActionName = "前往农田";
+        if (!entity.goap?.blackboard.targetFarmId) return false; // Fail/Abort (Do not return true, or it skips to Farm)
 
-        const target = ecs.entities.find(e => e.id === entity.goat!.blackboard.targetFarmId);
+        const target = ecs.entities.find(e => e.id === entity.goap!.blackboard.targetFarmId);
 
         // Validation: Target exists AND is claimed by me
         if (!target || !target.position || target.claimedBy !== entity.id) {
@@ -189,7 +189,7 @@ export const GoToFarmAction: GoatAction = {
             if (target && target.claimedBy === entity.id) {
                 target.claimedBy = undefined; // Release if we are aborting?
             }
-            entity.goat!.blackboard.targetFarmId = undefined;
+            entity.goap!.blackboard.targetFarmId = undefined;
             return false;
         }
 
@@ -197,29 +197,29 @@ export const GoToFarmAction: GoatAction = {
     }
 };
 
-export const FarmAction: GoatAction = {
+export const FarmAction: GoapAction = {
     name: 'Farm',
     cost: 5,
     preconditions: (state) => state.atFarm && state.stamina > 0 && state.farmCooldown <= 0,
     effects: (state) => ({ stamina: state.stamina - 1 }),
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "耕作中";
-        if (!entity.goat || !entity.attributes?.stamina) return false;
+        if (entity.goap) entity.goap.currentActionName = "耕作中";
+        if (!entity.goap || !entity.attributes?.stamina) return false;
 
-        const targetId = entity.goat.blackboard.targetFarmId;
+        const targetId = entity.goap.blackboard.targetFarmId;
         const target = ecs.entities.find(e => e.id === targetId);
         const now = Date.now();
 
         // Validation
         if (!target || target.claimedBy !== entity.id) {
              // Lost target
-             entity.goat.blackboard.farmStartTime = undefined;
+             entity.goap.blackboard.farmStartTime = undefined;
              return true; // Abort action sequence
         }
 
         // State: Not started
-        if (entity.goat.blackboard.farmStartTime === undefined) {
-             entity.goat.blackboard.farmStartTime = now;
+        if (entity.goap.blackboard.farmStartTime === undefined) {
+             entity.goap.blackboard.farmStartTime = now;
              if (entity.appearance && target.position && entity.position) {
                  entity.appearance.animation = 'attack';
 
@@ -236,7 +236,7 @@ export const FarmAction: GoatAction = {
         }
 
         // State: In Progress
-        const elapsed = now - entity.goat.blackboard.farmStartTime;
+        const elapsed = now - entity.goap.blackboard.farmStartTime;
         if (elapsed < FARM_ANIMATION_DURATION) {
              // Ensure animation
              if (entity.appearance && entity.appearance.animation !== 'attack') {
@@ -246,8 +246,8 @@ export const FarmAction: GoatAction = {
         }
 
         // State: Complete (Animation done)
-        entity.goat.blackboard.farmStartTime = undefined;
-        entity.goat.blackboard.lastFarmTime = now;
+        entity.goap.blackboard.farmStartTime = undefined;
+        entity.goap.blackboard.lastFarmTime = now;
         entity.attributes.stamina.current = Math.max(0, entity.attributes.stamina.current - 1);
 
         // Update target field stage
@@ -268,49 +268,49 @@ export const FarmAction: GoatAction = {
 
 // --- New Actions for Corrupted State ---
 
-export const GoToRandomSpotAction: GoatAction = {
+export const GoToRandomSpotAction: GoapAction = {
     name: 'GoToRandomSpot',
     cost: 1,
     preconditions: (state) => true,
     effects: (state) => ({ atQuietSpot: true }),
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "前往角落";
-        if (!entity.goat) return false;
+        if (entity.goap) entity.goap.currentActionName = "前往角落";
+        if (!entity.goap) return false;
 
         // If no target spot, pick one
-        if (!entity.goat.blackboard.targetSpot) {
+        if (!entity.goap.blackboard.targetSpot) {
             // Pick a random spot in the world
             // Avoid 0,0 top left
             const rx = Math.floor(Math.random() * (GRID_W - 2) + 1) * TILE_SIZE;
             const ry = Math.floor(Math.random() * (GRID_H - 2) + 1) * TILE_SIZE;
-            entity.goat.blackboard.targetSpot = { x: rx, y: ry };
+            entity.goap.blackboard.targetSpot = { x: rx, y: ry };
         }
 
-        const target = entity.goat.blackboard.targetSpot;
+        const target = entity.goap.blackboard.targetSpot;
         return navigateTo(entity, target.x, target.y);
     }
 };
 
-export const PrayAction: GoatAction = {
+export const PrayAction: GoapAction = {
     name: 'Pray',
     cost: 0,
     preconditions: (state) => state.atQuietSpot,
     effects: (state) => ({ }), // May increase corruption
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "祈祷中";
-        if (!entity.goat) return false;
+        if (entity.goap) entity.goap.currentActionName = "祈祷中";
+        if (!entity.goap) return false;
 
-        if (entity.goat.blackboard.prayTimer === undefined) {
-            entity.goat.blackboard.prayTimer = 0;
+        if (entity.goap.blackboard.prayTimer === undefined) {
+            entity.goap.blackboard.prayTimer = 0;
             if (entity.appearance) entity.appearance.animation = 'idle'; // Or specific pray animation if available
         }
 
-        entity.goat.blackboard.prayTimer += deltaTime;
+        entity.goap.blackboard.prayTimer += deltaTime;
 
-        if (entity.goat.blackboard.prayTimer >= PRAY_DURATION) {
+        if (entity.goap.blackboard.prayTimer >= PRAY_DURATION) {
             // Finish
-            entity.goat.blackboard.prayTimer = undefined;
-            entity.goat.blackboard.targetSpot = undefined; // Clear spot for next time
+            entity.goap.blackboard.prayTimer = undefined;
+            entity.goap.blackboard.targetSpot = undefined; // Clear spot for next time
 
             // Chance to increase corruption
             // Small chance (e.g. 30%)
@@ -327,25 +327,25 @@ export const PrayAction: GoatAction = {
     }
 };
 
-export const WanderAction: GoatAction = {
+export const WanderAction: GoapAction = {
     name: 'Wander',
     cost: 1,
     preconditions: (state) => state.atQuietSpot,
     effects: (state) => ({ boredom: 0 }),
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "闲逛中";
-        if (!entity.goat) return false;
+        if (entity.goap) entity.goap.currentActionName = "闲逛中";
+        if (!entity.goap) return false;
 
-        if (entity.goat.blackboard.wanderTimer === undefined) {
-            entity.goat.blackboard.wanderTimer = 0;
+        if (entity.goap.blackboard.wanderTimer === undefined) {
+            entity.goap.blackboard.wanderTimer = 0;
             if (entity.appearance) entity.appearance.animation = 'idle';
         }
 
-        entity.goat.blackboard.wanderTimer += deltaTime;
+        entity.goap.blackboard.wanderTimer += deltaTime;
 
-        if (entity.goat.blackboard.wanderTimer >= WANDER_DURATION) {
-            entity.goat.blackboard.wanderTimer = undefined;
-            entity.goat.blackboard.targetSpot = undefined;
+        if (entity.goap.blackboard.wanderTimer >= WANDER_DURATION) {
+            entity.goap.blackboard.wanderTimer = undefined;
+            entity.goap.blackboard.targetSpot = undefined;
 
             if (entity.attributes?.boredom) {
                 entity.attributes.boredom.current = Math.max(0, entity.attributes.boredom.current - 50); // Significant reduction
@@ -356,16 +356,16 @@ export const WanderAction: GoatAction = {
     }
 };
 
-export const ChatWithOtherAction: GoatAction = {
+export const ChatWithOtherAction: GoapAction = {
     name: 'ChatWithOther',
     cost: 0,
     preconditions: (state) => state.hasNeighbor,
     effects: (state) => ({ boredom: 0 }),
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "交流中";
-        if (!entity.goat) return false;
+        if (entity.goap) entity.goap.currentActionName = "交流中";
+        if (!entity.goap) return false;
 
-        const targetId = entity.goat.blackboard.socialTargetId;
+        const targetId = entity.goap.blackboard.socialTargetId;
         if (!targetId) return true; // Abort if no target
 
         const target = ecs.entities.find(e => e.id === targetId);
@@ -383,8 +383,8 @@ export const ChatWithOtherAction: GoatAction = {
         // If we are in this action, we assume the handshake succeeded or is in progress.
         // We just play animation and wait.
 
-        if (entity.goat.blackboard.socialTimer === undefined) {
-             entity.goat.blackboard.socialTimer = 0;
+        if (entity.goap.blackboard.socialTimer === undefined) {
+             entity.goap.blackboard.socialTimer = 0;
              if (entity.appearance && target && target.position && entity.position) {
                  entity.appearance.animation = 'attack'; // Use attack as 'talking' gesture as requested/implied
                  // Face target
@@ -395,14 +395,14 @@ export const ChatWithOtherAction: GoatAction = {
              }
         }
 
-        entity.goat.blackboard.socialTimer += deltaTime;
+        entity.goap.blackboard.socialTimer += deltaTime;
 
-        if (entity.goat.blackboard.socialTimer >= CHAT_DURATION) {
-            entity.goat.blackboard.socialTimer = undefined;
+        if (entity.goap.blackboard.socialTimer >= CHAT_DURATION) {
+            entity.goap.blackboard.socialTimer = undefined;
             // Clean up
-            entity.goat.blackboard.socialTargetId = undefined;
-            entity.goat.blackboard.socialRequestFrom = undefined;
-            entity.goat.blackboard.socialAccepted = undefined;
+            entity.goap.blackboard.socialTargetId = undefined;
+            entity.goap.blackboard.socialRequestFrom = undefined;
+            entity.goap.blackboard.socialAccepted = undefined;
 
              if (entity.attributes?.boredom) {
                 entity.attributes.boredom.current = 0; // Fully satisfy boredom
@@ -414,24 +414,24 @@ export const ChatWithOtherAction: GoatAction = {
     }
 };
 
-export const MeditateAction: GoatAction = {
+export const MeditateAction: GoapAction = {
     name: 'Meditate',
     cost: 0,
     preconditions: (state) => state.atHome,
     effects: (state) => ({ }), // May increase corruption
     execute: (entity, deltaTime) => {
-        if (entity.goat) entity.goat.currentActionName = "冥想中";
-        if (!entity.goat) return false;
+        if (entity.goap) entity.goap.currentActionName = "冥想中";
+        if (!entity.goap) return false;
 
-        if (entity.goat.blackboard.meditateTimer === undefined) {
-            entity.goat.blackboard.meditateTimer = 0;
+        if (entity.goap.blackboard.meditateTimer === undefined) {
+            entity.goap.blackboard.meditateTimer = 0;
             if (entity.appearance) entity.appearance.animation = 'idle';
         }
 
-        entity.goat.blackboard.meditateTimer += deltaTime;
+        entity.goap.blackboard.meditateTimer += deltaTime;
 
-        if (entity.goat.blackboard.meditateTimer >= MEDITATE_DURATION) {
-            entity.goat.blackboard.meditateTimer = undefined;
+        if (entity.goap.blackboard.meditateTimer >= MEDITATE_DURATION) {
+            entity.goap.blackboard.meditateTimer = undefined;
 
             // Chance to increase corruption
             // High chance (e.g. 80%)
@@ -451,35 +451,35 @@ export const MeditateAction: GoatAction = {
 
 // Sensor Helper
 const UpdateSensors = (entity: Entity) => {
-    if (!entity.position || !entity.goat) return;
-    const goat = entity.goat;
+    if (!entity.position || !entity.goap) return;
+    const goap = entity.goap;
 
     // Check for Neighbors if we are looking for social interaction
-    if (goat.currentGoal === 'KillBoredom' && !goat.blackboard.socialTargetId) {
+    if (goap.currentGoal === 'KillBoredom' && !goap.blackboard.socialTargetId) {
         const neighbor = ecs.entities.find(e => {
-            if (e.id === entity.id || !e.goat || !e.position || !entity.position) return false;
+            if (e.id === entity.id || !e.goap || !e.position || !entity.position) return false;
             const dist = Math.hypot(e.position.x - entity.position.x, e.position.y - entity.position.y);
             return dist < 48;
         });
 
         if (neighbor) {
-            if (neighbor.goat && !neighbor.goat.blackboard.socialRequestFrom && !neighbor.goat.blackboard.socialTargetId) {
+            if (neighbor.goap && !neighbor.goap.blackboard.socialRequestFrom && !neighbor.goap.blackboard.socialTargetId) {
                 // Send request
-                neighbor.goat.blackboard.socialRequestFrom = entity.id;
-                goat.blackboard.socialTargetId = neighbor.id;
+                neighbor.goap.blackboard.socialRequestFrom = entity.id;
+                goap.blackboard.socialTargetId = neighbor.id;
             }
         }
     }
 };
 
-export const GoatSystem = () => {
+export const GoapSystem = () => {
   useTick((ticker) => {
     const deltaMS = ticker.elapsedMS;
 
     for (const entity of ecs.entities) {
-        if (!entity.goat) continue;
+        if (!entity.goap) continue;
 
-        const goat = entity.goat;
+        const goap = entity.goap;
 
         // 1. Update State & Boredom
         if (entity.attributes?.boredom) {
@@ -497,89 +497,89 @@ export const GoatSystem = () => {
         const boredom = entity.attributes?.boredom?.current || 0;
 
         // Check for social requests (Passive)
-        if (goat.blackboard.socialRequestFrom && !goat.currentGoal && entity.attributes?.boredom && entity.attributes.boredom.current > 30) {
+        if (goap.blackboard.socialRequestFrom && !goap.currentGoal && entity.attributes?.boredom && entity.attributes.boredom.current > 30) {
             // Accept invitation if we are bored enough and idle
-            const requester = ecs.entities.find(e => e.id === goat.blackboard.socialRequestFrom);
-            if (requester && requester.goat) {
+            const requester = ecs.entities.find(e => e.id === goap.blackboard.socialRequestFrom);
+            if (requester && requester.goap) {
                 // Accept!
-                requester.goat.blackboard.socialAccepted = true;
-                goat.blackboard.socialTargetId = requester.id;
-                goat.currentGoal = 'KillBoredom'; // Force social goal
+                requester.goap.blackboard.socialAccepted = true;
+                goap.blackboard.socialTargetId = requester.id;
+                goap.currentGoal = 'KillBoredom'; // Force social goal
                 // We will plan for ChatWithOther next
             }
         }
 
         // Transition Logic
-        if (stamina <= 0 && goat.currentGoal !== 'RecoverStamina') {
+        if (stamina <= 0 && goap.currentGoal !== 'RecoverStamina') {
              // If we were farming, release claim
-             if (goat.currentGoal === 'Farm' && goat.blackboard.targetFarmId) {
-                 const t = ecs.entities.find(e => e.id === goat.blackboard.targetFarmId);
+             if (goap.currentGoal === 'Farm' && goap.blackboard.targetFarmId) {
+                 const t = ecs.entities.find(e => e.id === goap.blackboard.targetFarmId);
                  if (t && t.claimedBy === entity.id) {
                      t.claimedBy = undefined;
                  }
-                 goat.blackboard.targetFarmId = undefined;
+                 goap.blackboard.targetFarmId = undefined;
              }
-            goat.currentGoal = 'RecoverStamina';
+            goap.currentGoal = 'RecoverStamina';
         }
-        else if (stamina >= maxStamina && goat.currentGoal === 'RecoverStamina') {
-            goat.currentGoal = undefined; // Needs new goal
+        else if (stamina >= maxStamina && goap.currentGoal === 'RecoverStamina') {
+            goap.currentGoal = undefined; // Needs new goal
         }
-        else if (!goat.currentGoal) {
+        else if (!goap.currentGoal) {
             // Goal Selection priority
             if (sanity <= 0) {
                 // Corrupted Behavior
                 const rand = Math.random();
                 if (rand < 0.3) {
-                    goat.currentGoal = 'Pray';
+                    goap.currentGoal = 'Pray';
                 } else if (rand < 0.5) { // 30-50%
-                    goat.currentGoal = 'Meditate';
+                    goap.currentGoal = 'Meditate';
                 } else {
-                    goat.currentGoal = 'Farm';
+                    goap.currentGoal = 'Farm';
                 }
             } else if (boredom > 80) { // High boredom
-                 goat.currentGoal = 'KillBoredom';
+                 goap.currentGoal = 'KillBoredom';
             } else {
-                goat.currentGoal = 'Farm';
+                goap.currentGoal = 'Farm';
             }
         }
 
         // 2. Planning
-        if (goat.plan.length === 0 || goat.currentActionIndex >= goat.plan.length) {
+        if (goap.plan.length === 0 || goap.currentActionIndex >= goap.plan.length) {
             // Re-plan
-            const currentState: GoatState = {
+            const currentState: GoapState = {
                 stamina: stamina,
                 sanity: sanity,
                 boredom: boredom,
                 atHome: false,
                 atFarm: false,
                 atQuietSpot: false,
-                hasFarmTarget: !!goat.blackboard.targetFarmId,
-                hasNeighbor: !!goat.blackboard.socialTargetId, // We assume if we have a target ID we have found/accepted them
+                hasFarmTarget: !!goap.blackboard.targetFarmId,
+                hasNeighbor: !!goap.blackboard.socialTargetId, // We assume if we have a target ID we have found/accepted them
                 isResting: false,
                 farmCooldown: 0
             };
 
             // State Sensing
             if (entity.position) {
-                 const home = goat.blackboard.homePosition || HOME_POSITION;
+                 const home = goap.blackboard.homePosition || HOME_POSITION;
                  const dHome = Math.hypot(entity.position.x - home.x, entity.position.y - home.y);
                  currentState.atHome = dHome < 5;
 
-                 if (goat.blackboard.targetSpot) {
-                     const ts = goat.blackboard.targetSpot;
+                 if (goap.blackboard.targetSpot) {
+                     const ts = goap.blackboard.targetSpot;
                      const dSpot = Math.hypot(entity.position.x - ts.x, entity.position.y - ts.y);
                      currentState.atQuietSpot = dSpot < 5;
                  }
 
-                 if (goat.blackboard.targetFarmId) {
-                     const target = ecs.entities.find(e => e.id === goat.blackboard.targetFarmId);
+                 if (goap.blackboard.targetFarmId) {
+                     const target = ecs.entities.find(e => e.id === goap.blackboard.targetFarmId);
                      // Check if valid AND claimed by us
                      if (target && target.position && target.claimedBy === entity.id) {
                          const dFarm = Math.hypot(entity.position.x - target.position.x, entity.position.y - target.position.y);
                          currentState.atFarm = dFarm < 5;
                      } else {
                          // Lost claim or target
-                         goat.blackboard.targetFarmId = undefined;
+                         goap.blackboard.targetFarmId = undefined;
                          currentState.hasFarmTarget = false;
                      }
                  }
@@ -590,95 +590,95 @@ export const GoatSystem = () => {
                  }
 
                  // Check if accepted
-                 if (goat.blackboard.socialTargetId) {
-                     const target = ecs.entities.find(e => e.id === goat.blackboard.socialTargetId);
+                 if (goap.blackboard.socialTargetId) {
+                     const target = ecs.entities.find(e => e.id === goap.blackboard.socialTargetId);
 
                      // Condition 1: We are Initiator, and Target accepted us (set our flag)
-                     const initiatorAccepted = !!goat.blackboard.socialAccepted;
+                     const initiatorAccepted = !!goap.blackboard.socialAccepted;
 
                      // Condition 2: We are Acceptor, and Target (Initiator) is targeting us
-                     const acceptorConnected = target && target.goat && target.goat.blackboard.socialTargetId === entity.id;
+                     const acceptorConnected = target && target.goap && target.goap.blackboard.socialTargetId === entity.id;
 
                      if (initiatorAccepted || acceptorConnected) {
                          currentState.hasNeighbor = true;
-                     } else if (target && target.goat && target.goat.blackboard.socialRequestFrom === entity.id) {
+                     } else if (target && target.goap && target.goap.blackboard.socialRequestFrom === entity.id) {
                          // Still waiting (Initiator side)...
                          currentState.hasNeighbor = false;
                      } else {
                          // Rejected, lost, or timed out
-                         goat.blackboard.socialTargetId = undefined;
+                         goap.blackboard.socialTargetId = undefined;
                          currentState.hasNeighbor = false;
                      }
                  }
             }
 
             // Plan Generation
-            if (goat.currentGoal === 'RecoverStamina') {
-                goat.plan = [];
+            if (goap.currentGoal === 'RecoverStamina') {
+                goap.plan = [];
                 if (!currentState.atHome) {
-                    goat.plan.push(GoHomeAction);
+                    goap.plan.push(GoHomeAction);
                 }
-                goat.plan.push(RestAction);
-            } else if (goat.currentGoal === 'Farm') {
-                goat.plan = [];
+                goap.plan.push(RestAction);
+            } else if (goap.currentGoal === 'Farm') {
+                goap.plan = [];
                 if (!currentState.hasFarmTarget) {
-                    goat.plan.push(FindFarmAction);
+                    goap.plan.push(FindFarmAction);
                 }
-                goat.plan.push(GoToFarmAction);
-                goat.plan.push(FarmAction);
-            } else if (goat.currentGoal === 'Pray') {
-                goat.plan = [];
+                goap.plan.push(GoToFarmAction);
+                goap.plan.push(FarmAction);
+            } else if (goap.currentGoal === 'Pray') {
+                goap.plan = [];
                 if (!currentState.atQuietSpot) {
-                    goat.plan.push(GoToRandomSpotAction);
+                    goap.plan.push(GoToRandomSpotAction);
                 }
-                goat.plan.push(PrayAction);
-            } else if (goat.currentGoal === 'Meditate') {
-                 goat.plan = [];
+                goap.plan.push(PrayAction);
+            } else if (goap.currentGoal === 'Meditate') {
+                 goap.plan = [];
                  if (!currentState.atHome) {
-                     goat.plan.push(GoHomeAction);
+                     goap.plan.push(GoHomeAction);
                  }
-                 goat.plan.push(MeditateAction);
-            } else if (goat.currentGoal === 'KillBoredom') {
-                goat.plan = [];
+                 goap.plan.push(MeditateAction);
+            } else if (goap.currentGoal === 'KillBoredom') {
+                goap.plan = [];
                 if (currentState.hasNeighbor) {
                     // Go to them? Or just chat if close?
                     // For now, assuming close enough if sensor picked them up (48px)
                     // We might need a "GoToNeighbor" if we want to be right next to them
                     // But sensor was 48, so let's just chat.
-                    goat.plan.push(ChatWithOtherAction);
+                    goap.plan.push(ChatWithOtherAction);
                 } else {
                      // No friend found, wander alone
                      if (!currentState.atQuietSpot) {
-                        goat.plan.push(GoToRandomSpotAction);
+                        goap.plan.push(GoToRandomSpotAction);
                      }
-                     goat.plan.push(WanderAction);
+                     goap.plan.push(WanderAction);
                 }
             }
 
-            goat.currentActionIndex = 0;
+            goap.currentActionIndex = 0;
         }
 
         // 3. Execution
-        const currentAction = goat.plan[goat.currentActionIndex];
+        const currentAction = goap.plan[goap.currentActionIndex];
         if (currentAction) {
             // Safety: Ensure we still own the target if we are acting on it
-            if ((currentAction.name === 'GoToFarm' || currentAction.name === 'Farm') && goat.blackboard.targetFarmId) {
-                 const t = ecs.entities.find(e => e.id === goat.blackboard.targetFarmId);
+            if ((currentAction.name === 'GoToFarm' || currentAction.name === 'Farm') && goap.blackboard.targetFarmId) {
+                 const t = ecs.entities.find(e => e.id === goap.blackboard.targetFarmId);
                  if (!t || t.claimedBy !== entity.id) {
                      // Abort plan
-                     goat.plan = [];
-                     goat.currentActionIndex = 0;
-                     goat.blackboard.targetFarmId = undefined;
+                     goap.plan = [];
+                     goap.currentActionIndex = 0;
+                     goap.blackboard.targetFarmId = undefined;
                      continue;
                  }
             }
 
             const completed = currentAction.execute(entity, deltaMS);
             if (completed) {
-                goat.currentActionIndex++;
+                goap.currentActionIndex++;
                 // If plan finished, clear currentGoal to allow re-selection
-                if (goat.currentActionIndex >= goat.plan.length) {
-                    goat.currentGoal = undefined;
+                if (goap.currentActionIndex >= goap.plan.length) {
+                    goap.currentGoal = undefined;
                 }
             }
         }

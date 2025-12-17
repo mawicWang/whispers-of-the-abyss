@@ -80,7 +80,7 @@ export const CharacterStatusDrawer: React.FC = () => {
         }
     }
 
-    const currentAction = entity?.goat?.currentActionName;
+    const currentAction = entity?.goap?.currentActionName;
 
     const styles: Record<string, React.CSSProperties> = {
         drawer: {
