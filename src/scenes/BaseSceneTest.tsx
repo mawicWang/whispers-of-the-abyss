@@ -13,7 +13,7 @@ import { useBaseSceneStore } from '../state/BaseSceneStore';
 import { useGameStore } from '../state/store';
 import { useManaRegen } from '../hooks/useManaRegen';
 import { MoveSystem } from '../systems/MoveSystem';
-import { GoatSystem } from '../systems/GoatSystem';
+import { GoapSystem } from '../systems/GoapSystem';
 import { CharacterStatusDrawer } from '../ui/CharacterStatusDrawer';
 import { createWheatField } from '../entities/WheatField';
 
@@ -54,7 +54,7 @@ const createWorker = (x: number, y: number, id: string) => {
                 max: 100
             }
         },
-        goat: {
+        goap: {
             goals: ['Farm'],
             currentGoal: 'Farm',
             plan: [],
@@ -444,7 +444,7 @@ export const BaseSceneTest: React.FC = () => {
                 }
             }
 
-            if (entity.appearance && entity.position && entity.lastMoveTime && entity.isNPC && !entity.goat) {
+            if (entity.appearance && entity.position && entity.lastMoveTime && entity.isNPC && !entity.goap) {
                 if (entity.move || (entity.path && entity.path.length > 0)) continue;
                 if (now - entity.lastMoveTime > 1000 + Math.random() * 2000) {
                     const targetGridX = 2 + Math.floor(Math.random() * (GRID_W - 4));
@@ -561,7 +561,7 @@ export const BaseSceneTest: React.FC = () => {
             <pixiContainer ref={worldRef} visible={false}>
                 {/* Systems */}
                 <MoveSystem />
-                <GoatSystem />
+                <GoapSystem />
 
                 {/* Background */}
                 <pixiGraphics

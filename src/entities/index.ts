@@ -1,6 +1,6 @@
 
 import { World } from 'miniplex';
-import type { GoatComponent } from './GoatComponent';
+import type { GoapComponent } from './GoapComponent';
 
 // Component Interfaces
 export interface BaseAttributeComponent {
@@ -77,7 +77,7 @@ export type Entity = {
 
   // AI
   aiState?: 'IDLE' | 'WORK' | 'SUSPICIOUS' | 'FLEE' | 'SLEEP' | 'CHASING' | 'ATTACK' | 'FLEEING';
-  goat?: GoatComponent['goat'];
+  goap?: GoapComponent['goap'];
   stateEnterTime?: number;
   lastMoveTime?: number;
 

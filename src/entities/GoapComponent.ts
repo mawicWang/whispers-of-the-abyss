@@ -5,7 +5,7 @@ import type { Entity } from './index';
 
 export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom';
 
-export interface GoatState {
+export interface GoapState {
     stamina: number;
     sanity: number;
     boredom: number;
@@ -18,20 +18,20 @@ export interface GoatState {
     farmCooldown: number;
 }
 
-export interface GoatAction {
+export interface GoapAction {
     name: string;
     cost: number;
-    preconditions: (state: GoatState) => boolean;
-    effects: (state: GoatState) => Partial<GoatState>;
+    preconditions: (state: GoapState) => boolean;
+    effects: (state: GoapState) => Partial<GoapState>;
     execute: (entity: Entity, deltaTime: number) => boolean; // returns true if completed
 }
 
-export interface GoatComponent {
-    goat: {
+export interface GoapComponent {
+    goap: {
         goals: Goal[];
         currentGoal?: Goal;
         currentActionName?: string;
-        plan: GoatAction[];
+        plan: GoapAction[];
         currentActionIndex: number;
         blackboard: {
             targetFarmId?: string;
