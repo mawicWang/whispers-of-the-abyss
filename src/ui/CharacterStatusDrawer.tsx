@@ -7,24 +7,32 @@ export const CharacterStatusDrawer: React.FC = () => {
     const selectedEntityId = useGameStore((state) => state.selectedEntityId);
     const avatarImage = useGameStore((state) => state.avatarImage);
     const [entity, setEntity] = useState<Entity | null>(null);
+    const [occupantName, setOccupantName] = useState<string | null>(null);
 
-    // Poll for entity updates (since ECS is outside React state)
+    // Poll for entity updates
     useEffect(() => {
         let interval: any;
         if (selectedEntityId) {
-            // Initial fetch
-            const found = ecs.entities.find(e => e.id === selectedEntityId);
-            setEntity(found || null);
+            const updateEntity = () => {
+                const found = ecs.entities.find(e => e.id === selectedEntityId);
+                if (found) {
+                    setEntity({ ...found });
 
-            // Poll for changes (sanity updates)
-            interval = setInterval(() => {
-                const current = ecs.entities.find(e => e.id === selectedEntityId);
-                if (current) {
-                    setEntity({ ...current });
+                    // Resolve occupant name if applicable
+                    const occupantId = found.smartObject?.slots?.[0]?.claimedBy;
+                    if (occupantId) {
+                        const occupant = ecs.entities.find(e => e.id === occupantId);
+                        setOccupantName(occupant?.name || occupant?.id || 'Unknown');
+                    } else {
+                        setOccupantName(null);
+                    }
                 } else {
                     setEntity(null);
                 }
-            }, 100);
+            };
+
+            updateEntity();
+            interval = setInterval(updateEntity, 100);
         } else {
             setEntity(null);
         }
@@ -40,64 +48,13 @@ export const CharacterStatusDrawer: React.FC = () => {
         return '';
     };
 
-    const sanity = entity?.attributes?.sanity;
-    const currentSanity = sanity?.current ?? 0;
-    const maxSanity = sanity?.max ?? 100;
-    const sanityPct = Math.max(0, Math.min(100, (currentSanity / maxSanity) * 100));
-
-    const stamina = entity?.attributes?.stamina;
-    const currentStamina = stamina?.current ?? 0;
-    const maxStamina = stamina?.max ?? 10;
-    const staminaPct = Math.max(0, Math.min(100, (currentStamina / maxStamina) * 100));
-
-    const corruption = entity?.attributes?.corruption;
-    const currentCorruption = corruption?.current ?? 0;
-    const maxCorruption = corruption?.max ?? 100;
-    const corruptionPct = Math.max(0, Math.min(100, (currentCorruption / maxCorruption) * 100));
-
-    const boredom = entity?.attributes?.boredom;
-    const currentBoredom = boredom?.current ?? 0;
-    const maxBoredom = boredom?.max ?? 100;
-    const boredomPct = Math.max(0, Math.min(100, (currentBoredom / maxBoredom) * 100));
-
-    // Determine Title and Color
-    let title = '';
-    let nameColor = '#ffffff'; // White default
-
-    // "Corrupted" in the sense of the prompt means Sanity has reached 0 and is locked.
-    // We only hide the Sanity bar in this strict state to avoid hiding a changing value.
-    const isCorrupted = currentSanity <= 0;
-
-    // Corruption logic
-    if (isCorrupted) {
-        // "My Believer"
-        if (currentCorruption >= 100) {
-             title = '代行者 (Avatar)';
-             nameColor = '#ff4500'; // OrangeRed
-        } else if (currentCorruption >= 81) {
-             title = '先驱 (Harbinger)';
-             nameColor = '#9d4edd'; // Purple
-        } else if (currentCorruption >= 51) {
-             title = '狂信徒 (Zealot)';
-             nameColor = '#2196f3'; // Blue
-        } else if (currentCorruption >= 21) {
-             title = '受膏者 (Anointed)';
-             nameColor = '#4caf50'; // Green
-        } else {
-             title = '聆听者 (Listener)';
-             nameColor = '#ffffff'; // White
-        }
-    }
-
-    const currentAction = entity?.goap?.currentActionName;
-
     const styles: Record<string, React.CSSProperties> = {
         drawer: {
             position: 'fixed',
             top: 0,
             left: 0,
             width: '100%',
-            height: '190px', // Increased height to fit Action Row and Boredom
+            height: '190px',
             backgroundColor: 'rgba(20, 20, 30, 0.95)',
             borderBottom: '4px solid #4a4a6a',
             transform: isOpen ? 'translateY(0)' : 'translateY(-100%)',
@@ -129,17 +86,17 @@ export const CharacterStatusDrawer: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            gap: '6px' // Reduced gap to fit all bars
+            gap: '6px'
         },
         statRow: {
-            fontSize: '14px', // Reduced font size slightly
+            fontSize: '14px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
         },
         barContainer: {
             width: '150px',
-            height: '10px', // Reduced height slightly
+            height: '10px',
             backgroundColor: '#333',
             border: '2px solid #555',
             position: 'relative'
@@ -179,40 +136,130 @@ export const CharacterStatusDrawer: React.FC = () => {
             color: '#aaa',
             marginLeft: '8px',
             fontStyle: 'italic'
-        },
-        actionText: {
-            fontSize: '12px',
-            color: '#aaa',
-            fontStyle: 'italic',
-            marginLeft: 'auto'
         }
     };
 
-    // Keep drawer rendered but hidden if not open? No, transition needs it in DOM.
-    // If not entity, we can still render if transitioning. But easier to rely on isOpen.
-    // However, if we unmount, transition might be lost.
-    // For now, let's just return null if no entity.
     if (!entity && !isOpen) return null;
 
-    return (
-        <div style={styles.drawer}>
-            <div style={styles.portraitContainer}>
-                {avatarImage && (
-                    <img
-                        src={avatarImage}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                        alt="Target Monitor"
-                    />
-                )}
+    // --- Render Logic Based on Entity Type ---
+
+    const renderHouse = () => {
+        const foodCount = entity?.storage?.['food'] || 0;
+        return (
+            <div style={styles.statsContainer}>
+                <div style={{ fontSize: '18px', color: '#ffb74d' }}>
+                    {entity?.name || 'House'}
+                </div>
+                <div style={styles.statRow}>
+                    <span style={{color: '#aaa'}}>储存 (Storage):</span>
+                </div>
+                <div style={styles.statRow}>
+                     <span style={{ fontSize: '16px' }}>🍞 食物 (Food): {foodCount}</span>
+                </div>
             </div>
+        );
+    };
+
+    const renderWheat = () => {
+        const stage = entity?.growth?.stage ?? 0;
+        const maxStage = entity?.growth?.maxStage ?? 4;
+        const isMature = stage >= maxStage;
+        return (
+             <div style={styles.statsContainer}>
+                 <div style={{ fontSize: '18px', color: '#8d6e63' }}>
+                     {entity?.name || 'Wheat Field'}
+                 </div>
+                 <div style={styles.statRow}>
+                     <span>生长阶段 (Stage):</span>
+                     <span style={{ color: isMature ? '#4caf50' : '#fff' }}>
+                        {stage} / {maxStage} {isMature && '(Mature)'}
+                     </span>
+                 </div>
+             </div>
+        );
+    };
+
+    const renderObject = () => {
+        return (
+             <div style={styles.statsContainer}>
+                 <div style={{ fontSize: '18px', color: '#cccccc' }}>
+                     {entity?.name || 'Interactive Object'}
+                 </div>
+                 <div style={styles.statRow}>
+                    <span style={{fontStyle: 'italic', color: '#888'}}>
+                        {entity?.smartObject?.interactionType || 'Interaction Point'}
+                    </span>
+                 </div>
+                 {occupantName && (
+                     <div style={styles.statRow}>
+                         <span style={{color: '#aaa'}}>Occupied by:</span>
+                         <span style={{color: '#fff'}}>{occupantName}</span>
+                     </div>
+                 )}
+                 {!occupantName && (
+                     <div style={styles.statRow}>
+                         <span style={{color: '#4caf50'}}>Available</span>
+                     </div>
+                 )}
+             </div>
+        );
+    };
+
+    const renderNPC = () => {
+        const sanity = entity?.attributes?.sanity;
+        const currentSanity = sanity?.current ?? 0;
+        const maxSanity = sanity?.max ?? 100;
+        const sanityPct = Math.max(0, Math.min(100, (currentSanity / maxSanity) * 100));
+
+        const stamina = entity?.attributes?.stamina;
+        const currentStamina = stamina?.current ?? 0;
+        const maxStamina = stamina?.max ?? 10;
+        const staminaPct = Math.max(0, Math.min(100, (currentStamina / maxStamina) * 100));
+
+        const boredom = entity?.attributes?.boredom;
+        const currentBoredom = boredom?.current ?? 0;
+        const maxBoredom = boredom?.max ?? 100;
+        const boredomPct = Math.max(0, Math.min(100, (currentBoredom / maxBoredom) * 100));
+
+        const satiety = entity?.attributes?.satiety;
+        const currentSatiety = satiety?.current ?? 0;
+        const maxSatiety = satiety?.max ?? 100;
+        const satietyPct = Math.max(0, Math.min(100, (currentSatiety / maxSatiety) * 100));
+
+        const corruption = entity?.attributes?.corruption;
+        const currentCorruption = corruption?.current ?? 0;
+        const maxCorruption = corruption?.max ?? 100;
+        const corruptionPct = Math.max(0, Math.min(100, (currentCorruption / maxCorruption) * 100));
+
+        // Determine Title and Color
+        let title = '';
+        let nameColor = '#ffffff';
+        const isCorrupted = currentSanity <= 0;
+
+        if (isCorrupted) {
+            if (currentCorruption >= 100) {
+                 title = '代行者 (Avatar)'; nameColor = '#ff4500';
+            } else if (currentCorruption >= 81) {
+                 title = '先驱 (Harbinger)'; nameColor = '#9d4edd';
+            } else if (currentCorruption >= 51) {
+                 title = '狂信徒 (Zealot)'; nameColor = '#2196f3';
+            } else if (currentCorruption >= 21) {
+                 title = '受膏者 (Anointed)'; nameColor = '#4caf50';
+            } else {
+                 title = '聆听者 (Listener)'; nameColor = '#ffffff';
+            }
+        }
+
+        const currentAction = entity?.goap?.currentActionName;
+
+        return (
             <div style={styles.statsContainer}>
                 <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline', minWidth: '300px' }}>
-                     {/* Name or ID */}
                      {entity?.id || 'Unknown'}
                      {title && <span style={styles.titleText}>{title}</span>}
                 </div>
 
-                {/* Debuffs Section */}
+                {/* Debuffs */}
                 <div style={styles.debuffContainer}>
                      {entity?.debuffs && entity.debuffs.map((debuff, i) => (
                         <div key={i} style={styles.debuffItem} title={`${debuff.type} (${Math.ceil(debuff.duration)}s)`}>
@@ -260,6 +307,16 @@ export const CharacterStatusDrawer: React.FC = () => {
                     </div>
                 )}
 
+                {satiety && (
+                    <div style={styles.statRow}>
+                        <span style={{ minWidth: '50px' }}>饱腹:</span>
+                        <div style={styles.barContainer}>
+                            <div style={{ ...styles.barFill, width: `${satietyPct}%`, backgroundColor: '#ffb74d' }} />
+                        </div>
+                        <span>{Math.floor(currentSatiety)}/{maxSatiety}</span>
+                    </div>
+                )}
+
                 {(currentSanity <= 0 || currentCorruption > 0) && (
                     <div style={styles.statRow}>
                         <span style={{ minWidth: '50px', color: '#9d4edd' }}>侵蚀:</span>
@@ -270,7 +327,6 @@ export const CharacterStatusDrawer: React.FC = () => {
                     </div>
                 )}
 
-                {/* Current Action Display */}
                 {currentAction && (
                     <div style={{ ...styles.statRow, marginTop: '4px', color: '#ffd700' }}>
                         <span style={{ minWidth: '50px' }}>状态:</span>
@@ -278,6 +334,33 @@ export const CharacterStatusDrawer: React.FC = () => {
                     </div>
                 )}
             </div>
+        );
+    };
+
+    // Dispatcher
+    let mainContent;
+    if (entity?.isHouse) {
+        mainContent = renderHouse();
+    } else if (entity?.isWheat) {
+        mainContent = renderWheat();
+    } else if (entity?.isObject && !entity?.isNPC) {
+        mainContent = renderObject();
+    } else {
+        mainContent = renderNPC();
+    }
+
+    return (
+        <div style={styles.drawer}>
+            <div style={styles.portraitContainer}>
+                {avatarImage && (
+                    <img
+                        src={avatarImage}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                        alt="Target Monitor"
+                    />
+                )}
+            </div>
+            {mainContent}
         </div>
     );
 };

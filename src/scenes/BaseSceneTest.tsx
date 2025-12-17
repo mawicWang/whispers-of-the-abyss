@@ -52,6 +52,10 @@ const createWorker = (x: number, y: number, id: string) => {
             boredom: {
                 current: Math.floor(Math.random() * 50), // Random initial boredom
                 max: 100
+            },
+            satiety: {
+                current: 70 + Math.floor(Math.random() * 30),
+                max: 100
             }
         },
         goap: {
@@ -67,6 +71,7 @@ const createWorker = (x: number, y: number, id: string) => {
         stateEnterTime: Date.now(),
         path: [],
         debuffs: [],
+        inventory: [],
         isNPC: true
     });
 };
@@ -79,8 +84,12 @@ const createHouse = (x: number, y: number, variant: number, id: string) => {
         appearance: {
             sprite: `House_${variant}`,
         },
+        storage: {
+            food: 0
+        },
         isObstacle: true,
-        isObject: true
+        isObject: true,
+        isHouse: true
     });
 }
 
