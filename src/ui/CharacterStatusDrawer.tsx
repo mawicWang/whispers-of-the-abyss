@@ -180,6 +180,10 @@ export const CharacterStatusDrawer: React.FC = () => {
     };
 
     const renderObject = () => {
+        let description = entity?.smartObject?.interactionType || 'Interaction Point';
+        if (entity?.name === '篝火') description = '提供温暖和娱乐 (Rest Area)';
+        if (entity?.name === '神像') description = '供人膜拜的地方 (Worship Site)';
+
         return (
              <div style={styles.statsContainer}>
                  <div style={{ fontSize: '18px', color: '#cccccc' }}>
@@ -187,7 +191,7 @@ export const CharacterStatusDrawer: React.FC = () => {
                  </div>
                  <div style={styles.statRow}>
                     <span style={{fontStyle: 'italic', color: '#888'}}>
-                        {entity?.smartObject?.interactionType || 'Interaction Point'}
+                        {description}
                     </span>
                  </div>
                  {occupantName && (
