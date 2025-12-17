@@ -97,8 +97,8 @@ const createCampfire = (x: number, y: number, id: string) => {
         isObject: true,
         smartObject: {
             interactionType: "ENTERTAINMENT",
-            advertisedEffects: { boredom: -40, sanity: 5 },
-            duration: 5000,
+            advertisedEffects: { boredom: -20, sanity: 5 },
+            duration: 10000,
             animation: "sit", // We need 'sit' animation or fallback to 'idle'
             faceTarget: true,
             capacity: 4,
