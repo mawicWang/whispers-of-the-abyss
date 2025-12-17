@@ -55,6 +55,11 @@ export const CharacterStatusDrawer: React.FC = () => {
     const maxCorruption = corruption?.max ?? 100;
     const corruptionPct = Math.max(0, Math.min(100, (currentCorruption / maxCorruption) * 100));
 
+    const boredom = entity?.attributes?.boredom;
+    const currentBoredom = boredom?.current ?? 0;
+    const maxBoredom = boredom?.max ?? 100;
+    const boredomPct = Math.max(0, Math.min(100, (currentBoredom / maxBoredom) * 100));
+
     // Determine Title and Color
     let title = '';
     let nameColor = '#ffffff'; // White default
@@ -88,7 +93,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             top: 0,
             left: 0,
             width: '100%',
-            height: '168px', // Increased height to fit Action Row
+            height: '190px', // Increased height to fit Action Row and Boredom
             backgroundColor: 'rgba(20, 20, 30, 0.95)',
             borderBottom: '4px solid #4a4a6a',
             transform: isOpen ? 'translateY(0)' : 'translateY(-100%)',
@@ -236,6 +241,16 @@ export const CharacterStatusDrawer: React.FC = () => {
                             <div style={{ ...styles.barFill, width: `${staminaPct}%`, backgroundColor: '#4caf50' }} />
                         </div>
                         <span>{Math.floor(currentStamina)}/{maxStamina}</span>
+                    </div>
+                )}
+
+                {boredom && (
+                    <div style={styles.statRow}>
+                        <span style={{ minWidth: '50px' }}>无聊:</span>
+                        <div style={styles.barContainer}>
+                            <div style={{ ...styles.barFill, width: `${boredomPct}%`, backgroundColor: '#ff9800' }} />
+                        </div>
+                        <span>{Math.floor(currentBoredom)}/{maxBoredom}</span>
                     </div>
                 )}
 

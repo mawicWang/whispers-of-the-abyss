@@ -74,6 +74,7 @@ const createWorker = (x: number, y: number, id: string) => {
 const createHouse = (x: number, y: number, variant: number, id: string) => {
     ecs.add({
         id,
+        name: '民居',
         position: { x, y },
         appearance: {
             sprite: `House_${variant}`,
@@ -86,6 +87,7 @@ const createHouse = (x: number, y: number, variant: number, id: string) => {
 const createCampfire = (x: number, y: number, id: string) => {
     ecs.add({
         id,
+        name: '篝火',
         position: { x, y },
         appearance: {
             sprite: 'Bonfire', // Need a sprite for this
@@ -113,6 +115,7 @@ const createCampfire = (x: number, y: number, id: string) => {
 const createStatue = (x: number, y: number, id: string) => {
     ecs.add({
         id,
+        name: '神像',
         position: { x, y },
         appearance: {
             sprite: 'Statue', // Need sprite
@@ -386,6 +389,12 @@ export const BaseSceneTest: React.FC = () => {
                 const gx = startGridX + c;
                 const gy = startGridY + r;
                 createWheatField(gx * TILE_SIZE, gy * TILE_SIZE, gx, gy, c + 1, `wheat-${gx}-${gy}`);
+
+                // Add name to wheat fields - hacky access or update createWheatField?
+                // For now, let's just find them and update
+                const w = ecs.entities.find(e => e.id === `wheat-${gx}-${gy}`);
+                if (w) w.name = '麦田';
+
                 reservedMap.add(`${gx},${gy}`);
             }
         }

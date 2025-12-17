@@ -160,14 +160,17 @@ export const GoToSmartObjectAction: GoapAction = {
     preconditions: (state) => state.hasSmartObjectTarget,
     effects: (state) => ({ atSmartObject: true }),
     execute: (entity, deltaTime) => {
-        if (entity.goap) entity.goap.currentActionName = "Move to Object";
-
         const targetId = entity.goap?.blackboard.targetSmartObjectId;
         const slotIndex = entity.goap?.blackboard.targetSlotIndex;
+        const target = ecs.entities.find(e => e.id === targetId);
+
+        if (entity.goap) {
+             const targetName = target?.name || target?.smartObject?.interactionType || targetId || "目标";
+             entity.goap.currentActionName = `前往 ${targetName}`;
+        }
 
         if (!targetId || slotIndex === undefined || slotIndex === -1) return false;
 
-        const target = ecs.entities.find(e => e.id === targetId);
 
         // Validation
         if (!target || !target.position || !target.smartObject) {
@@ -219,7 +222,8 @@ export const UseSmartObjectAction: GoapAction = {
         if (!entity.goap.blackboard.usingSmartObject) {
             entity.goap.blackboard.usingSmartObject = true;
             entity.goap.blackboard.smartObjectTimer = 0;
-            entity.goap.currentActionName = `Using ${targetId}`;
+            const targetName = target?.name || target?.smartObject?.interactionType || targetId || "目标";
+            entity.goap.currentActionName = `正在使用 ${targetName}`;
 
             if (entity.appearance) {
                 entity.appearance.animation = so.animation;
