@@ -346,8 +346,8 @@ export const BaseSceneTest: React.FC = () => {
             const HIT_RADIUS_SQ = 24 * 24;
 
             for(const ent of ecs.entities) {
-                // Only select NPCs (ignore buildings, wheat, etc.)
-                if (ent.position && ent.isNPC) {
+                // Select NPCs and Objects (Houses, Wheat, etc.)
+                if (ent.position && (ent.isNPC || ent.isObject || ent.isHouse || ent.isWheat)) {
                     const cx = ent.position.x + 8;
                     const cy = ent.position.y + 8;
                     const dx = wx - cx;
