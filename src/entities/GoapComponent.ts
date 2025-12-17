@@ -11,11 +11,15 @@ export interface GoapState {
     boredom: number;
     atHome: boolean;
     atFarm: boolean;
-    atQuietSpot: boolean; // Added
+    atQuietSpot: boolean;
     hasFarmTarget: boolean;
-    hasNeighbor: boolean; // Added for Social
+    hasNeighbor: boolean;
     isResting: boolean;
     farmCooldown: number;
+
+    // Smart Object extensions
+    atSmartObject: boolean;
+    hasSmartObjectTarget: boolean;
 }
 
 export interface GoapAction {
@@ -36,10 +40,10 @@ export interface GoapComponent {
         blackboard: {
             targetFarmId?: string;
             homePosition?: { x: number, y: number };
-            targetSpot?: { x: number, y: number }; // Added
-            socialTargetId?: string; // Added for Social
-            socialRequestFrom?: string; // Added for Handshake
-            socialAccepted?: boolean; // Added for Handshake
+            targetSpot?: { x: number, y: number };
+            socialTargetId?: string;
+            socialRequestFrom?: string;
+            socialAccepted?: boolean;
             socialTimer?: number;
             lastFarmTime?: number;
             farmStartTime?: number;
@@ -47,6 +51,12 @@ export interface GoapComponent {
             prayTimer?: number;
             meditateTimer?: number;
             wanderTimer?: number;
+
+            // Smart Object extensions
+            targetSmartObjectId?: string; // Entity ID
+            targetSlotIndex?: number;
+            usingSmartObject?: boolean;
+            smartObjectTimer?: number;
         };
     };
 }

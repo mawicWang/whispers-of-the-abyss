@@ -83,6 +83,194 @@ const navigateTo = (entity: Entity, targetX: number, targetY: number) => {
     }
 };
 
+// --- Smart Object Actions ---
+
+// Factory for FindSmartObjectAction
+export const createFindSmartObjectAction = (interactionType: string): GoapAction => ({
+    name: `FindSmartObject_${interactionType}`,
+    cost: 10 + Math.random() * 10, // Dynamic float cost
+    preconditions: (state) => !state.hasSmartObjectTarget,
+    effects: (state) => ({ hasSmartObjectTarget: true }),
+    execute: (entity, deltaTime) => {
+        if (entity.goap) entity.goap.currentActionName = `Searching ${interactionType}`;
+
+        // Find all valid candidates
+        const candidates = ecs.entities.filter(e =>
+            e.smartObject &&
+            e.smartObject.interactionType === interactionType
+        );
+
+        let bestScore = -Infinity;
+        let bestTarget: Entity | null = null;
+        let bestSlotIndex = -1;
+
+        for (const candidate of candidates) {
+            if (!candidate.position || !candidate.smartObject) continue;
+
+            // Check slots
+            const slots = candidate.smartObject.slots;
+            let availableSlotIndex = -1;
+
+            // Find first available slot (or maybe random available?)
+            // Just picking first one for now
+            for (let i = 0; i < slots.length; i++) {
+                if (slots[i].claimedBy === null) {
+                    availableSlotIndex = i;
+                    break;
+                }
+            }
+
+            if (availableSlotIndex === -1) continue; // No slots
+
+            // Scoring
+            // Score = (EffectValue * Weight) - (Distance * CostFactor)
+            // Assuming effect value is loosely correlated with boredom reduction or sanity effect
+            let effectValue = 0;
+            if (candidate.smartObject.advertisedEffects.boredom) effectValue += Math.abs(candidate.smartObject.advertisedEffects.boredom);
+            if (candidate.smartObject.advertisedEffects.sanity) effectValue += Math.abs(candidate.smartObject.advertisedEffects.sanity);
+
+            const dist = entity.position ? Math.hypot(candidate.position.x - entity.position.x, candidate.position.y - entity.position.y) : 1000;
+
+            const score = (effectValue * 1.0) - (dist * 0.1);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestTarget = candidate;
+                bestSlotIndex = availableSlotIndex;
+            }
+        }
+
+        if (bestTarget && bestTarget.smartObject) {
+             // Claim it
+             if (entity.goap) {
+                 bestTarget.smartObject.slots[bestSlotIndex].claimedBy = entity.id || null;
+                 entity.goap.blackboard.targetSmartObjectId = bestTarget.id;
+                 entity.goap.blackboard.targetSlotIndex = bestSlotIndex;
+             }
+             return true;
+        }
+
+        return false;
+    }
+});
+
+export const GoToSmartObjectAction: GoapAction = {
+    name: 'GoToSmartObject',
+    cost: 2,
+    preconditions: (state) => state.hasSmartObjectTarget,
+    effects: (state) => ({ atSmartObject: true }),
+    execute: (entity, deltaTime) => {
+        if (entity.goap) entity.goap.currentActionName = "Move to Object";
+
+        const targetId = entity.goap?.blackboard.targetSmartObjectId;
+        const slotIndex = entity.goap?.blackboard.targetSlotIndex;
+
+        if (!targetId || slotIndex === undefined || slotIndex === -1) return false;
+
+        const target = ecs.entities.find(e => e.id === targetId);
+
+        // Validation
+        if (!target || !target.position || !target.smartObject) {
+             // Target lost
+             if (entity.goap) {
+                 entity.goap.blackboard.targetSmartObjectId = undefined;
+                 entity.goap.blackboard.targetSlotIndex = -1;
+             }
+             return false;
+        }
+
+        // Validate claim
+        if (target.smartObject.slots[slotIndex].claimedBy !== entity.id) {
+             // Lost claim
+             if (entity.goap) {
+                 entity.goap.blackboard.targetSmartObjectId = undefined;
+                 entity.goap.blackboard.targetSlotIndex = -1;
+             }
+             return false;
+        }
+
+        const slot = target.smartObject.slots[slotIndex];
+        const targetX = target.position.x + slot.x;
+        const targetY = target.position.y + slot.y;
+
+        return navigateTo(entity, targetX, targetY);
+    }
+};
+
+export const UseSmartObjectAction: GoapAction = {
+    name: 'UseSmartObject',
+    cost: 1,
+    preconditions: (state) => state.atSmartObject,
+    effects: (state) => ({ boredom: 0, sanity: 100 }), // Broad effects, actual applied in execute
+    execute: (entity, deltaTime) => {
+        if (!entity.goap) return false;
+
+        const targetId = entity.goap.blackboard.targetSmartObjectId;
+        const slotIndex = entity.goap.blackboard.targetSlotIndex;
+
+        // Safety checks
+        if (!targetId || slotIndex === undefined || slotIndex === -1) return true; // Abort
+        const target = ecs.entities.find(e => e.id === targetId);
+        if (!target || !target.smartObject || target.smartObject.slots[slotIndex].claimedBy !== entity.id) return true; // Abort
+
+        const so = target.smartObject;
+
+        // Init
+        if (!entity.goap.blackboard.usingSmartObject) {
+            entity.goap.blackboard.usingSmartObject = true;
+            entity.goap.blackboard.smartObjectTimer = 0;
+            entity.goap.currentActionName = `Using ${targetId}`;
+
+            if (entity.appearance) {
+                entity.appearance.animation = so.animation;
+                if (so.faceTarget && entity.position && target.position) {
+                     const dx = target.position.x - entity.position.x;
+                     const dy = target.position.y - entity.position.y;
+                     if (Math.abs(dx) > Math.abs(dy)) entity.appearance.direction = dx > 0 ? 'right' : 'left';
+                     else entity.appearance.direction = dy > 0 ? 'down' : 'up';
+                }
+            }
+        }
+
+        // Update
+        entity.goap.blackboard.smartObjectTimer = (entity.goap.blackboard.smartObjectTimer || 0) + deltaTime;
+
+        // Apply effects periodically (every second)
+        // For simplicity, we apply proportional effect per tick or just at end?
+        // Prompt says "Apply every second".
+        const seconds = deltaTime / 1000;
+        if (so.advertisedEffects.boredom && entity.attributes?.boredom) {
+             entity.attributes.boredom.current = Math.max(0, entity.attributes.boredom.current + (so.advertisedEffects.boredom * seconds / (so.duration / 1000)));
+        }
+        if (so.advertisedEffects.sanity && entity.attributes?.sanity) {
+             entity.attributes.sanity.current = Math.min(entity.attributes.sanity.max, Math.max(0, entity.attributes.sanity.current + (so.advertisedEffects.sanity * seconds / (so.duration / 1000))));
+        }
+        if (so.advertisedEffects.corruption && entity.attributes?.corruption) {
+             entity.attributes.corruption.current = Math.min(entity.attributes.corruption.max, entity.attributes.corruption.current + (so.advertisedEffects.corruption * seconds / (so.duration / 1000)));
+        }
+         if (so.advertisedEffects.stamina && entity.attributes?.stamina) {
+             entity.attributes.stamina.current = Math.min(entity.attributes.stamina.max, entity.attributes.stamina.current + (so.advertisedEffects.stamina * seconds / (so.duration / 1000)));
+        }
+
+
+        // Check finish
+        if (entity.goap.blackboard.smartObjectTimer >= so.duration) {
+            // Cleanup
+            target.smartObject.slots[slotIndex].claimedBy = null;
+            entity.goap.blackboard.targetSmartObjectId = undefined;
+            entity.goap.blackboard.targetSlotIndex = -1;
+            entity.goap.blackboard.usingSmartObject = false;
+            entity.goap.blackboard.smartObjectTimer = undefined;
+
+            if (entity.appearance) entity.appearance.animation = 'idle';
+
+            return true;
+        }
+
+        return false;
+    }
+};
+
 
 // Actions
 export const GoHomeAction: GoapAction = {
@@ -519,6 +707,17 @@ export const GoapSystem = () => {
                  }
                  goap.blackboard.targetFarmId = undefined;
              }
+             // Interruption handling for Smart Objects
+             if (goap.blackboard.targetSmartObjectId) {
+                const t = ecs.entities.find(e => e.id === goap.blackboard.targetSmartObjectId);
+                if (t && t.smartObject && goap.blackboard.targetSlotIndex !== undefined && goap.blackboard.targetSlotIndex > -1) {
+                    t.smartObject.slots[goap.blackboard.targetSlotIndex].claimedBy = null;
+                }
+                goap.blackboard.targetSmartObjectId = undefined;
+                goap.blackboard.targetSlotIndex = -1;
+                goap.blackboard.usingSmartObject = false;
+             }
+
             goap.currentGoal = 'RecoverStamina';
         }
         else if (stamina >= maxStamina && goap.currentGoal === 'RecoverStamina') {
@@ -556,7 +755,10 @@ export const GoapSystem = () => {
                 hasFarmTarget: !!goap.blackboard.targetFarmId,
                 hasNeighbor: !!goap.blackboard.socialTargetId, // We assume if we have a target ID we have found/accepted them
                 isResting: false,
-                farmCooldown: 0
+                farmCooldown: 0,
+                // Smart Object States
+                atSmartObject: false,
+                hasSmartObjectTarget: !!goap.blackboard.targetSmartObjectId
             };
 
             // State Sensing
@@ -583,6 +785,22 @@ export const GoapSystem = () => {
                          currentState.hasFarmTarget = false;
                      }
                  }
+
+                 if (goap.blackboard.targetSmartObjectId) {
+                     const target = ecs.entities.find(e => e.id === goap.blackboard.targetSmartObjectId);
+                     const slotIndex = goap.blackboard.targetSlotIndex;
+                     if (target && target.position && target.smartObject && slotIndex !== undefined && slotIndex > -1) {
+                         const slot = target.smartObject.slots[slotIndex];
+                         const targetX = target.position.x + slot.x;
+                         const targetY = target.position.y + slot.y;
+                         const dObj = Math.hypot(entity.position.x - targetX, entity.position.y - targetY);
+                         currentState.atSmartObject = dObj < 4;
+                     } else {
+                         goap.blackboard.targetSmartObjectId = undefined;
+                         currentState.hasSmartObjectTarget = false;
+                     }
+                 }
+
 
                  // Update Sensors
                  if (entity.position) {
@@ -627,11 +845,40 @@ export const GoapSystem = () => {
                 goap.plan.push(GoToFarmAction);
                 goap.plan.push(FarmAction);
             } else if (goap.currentGoal === 'Pray') {
+                // Try Smart Object "WORSHIP"
                 goap.plan = [];
-                if (!currentState.atQuietSpot) {
-                    goap.plan.push(GoToRandomSpotAction);
+                // Simple probabilistic choice or check availability?
+                // For now, let's try to find worship object first.
+                // But FindAction has cost.
+
+                // Let's assume we try smart object if we are not already doing the legacy one?
+                // Actually the system will just re-plan if the list is empty.
+                // We can add the FindSmartObjectAction to the list. If it fails (returns false), we might need fallback.
+                // But GOAP usually plans ahead. Here we execute imperatively.
+                // The current implementation is simpler: we just push a sequence.
+                // If the first action fails, we are stuck or we need a way to branch.
+                // Current system re-plans every time plan is empty or index exceeds.
+                // If FindSmartObject fails, it returns false (incomplete).
+
+                // ISSUE: If FindSmartObject returns false (no object found), the agent will keep trying it every frame.
+                // We need a fallback mechanism.
+                // Since this is a simple impl, let's say:
+                // We pick between Plan A (Smart Object) and Plan B (Legacy) randomly at the start of planning?
+
+                const useSmartObject = Math.random() < 0.7; // Prefer smart object
+                if (useSmartObject) {
+                     if (!currentState.hasSmartObjectTarget) {
+                         goap.plan.push(createFindSmartObjectAction("WORSHIP"));
+                     }
+                     goap.plan.push(GoToSmartObjectAction);
+                     goap.plan.push(UseSmartObjectAction);
+                } else {
+                     if (!currentState.atQuietSpot) {
+                        goap.plan.push(GoToRandomSpotAction);
+                    }
+                    goap.plan.push(PrayAction);
                 }
-                goap.plan.push(PrayAction);
+
             } else if (goap.currentGoal === 'Meditate') {
                  goap.plan = [];
                  if (!currentState.atHome) {
@@ -640,14 +887,21 @@ export const GoapSystem = () => {
                  goap.plan.push(MeditateAction);
             } else if (goap.currentGoal === 'KillBoredom') {
                 goap.plan = [];
-                if (currentState.hasNeighbor) {
-                    // Go to them? Or just chat if close?
-                    // For now, assuming close enough if sensor picked them up (48px)
-                    // We might need a "GoToNeighbor" if we want to be right next to them
-                    // But sensor was 48, so let's just chat.
+
+                // Plan A: Smart Object "ENTERTAINMENT"
+                // Plan B: Social
+                // Plan C: Wander
+
+                const rand = Math.random();
+                if (rand < 0.5) { // 50% chance to try entertainment
+                     if (!currentState.hasSmartObjectTarget) {
+                         goap.plan.push(createFindSmartObjectAction("ENTERTAINMENT"));
+                     }
+                     goap.plan.push(GoToSmartObjectAction);
+                     goap.plan.push(UseSmartObjectAction);
+                } else if (currentState.hasNeighbor) {
                     goap.plan.push(ChatWithOtherAction);
                 } else {
-                     // No friend found, wander alone
                      if (!currentState.atQuietSpot) {
                         goap.plan.push(GoToRandomSpotAction);
                      }
@@ -672,6 +926,20 @@ export const GoapSystem = () => {
                      continue;
                  }
             }
+             // Safety for Smart Object
+             if ((currentAction.name === 'GoToSmartObject' || currentAction.name === 'UseSmartObject') && goap.blackboard.targetSmartObjectId) {
+                 const t = ecs.entities.find(e => e.id === goap.blackboard.targetSmartObjectId);
+                 const slotIndex = goap.blackboard.targetSlotIndex;
+                 if (!t || !t.smartObject || slotIndex === undefined || t.smartObject.slots[slotIndex].claimedBy !== entity.id) {
+                     // Abort
+                     goap.plan = [];
+                     goap.currentActionIndex = 0;
+                     goap.blackboard.targetSmartObjectId = undefined;
+                     goap.blackboard.targetSlotIndex = -1;
+                     goap.blackboard.usingSmartObject = false;
+                     continue;
+                 }
+             }
 
             const completed = currentAction.execute(entity, deltaMS);
             if (completed) {

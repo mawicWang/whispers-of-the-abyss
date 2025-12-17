@@ -39,6 +39,26 @@ export interface Debuff {
   icon: string; // Texture key or icon name
 }
 
+export interface SmartObjectComponent {
+    interactionType: string; // e.g., "ENTERTAINMENT", "WORSHIP"
+    advertisedEffects: {
+        boredom?: number;
+        stamina?: number;
+        sanity?: number;
+        corruption?: number;
+    };
+    duration: number; // ms
+    animation: string; // e.g., "sit", "pray"
+    faceTarget: boolean;
+    capacity: number;
+    slots: {
+        id: number;
+        x: number; // Local offset X
+        y: number; // Local offset Y
+        claimedBy: string | null; // Entity ID
+    }[];
+}
+
 export type Entity = {
   // Core
   id?: string;
@@ -50,6 +70,7 @@ export type Entity = {
   // New Composition Components
   attributes?: BaseAttributeComponent['attributes'];
   appearance?: AppearanceComponent['appearance'];
+  smartObject?: SmartObjectComponent;
 
   // Physics/Logic
   velocity?: { x: number; y: number };
