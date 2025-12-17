@@ -293,7 +293,7 @@ export const BaseSceneTest: React.FC = () => {
                     isExtracting = false;
                 }
             }
-        }, 33); // ~30 FPS
+        }, 16); // ~60 FPS
 
         return () => {
             clearInterval(intervalId);
