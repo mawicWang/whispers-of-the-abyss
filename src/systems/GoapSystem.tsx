@@ -405,8 +405,18 @@ export const FindHouseAction: GoapAction = {
     effects: (state) => ({ hasHouseTarget: true }),
     execute: (entity, deltaTime) => {
         if (entity.goap) entity.goap.currentActionName = "寻找仓库";
-        // Find nearest house (or own house)
-        // For simplicity, find nearest 'isHouse'
+
+        // Prioritize own house if assigned
+        if (entity.goap?.blackboard.homeHouseId) {
+            const homeId = entity.goap.blackboard.homeHouseId;
+            const home = ecs.entities.find(e => e.id === homeId);
+            if (home) {
+                entity.goap.blackboard.targetHouseId = home.id;
+                return true;
+            }
+        }
+
+        // Fallback: Find nearest house
         let closest: Entity | null = null;
         let minDist = Infinity;
         const houses = ecs.entities.filter(e => e.isHouse && e.position);

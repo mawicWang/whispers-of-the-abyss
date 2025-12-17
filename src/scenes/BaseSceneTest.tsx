@@ -25,7 +25,7 @@ const ENTITY_HIT_AREA = new Rectangle(-24, -24, 48, 48);
 // Character Factory
 const WORKER_VARIANTS = ['FarmerCyan', 'FarmerRed', 'FarmerLime', 'FarmerPurple'];
 
-const createWorker = (x: number, y: number, id: string) => {
+const createWorker = (x: number, y: number, id: string, houseId: string) => {
     const variant = WORKER_VARIANTS[Math.floor(Math.random() * WORKER_VARIANTS.length)];
     ecs.add({
         id,
@@ -64,7 +64,8 @@ const createWorker = (x: number, y: number, id: string) => {
             plan: [],
             currentActionIndex: 0,
             blackboard: {
-                homePosition: { x, y }
+                homePosition: { x, y },
+                homeHouseId: houseId
             }
         },
         lastMoveTime: Date.now(),
@@ -459,9 +460,9 @@ export const BaseSceneTest: React.FC = () => {
              const workerGridY = house.gridY + 1;
              const workerKey = `${workerGridX},${workerGridY}`;
              if (!obstacles.has(workerKey)) {
-                createWorker(workerGridX * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`);
+                createWorker(workerGridX * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`, `house-${idx}`);
              } else {
-                 createWorker((workerGridX + 1) * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`);
+                 createWorker((workerGridX + 1) * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`, `house-${idx}`);
              }
         });
 

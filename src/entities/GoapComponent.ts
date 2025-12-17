@@ -67,6 +67,7 @@ export interface GoapComponent {
 
             // Food/House extensions
             targetHouseId?: string;
+            homeHouseId?: string; // Assigned house ID
             storeTimer?: number;
             eatTimer?: number;
         };
