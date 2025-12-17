@@ -747,6 +747,7 @@ export const BaseSceneTest: React.FC = () => {
                                 x={entity.position.x}
                                 y={entity.position.y}
                                 anchor={0}
+                                roundPixels={true}
                             />
                          )
                     }
@@ -788,6 +789,7 @@ export const BaseSceneTest: React.FC = () => {
                                 animationSpeed={animationSpeed}
                                 anchor={0.5}
                                 filters={filters.length > 0 ? filters : null}
+                                roundPixels={true}
                             />
                             {/* Sanity Bar */}
                             {entity.attributes?.sanity && (
@@ -855,8 +857,9 @@ export const BaseSceneTest: React.FC = () => {
                 worldHeight={640}
                 onPointerDown={handleViewportClick}
                 eventMode="static"
+                roundPixels={true}
             >
-                 <pixiSprite texture={renderTexture} />
+                 <pixiSprite texture={renderTexture} roundPixels={true} />
             </PixiViewport>
 
         </pixiContainer>
