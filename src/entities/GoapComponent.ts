@@ -3,12 +3,13 @@
 
 import type { Entity } from './index';
 
-export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom';
+export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom' | 'Eat' | 'StoreFood';
 
 export interface GoapState {
     stamina: number;
     sanity: number;
     boredom: number;
+    satiety: number; // Added satiety
     atHome: boolean;
     atFarm: boolean;
     atQuietSpot: boolean;
@@ -20,6 +21,12 @@ export interface GoapState {
     // Smart Object extensions
     atSmartObject: boolean;
     hasSmartObjectTarget: boolean;
+
+    // Food/House extensions
+    hasHouseTarget: boolean;
+    atHouse: boolean;
+    hasFood: boolean;
+    houseHasFood: boolean;
 }
 
 export interface GoapAction {
@@ -57,6 +64,11 @@ export interface GoapComponent {
             targetSlotIndex?: number;
             usingSmartObject?: boolean;
             smartObjectTimer?: number;
+
+            // Food/House extensions
+            targetHouseId?: string;
+            storeTimer?: number;
+            eatTimer?: number;
         };
     };
 }
