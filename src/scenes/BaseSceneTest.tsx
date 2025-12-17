@@ -83,6 +83,56 @@ const createHouse = (x: number, y: number, variant: number, id: string) => {
     });
 }
 
+const createCampfire = (x: number, y: number, id: string) => {
+    ecs.add({
+        id,
+        position: { x, y },
+        appearance: {
+            sprite: 'Bonfire', // Need a sprite for this
+            animation: 'idle'
+        },
+        isObstacle: true,
+        isObject: true,
+        smartObject: {
+            interactionType: "ENTERTAINMENT",
+            advertisedEffects: { boredom: -40, sanity: 5 },
+            duration: 5000,
+            animation: "sit", // We need 'sit' animation or fallback to 'idle'
+            faceTarget: true,
+            capacity: 4,
+            slots: [
+                { id: 0, x: 0, y: -24, claimedBy: null }, // Up
+                { id: 1, x: 0, y: 24, claimedBy: null },  // Down
+                { id: 2, x: -24, y: 0, claimedBy: null }, // Left
+                { id: 3, x: 24, y: 0, claimedBy: null }   // Right
+            ]
+        }
+    });
+}
+
+const createStatue = (x: number, y: number, id: string) => {
+    ecs.add({
+        id,
+        position: { x, y },
+        appearance: {
+            sprite: 'Statue', // Need sprite
+        },
+        isObstacle: true,
+        isObject: true,
+        smartObject: {
+            interactionType: "WORSHIP",
+            advertisedEffects: { sanity: -100, corruption: 20 },
+            duration: 8000,
+            animation: "idle", // "kneel" if available
+            faceTarget: true,
+            capacity: 1,
+            slots: [
+                { id: 0, x: 0, y: 24, claimedBy: null } // Front
+            ]
+        }
+    });
+}
+
 const createWhisperZone = (x: number, y: number, level: number) => {
     const isLevel1 = level >= 1;
     ecs.add({
@@ -354,6 +404,38 @@ export const BaseSceneTest: React.FC = () => {
              houses.push({x, y, gridX, gridY});
         }
 
+        // Spawn Campfire
+        {
+            let found = false;
+            while(!found) {
+                 const gridX = 5 + Math.floor(Math.random() * (GRID_W - 10));
+                 const gridY = 5 + Math.floor(Math.random() * (GRID_H - 10));
+                 const key = `${gridX},${gridY}`;
+                 if (!reservedMap.has(key)) {
+                     createCampfire(gridX * TILE_SIZE, gridY * TILE_SIZE, 'campfire-1');
+                     obstacles.add(key);
+                     reservedMap.add(key);
+                     found = true;
+                 }
+            }
+        }
+
+        // Spawn Statue
+        {
+            let found = false;
+            while(!found) {
+                 const gridX = 5 + Math.floor(Math.random() * (GRID_W - 10));
+                 const gridY = 5 + Math.floor(Math.random() * (GRID_H - 10));
+                 const key = `${gridX},${gridY}`;
+                 if (!reservedMap.has(key)) {
+                     createStatue(gridX * TILE_SIZE, gridY * TILE_SIZE, 'statue-1');
+                     obstacles.add(key);
+                     reservedMap.add(key);
+                     found = true;
+                 }
+            }
+        }
+
         houses.forEach((house, idx) => {
              const workerGridX = house.gridX;
              const workerGridY = house.gridY + 1;
@@ -400,6 +482,11 @@ export const BaseSceneTest: React.FC = () => {
                 const t = loader.getTexture(`wheat_stage_${i}`);
                 if (t) houses[`wheat_stage_${i}`] = t;
             }
+
+            // PLACEHOLDERS FOR CAMPFIRE AND STATUE if not in assets
+            // Assuming they might be missing, we can use fallback or try to load
+            // For now, if texture missing, we will render simple rects in render loop
+
             setStaticTextures(houses);
             const infIcon = loader.getTexture('influence_icon');
             if (infIcon) setInfluenceIcon(infIcon);
@@ -603,7 +690,12 @@ export const BaseSceneTest: React.FC = () => {
 
                     if (!entity.position || !entity.appearance) return null;
 
-                    const isStatic = entity.isObject && entity.appearance.sprite && (entity.appearance.sprite.startsWith('House_') || entity.appearance.sprite.startsWith('wheat_stage_'));
+                    const isStatic = entity.isObject && entity.appearance.sprite && (
+                        entity.appearance.sprite.startsWith('House_') ||
+                        entity.appearance.sprite.startsWith('wheat_stage_') ||
+                        entity.appearance.sprite === 'Bonfire' ||
+                        entity.appearance.sprite === 'Statue'
+                    );
                     const isSelected = selectedEntityId === entity.id;
                     const isFollower = entity.attributes?.sanity && entity.attributes.sanity.current <= 0;
 
@@ -613,7 +705,22 @@ export const BaseSceneTest: React.FC = () => {
 
                     if (isStatic) {
                          const texture = staticTextures[entity.appearance.sprite];
-                         if (!texture) return null;
+                         // If no texture, render placeholder graphics
+                         if (!texture) {
+                             const color = entity.appearance.sprite === 'Bonfire' ? 0xff6600 : (entity.appearance.sprite === 'Statue' ? 0x888888 : 0xcccccc);
+                             return (
+                                <pixiGraphics
+                                    key={entity.id}
+                                    x={entity.position.x}
+                                    y={entity.position.y}
+                                    draw={(g) => {
+                                        g.beginFill(color);
+                                        g.drawRect(0, 0, TILE_SIZE, TILE_SIZE);
+                                        g.endFill();
+                                    }}
+                                />
+                             );
+                         }
                          return (
                             <pixiSprite
                                 key={entity.id}
@@ -628,7 +735,7 @@ export const BaseSceneTest: React.FC = () => {
                     const action = entity.appearance.animation || 'idle';
                     const direction = entity.appearance.direction || 'down';
                     const animKey = `${entity.appearance.sprite}_${action}_${direction}`;
-                    const textures = workerTextures[animKey] || workerTextures[`${entity.appearance.sprite}_${action}_down`];
+                    const textures = workerTextures[animKey] || workerTextures[`${entity.appearance.sprite}_${action}_down`] || workerTextures[`${entity.appearance.sprite}_idle_down`];
 
                     let intervalMs = 300;
                     if (action === 'walk') intervalMs = 200;
