@@ -620,6 +620,22 @@ export const BaseSceneTest: React.FC = () => {
                 }
             }
         }
+        // Update Wheat Growth (Automatic)
+        for(const entity of ecs.entities) {
+            if (entity.isWheat && entity.growth) {
+                 if (entity.growth.stage < entity.growth.maxStage) {
+                     entity.growth.timer += delta; // ms
+                     if (entity.growth.timer >= entity.growth.durationPerStage) {
+                         entity.growth.timer = 0;
+                         entity.growth.stage++;
+                         if (entity.appearance) {
+                             entity.appearance.sprite = `wheat_stage_${entity.growth.stage}`;
+                         }
+                     }
+                 }
+            }
+        }
+
         setEntities([...ecs.entities]);
 
         // --- RENDER TEXTURE UPDATE ---
