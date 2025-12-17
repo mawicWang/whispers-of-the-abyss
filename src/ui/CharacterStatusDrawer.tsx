@@ -64,8 +64,12 @@ export const CharacterStatusDrawer: React.FC = () => {
     let title = '';
     let nameColor = '#ffffff'; // White default
 
+    // "Corrupted" in the sense of the prompt means Sanity has reached 0 and is locked.
+    // We only hide the Sanity bar in this strict state to avoid hiding a changing value.
+    const isCorrupted = currentSanity <= 0;
+
     // Corruption logic
-    if (currentSanity <= 0) {
+    if (isCorrupted) {
         // "My Believer"
         if (currentCorruption >= 100) {
              title = '代行者 (Avatar)';
@@ -226,13 +230,15 @@ export const CharacterStatusDrawer: React.FC = () => {
                      ))}
                 </div>
 
-                <div style={styles.statRow}>
-                    <span style={{ minWidth: '50px' }}>理智:</span>
-                    <div style={styles.barContainer}>
-                        <div style={{ ...styles.barFill, width: `${sanityPct}%`, backgroundColor: '#4fc3f7' }} />
+                {!isCorrupted && (
+                    <div style={styles.statRow}>
+                        <span style={{ minWidth: '50px' }}>理智:</span>
+                        <div style={styles.barContainer}>
+                            <div style={{ ...styles.barFill, width: `${sanityPct}%`, backgroundColor: '#4fc3f7' }} />
+                        </div>
+                        <span>{Math.floor(currentSanity)}/{maxSanity}</span>
                     </div>
-                    <span>{Math.floor(currentSanity)}/{maxSanity}</span>
-                </div>
+                )}
 
                 {stamina && (
                     <div style={styles.statRow}>

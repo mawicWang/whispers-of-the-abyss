@@ -266,7 +266,10 @@ export const UseSmartObjectAction: GoapAction = {
              entity.attributes.boredom.current = Math.max(0, entity.attributes.boredom.current + (so.advertisedEffects.boredom * seconds / (so.duration / 1000)));
         }
         if (so.advertisedEffects.sanity && entity.attributes?.sanity) {
-             entity.attributes.sanity.current = Math.min(entity.attributes.sanity.max, Math.max(0, entity.attributes.sanity.current + (so.advertisedEffects.sanity * seconds / (so.duration / 1000))));
+            // If corrupted (sanity <= 0), do not increase sanity
+            if (entity.attributes.sanity.current > 0) {
+                 entity.attributes.sanity.current = Math.min(entity.attributes.sanity.max, Math.max(0, entity.attributes.sanity.current + (so.advertisedEffects.sanity * seconds / (so.duration / 1000))));
+            }
         }
         if (so.advertisedEffects.corruption && entity.attributes?.corruption) {
              entity.attributes.corruption.current = Math.min(entity.attributes.corruption.max, entity.attributes.corruption.current + (so.advertisedEffects.corruption * seconds / (so.duration / 1000)));
