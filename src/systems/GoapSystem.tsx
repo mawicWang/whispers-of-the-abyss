@@ -17,6 +17,7 @@ const WANDER_DURATION = 5000; // 5 seconds
 const CHAT_DURATION = 5000; // 5 seconds
 const FARM_ANIMATION_DURATION = 800; // 8 frames * 100ms
 const FARM_INTERVAL = 1000; // Total interval including animation and pause
+const EAT_DURATION = 2000; // 2 seconds
 
 // Helper to collect obstacles (could be optimized to run once per frame if performance is an issue)
 const getObstacles = () => {
@@ -412,9 +413,9 @@ export const FarmAction: GoapAction = {
     name: 'Farm',
     cost: 5,
     preconditions: (state) => state.atFarm && state.stamina > 0 && state.farmCooldown <= 0,
-    effects: (state) => ({ stamina: state.stamina - 1 }),
+    effects: (state) => ({ stamina: state.stamina - 1, hasFood: true }),
     execute: (entity, deltaTime) => {
-        if (entity.goap) entity.goap.currentActionName = "耕作中";
+        if (entity.goap) entity.goap.currentActionName = "收割中";
         if (!entity.goap || !entity.attributes?.stamina) return false;
 
         const targetId = entity.goap.blackboard.targetFarmId;
@@ -423,9 +424,20 @@ export const FarmAction: GoapAction = {
 
         // Validation
         if (!target || target.claimedBy !== entity.id) {
-             // Lost target
              entity.goap.blackboard.farmStartTime = undefined;
-             return true; // Abort action sequence
+             return true;
+        }
+
+        // Wait until wheat is fully grown (Stage 4)
+        if (target.growth && target.growth.stage < 4) {
+             // If not grown, we can't harvest.
+             // Just wait or maybe should not have selected this field?
+             // For now, let's treat it as waiting.
+             entity.goap.currentActionName = "等待成熟";
+             if (entity.appearance) entity.appearance.animation = 'idle';
+             // We return false to keep executing this action until it grows
+             // But if it takes too long, stamina won't drain.
+             return false;
         }
 
         // State: Not started
@@ -433,8 +445,6 @@ export const FarmAction: GoapAction = {
              entity.goap.blackboard.farmStartTime = now;
              if (entity.appearance && target.position && entity.position) {
                  entity.appearance.animation = 'attack';
-
-                 // Face the target
                  const dx = target.position.x - entity.position.x;
                  const dy = target.position.y - entity.position.y;
                  if (Math.abs(dx) > Math.abs(dy)) {
@@ -449,7 +459,6 @@ export const FarmAction: GoapAction = {
         // State: In Progress
         const elapsed = now - entity.goap.blackboard.farmStartTime;
         if (elapsed < FARM_ANIMATION_DURATION) {
-             // Ensure animation
              if (entity.appearance && entity.appearance.animation !== 'attack') {
                  entity.appearance.animation = 'attack';
              }
@@ -461,19 +470,102 @@ export const FarmAction: GoapAction = {
         entity.goap.blackboard.lastFarmTime = now;
         entity.attributes.stamina.current = Math.max(0, entity.attributes.stamina.current - 1);
 
-        // Update target field stage
-        if (target.growth) {
-            target.growth.stage++;
-            if (target.growth.stage > 4) target.growth.stage = 1;
-             target.appearance!.sprite = `wheat_stage_${target.growth.stage}`;
+        // Yield Food
+        if (target.growth && target.growth.stage === 4) {
+            target.growth.stage = 1; // Reset
+            target.appearance!.sprite = `wheat_stage_${target.growth.stage}`;
+
+            const yieldAmount = 3 + Math.floor(Math.random() * 3); // 3-5
+            if (!entity.inventory) entity.inventory = { food: 0 };
+            entity.inventory.food += yieldAmount;
         }
 
-        // Set back to idle momentarily (though next action might override)
         if (entity.appearance) {
             entity.appearance.animation = 'idle';
         }
 
         return true;
+    }
+};
+
+export const DepositFoodAction: GoapAction = {
+    name: 'DepositFood',
+    cost: 2,
+    preconditions: (state) => state.atHome,
+    effects: (state) => ({ hasFood: false }), // Inventory cleared
+    execute: (entity, deltaTime) => {
+        if (entity.goap) entity.goap.currentActionName = "储存食物";
+        if (!entity.inventory || entity.inventory.food <= 0) return true;
+
+        // Find home
+        // We assume home is where we are, but let's be sure to find the entity to update its storage
+        // Currently we don't link specific house entity to worker in a robust way except implicit position or ID logic.
+        // But `createWorker` in BaseSceneTest spawns them near `house-${idx}`.
+        // Worker ID `worker-${idx}` corresponds to `house-${idx}`.
+
+        const workerIdx = entity.id?.split('-')[1];
+        const houseId = `house-${workerIdx}`;
+        const house = ecs.entities.find(e => e.id === houseId);
+
+        if (house) {
+            if (!house.storage) house.storage = { food: 0 };
+            house.storage.food += entity.inventory.food;
+            entity.inventory.food = 0;
+            return true;
+        } else {
+            // No house found? Just clear inventory to prevent stuck loop
+            entity.inventory.food = 0;
+            return true;
+        }
+    }
+};
+
+export const EatAction: GoapAction = {
+    name: 'Eat',
+    cost: 0,
+    preconditions: (state) => state.atHome,
+    effects: (state) => ({ satiety: 100 }), // Full satiety (conceptually)
+    execute: (entity, deltaTime) => {
+        if (entity.goap) entity.goap.currentActionName = "进食中";
+
+        const workerIdx = entity.id?.split('-')[1];
+        const houseId = `house-${workerIdx}`;
+        const house = ecs.entities.find(e => e.id === houseId);
+
+        if (!house || !house.storage || house.storage.food <= 0) {
+            // No food at home! Action fails or completes without effect?
+            // If we return true, goal is satisfied? No, goal logic checks stats.
+            // If we return false, we get stuck.
+            // We should probably just return true but NOT increase satiety, so the planner tries again later
+            // OR we fallback to something else.
+            // But if we are starving, we might just stand there.
+            // Let's abort.
+            return true;
+        }
+
+        if (!entity.goap) return false;
+        if (entity.goap.blackboard.eatTimer === undefined) {
+             entity.goap.blackboard.eatTimer = 0;
+        }
+        entity.goap.blackboard.eatTimer += deltaTime;
+
+        if (entity.goap.blackboard.eatTimer >= EAT_DURATION) {
+             entity.goap.blackboard.eatTimer = undefined;
+
+             // Consume food
+             house.storage.food = Math.max(0, house.storage.food - 1); // Eat 1 item? Prompt says "increase 60 satiety".
+             // Maybe 1 food item = 60 satiety? Or just "Eat food" action.
+             // Let's assume 1 food item.
+
+             if (entity.attributes?.satiety) {
+                 entity.attributes.satiety.current = Math.min(
+                     entity.attributes.satiety.max,
+                     entity.attributes.satiety.current + 60
+                 );
+             }
+             return true;
+        }
+        return false;
     }
 };
 
@@ -706,6 +798,13 @@ export const GoapSystem = () => {
         const maxStamina = entity.attributes?.stamina?.max || 10;
         const sanity = entity.attributes?.sanity?.current ?? 100;
         const boredom = entity.attributes?.boredom?.current || 0;
+        const satiety = entity.attributes?.satiety?.current ?? 100;
+
+        // Satiety Decay
+        if (entity.attributes?.satiety) {
+            const satietyDecrease = (deltaMS / 1000) * 0.5; // Slow decay
+            entity.attributes.satiety.current = Math.max(0, entity.attributes.satiety.current - satietyDecrease);
+        }
 
         // Check for social requests (Passive)
         if (goap.blackboard.socialRequestFrom && !goap.currentGoal && entity.attributes?.boredom && entity.attributes.boredom.current > 30) {
@@ -748,7 +847,9 @@ export const GoapSystem = () => {
         }
         else if (!goap.currentGoal) {
             // Goal Selection priority
-            if (sanity <= 0) {
+            if (satiety < 30) {
+                 goap.currentGoal = 'Eat';
+            } else if (sanity <= 0) {
                 // Corrupted Behavior
                 const rand = Math.random();
                 if (rand < 0.3) {
@@ -760,6 +861,8 @@ export const GoapSystem = () => {
                 }
             } else if (boredom > 80) { // High boredom
                  goap.currentGoal = 'KillBoredom';
+            } else if (entity.inventory && entity.inventory.food > 0) {
+                 goap.currentGoal = 'StoreFood';
             } else {
                 goap.currentGoal = 'Farm';
             }
@@ -776,10 +879,9 @@ export const GoapSystem = () => {
                 atFarm: false,
                 atQuietSpot: false,
                 hasFarmTarget: !!goap.blackboard.targetFarmId,
-                hasNeighbor: !!goap.blackboard.socialTargetId, // We assume if we have a target ID we have found/accepted them
+                hasNeighbor: !!goap.blackboard.socialTargetId,
                 isResting: false,
                 farmCooldown: 0,
-                // Smart Object States
                 atSmartObject: false,
                 hasSmartObjectTarget: !!goap.blackboard.targetSmartObjectId
             };
@@ -860,6 +962,18 @@ export const GoapSystem = () => {
                     goap.plan.push(GoHomeAction);
                 }
                 goap.plan.push(RestAction);
+            } else if (goap.currentGoal === 'StoreFood') {
+                 goap.plan = [];
+                 if (!currentState.atHome) {
+                     goap.plan.push(GoHomeAction);
+                 }
+                 goap.plan.push(DepositFoodAction);
+            } else if (goap.currentGoal === 'Eat') {
+                 goap.plan = [];
+                 if (!currentState.atHome) {
+                     goap.plan.push(GoHomeAction);
+                 }
+                 goap.plan.push(EatAction);
             } else if (goap.currentGoal === 'Farm') {
                 goap.plan = [];
                 if (!currentState.hasFarmTarget) {

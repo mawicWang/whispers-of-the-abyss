@@ -52,8 +52,13 @@ const createWorker = (x: number, y: number, id: string) => {
             boredom: {
                 current: Math.floor(Math.random() * 50), // Random initial boredom
                 max: 100
+            },
+            satiety: {
+                current: 80 + Math.floor(Math.random() * 20),
+                max: 100
             }
         },
+        inventory: { food: 0 },
         goap: {
             goals: ['Farm'],
             currentGoal: 'Farm',
@@ -80,7 +85,20 @@ const createHouse = (x: number, y: number, variant: number, id: string) => {
             sprite: `House_${variant}`,
         },
         isObstacle: true,
-        isObject: true
+        isObject: true,
+        isBuilding: true,
+        storage: { food: 0 },
+        smartObject: {
+            interactionType: 'HOME',
+            advertisedEffects: { stamina: 100 },
+            duration: 5000,
+            animation: 'sleep',
+            faceTarget: false,
+            capacity: 1,
+            slots: [
+             { id: 0, x: 0, y: 0, claimedBy: null }
+            ]
+        }
     });
 }
 
@@ -95,6 +113,7 @@ const createCampfire = (x: number, y: number, id: string) => {
         },
         isObstacle: true,
         isObject: true,
+        isBuilding: true,
         smartObject: {
             interactionType: "ENTERTAINMENT",
             advertisedEffects: { boredom: -20, sanity: 5 },
@@ -122,6 +141,7 @@ const createStatue = (x: number, y: number, id: string) => {
         },
         isObstacle: true,
         isObject: true,
+        isBuilding: true,
         smartObject: {
             interactionType: "WORSHIP",
             advertisedEffects: { sanity: -100, corruption: 20 },
@@ -304,25 +324,7 @@ export const BaseSceneTest: React.FC = () => {
 
     // Manual Hit Testing Logic
     const handleViewportClick = (e: any) => {
-        // e.detail or e.data contains global position?
-        // Pixi event structure: e.global or e.data.global
         const globalPos = e.data.global;
-
-        // Convert to World Coordinates using Viewport
-        // If Viewport is controlling the Sprite, we need to ask Viewport.
-        // But here we are passing `handleViewportClick` to `PixiViewport`.
-        // The `PixiViewport` component forwards `onPointerDown`.
-        // The viewport instance is usually available via ref if we had one.
-        // Instead, we can use `e.target` if it is the viewport?
-        // Or we can use `toLocal` on the WorldContainer?
-        // Wait, the WorldContainer is hidden and untransformed (0,0).
-        // BUT the user sees the Viewport's content (Sprite).
-        // The Viewport transforms the Sprite.
-        // So `e.currentTarget` is the Viewport.
-        // `e.data.getLocalPosition(viewport)` gives coordinates inside the viewport world.
-        // Since the Sprite inside is at 0,0, this matches the Texture coordinates.
-        // And Texture coordinates match World coordinates (1:1).
-
         const localPos = e.data.getLocalPosition(e.currentTarget);
         const wx = localPos.x;
         const wy = localPos.y;
@@ -337,16 +339,17 @@ export const BaseSceneTest: React.FC = () => {
             const HIT_RADIUS_SQ = 24 * 24;
 
             for(const ent of ecs.entities) {
-                // Only select NPCs (ignore buildings, wheat, etc.)
-                if (ent.position && ent.isNPC) {
-                    const cx = ent.position.x + 8;
-                    const cy = ent.position.y + 8;
-                    const dx = wx - cx;
-                    const dy = wy - cy;
-                    if (dx*dx + dy*dy < HIT_RADIUS_SQ) {
-                        foundId = ent.id || null;
-                        break; // Pick first
-                    }
+                // Check for NPC, Building, or Wheat
+                if (!ent.isNPC && !ent.isBuilding && !ent.isWheat) continue;
+                if (!ent.position) continue;
+
+                const cx = ent.position.x + 8;
+                const cy = ent.position.y + 8;
+                const dx = wx - cx;
+                const dy = wy - cy;
+                if (dx*dx + dy*dy < HIT_RADIUS_SQ) {
+                    foundId = ent.id || null;
+                    break; // Pick first
                 }
             }
             setSelectedEntity(foundId);
@@ -621,16 +624,6 @@ export const BaseSceneTest: React.FC = () => {
 
         // --- RENDER TEXTURE UPDATE ---
         if (worldRef.current && app) {
-            // Render the hidden world container to the texture
-            // worldRef is visible=false so it won't render to screen
-            // But we can force render it
-            // Toggle visibility for render pass? No, just pass skipUpdateTransform: false
-
-            // Actually, if visible=false, Pixi renderers often skip.
-            // We'll set it to visible, render, then invisible?
-            // Or rely on `render` method behavior.
-
-            // Let's try:
             worldRef.current.visible = true;
             app.renderer.render({ container: worldRef.current, target: renderTexture });
             worldRef.current.visible = false;

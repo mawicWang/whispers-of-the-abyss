@@ -16,7 +16,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             const found = ecs.entities.find(e => e.id === selectedEntityId);
             setEntity(found || null);
 
-            // Poll for changes (sanity updates)
+            // Poll for changes
             interval = setInterval(() => {
                 const current = ecs.entities.find(e => e.id === selectedEntityId);
                 if (current) {
@@ -43,29 +43,55 @@ export const CharacterStatusDrawer: React.FC = () => {
     const sanity = entity?.attributes?.sanity;
     const currentSanity = sanity?.current ?? 0;
     const maxSanity = sanity?.max ?? 100;
-    const sanityPct = Math.max(0, Math.min(100, (currentSanity / maxSanity) * 100));
+    const sanityPct = maxSanity > 0 ? Math.max(0, Math.min(100, (currentSanity / maxSanity) * 100)) : 0;
 
     const stamina = entity?.attributes?.stamina;
     const currentStamina = stamina?.current ?? 0;
     const maxStamina = stamina?.max ?? 10;
-    const staminaPct = Math.max(0, Math.min(100, (currentStamina / maxStamina) * 100));
+    const staminaPct = maxStamina > 0 ? Math.max(0, Math.min(100, (currentStamina / maxStamina) * 100)) : 0;
 
     const corruption = entity?.attributes?.corruption;
     const currentCorruption = corruption?.current ?? 0;
     const maxCorruption = corruption?.max ?? 100;
-    const corruptionPct = Math.max(0, Math.min(100, (currentCorruption / maxCorruption) * 100));
+    const corruptionPct = maxCorruption > 0 ? Math.max(0, Math.min(100, (currentCorruption / maxCorruption) * 100)) : 0;
 
     const boredom = entity?.attributes?.boredom;
     const currentBoredom = boredom?.current ?? 0;
     const maxBoredom = boredom?.max ?? 100;
-    const boredomPct = Math.max(0, Math.min(100, (currentBoredom / maxBoredom) * 100));
+    const boredomPct = maxBoredom > 0 ? Math.max(0, Math.min(100, (currentBoredom / maxBoredom) * 100)) : 0;
+
+    const satiety = entity?.attributes?.satiety;
+    const currentSatiety = satiety?.current ?? 0;
+    const maxSatiety = satiety?.max ?? 100;
+    const satietyPct = maxSatiety > 0 ? Math.max(0, Math.min(100, (currentSatiety / maxSatiety) * 100)) : 0;
 
     // Determine Title and Color
     let title = '';
     let nameColor = '#ffffff'; // White default
+    let displayName = entity?.name || entity?.id || 'Unknown';
 
-    // Corruption logic
-    if (currentSanity <= 0) {
+    // Special logic for Buildings and Wheat
+    if (entity?.isBuilding) {
+         if (entity.name === '民居') {
+             // Try to find owner name?
+             // Assuming ID format house-{i} and worker-{i}
+             const idx = entity.id?.split('-')[1];
+             const worker = ecs.entities.find(e => e.id === `worker-${idx}`);
+             const workerName = worker?.name || worker?.id || `Worker ${idx}`;
+             displayName = `${workerName} 的家`;
+             title = `存储: ${entity.storage?.food || 0}`;
+             nameColor = '#ffd700';
+         } else if (entity.smartObject) {
+             title = entity.smartObject.interactionType;
+             nameColor = '#ccc';
+         }
+    } else if (entity?.isWheat) {
+         displayName = '麦田';
+         const stage = entity.growth?.stage || 1;
+         if (stage === 4) title = '成熟 (Ready)';
+         else title = `生长中 (Stage ${stage}/4)`;
+         nameColor = '#8bc34a';
+    } else if (currentSanity <= 0) {
         // "My Believer"
         if (currentCorruption >= 100) {
              title = '代行者 (Avatar)';
@@ -85,6 +111,20 @@ export const CharacterStatusDrawer: React.FC = () => {
         }
     }
 
+    // Interaction / Occupied logic
+    let occupiedText = null;
+    if (entity?.smartObject) {
+        const claimers = entity.smartObject.slots
+            .map(s => s.claimedBy)
+            .filter(id => id !== null);
+        if (claimers.length > 0) {
+            occupiedText = `Occupied by: ${claimers.join(', ')}`;
+        }
+    }
+    if (entity?.claimedBy) {
+         occupiedText = `Occupied by: ${entity.claimedBy}`;
+    }
+
     const currentAction = entity?.goap?.currentActionName;
 
     const styles: Record<string, React.CSSProperties> = {
@@ -93,7 +133,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             top: 0,
             left: 0,
             width: '100%',
-            height: '190px', // Increased height to fit Action Row and Boredom
+            height: '240px', // Increased height
             backgroundColor: 'rgba(20, 20, 30, 0.95)',
             borderBottom: '4px solid #4a4a6a',
             transform: isOpen ? 'translateY(0)' : 'translateY(-100%)',
@@ -125,19 +165,19 @@ export const CharacterStatusDrawer: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            gap: '6px' // Reduced gap to fit all bars
+            gap: '4px'
         },
         statRow: {
-            fontSize: '14px', // Reduced font size slightly
+            fontSize: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
         },
         barContainer: {
-            width: '150px',
-            height: '10px', // Reduced height slightly
+            width: '120px',
+            height: '8px',
             backgroundColor: '#333',
-            border: '2px solid #555',
+            border: '1px solid #555',
             position: 'relative'
         },
         barFill: {
@@ -147,7 +187,7 @@ export const CharacterStatusDrawer: React.FC = () => {
         debuffContainer: {
             display: 'flex',
             gap: '6px',
-            minHeight: '24px',
+            minHeight: '20px',
             alignItems: 'center',
             marginTop: '-2px',
             marginBottom: '2px'
@@ -175,19 +215,9 @@ export const CharacterStatusDrawer: React.FC = () => {
             color: '#aaa',
             marginLeft: '8px',
             fontStyle: 'italic'
-        },
-        actionText: {
-            fontSize: '12px',
-            color: '#aaa',
-            fontStyle: 'italic',
-            marginLeft: 'auto'
         }
     };
 
-    // Keep drawer rendered but hidden if not open? No, transition needs it in DOM.
-    // If not entity, we can still render if transitioning. But easier to rely on isOpen.
-    // However, if we unmount, transition might be lost.
-    // For now, let's just return null if no entity.
     if (!entity && !isOpen) return null;
 
     return (
@@ -202,15 +232,15 @@ export const CharacterStatusDrawer: React.FC = () => {
                 )}
             </div>
             <div style={styles.statsContainer}>
-                <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline', minWidth: '300px' }}>
-                     {/* Name or ID */}
-                     {entity?.id || 'Unknown'}
+                <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline', minWidth: '200px', flexWrap: 'wrap' }}>
+                     {displayName}
                      {title && <span style={styles.titleText}>{title}</span>}
                 </div>
 
                 {/* Debuffs Section */}
+                {entity?.debuffs && entity.debuffs.length > 0 && (
                 <div style={styles.debuffContainer}>
-                     {entity?.debuffs && entity.debuffs.map((debuff, i) => (
+                     {entity.debuffs.map((debuff, i) => (
                         <div key={i} style={styles.debuffItem} title={`${debuff.type} (${Math.ceil(debuff.duration)}s)`}>
                             <div style={{
                                 width: '100%',
@@ -225,18 +255,21 @@ export const CharacterStatusDrawer: React.FC = () => {
                         </div>
                      ))}
                 </div>
+                )}
 
+                {sanity && (
                 <div style={styles.statRow}>
-                    <span style={{ minWidth: '50px' }}>理智:</span>
+                    <span style={{ minWidth: '40px' }}>理智:</span>
                     <div style={styles.barContainer}>
                         <div style={{ ...styles.barFill, width: `${sanityPct}%`, backgroundColor: '#4fc3f7' }} />
                     </div>
                     <span>{Math.floor(currentSanity)}/{maxSanity}</span>
                 </div>
+                )}
 
                 {stamina && (
                     <div style={styles.statRow}>
-                        <span style={{ minWidth: '50px' }}>精力:</span>
+                        <span style={{ minWidth: '40px' }}>精力:</span>
                         <div style={styles.barContainer}>
                             <div style={{ ...styles.barFill, width: `${staminaPct}%`, backgroundColor: '#4caf50' }} />
                         </div>
@@ -246,7 +279,7 @@ export const CharacterStatusDrawer: React.FC = () => {
 
                 {boredom && (
                     <div style={styles.statRow}>
-                        <span style={{ minWidth: '50px' }}>无聊:</span>
+                        <span style={{ minWidth: '40px' }}>无聊:</span>
                         <div style={styles.barContainer}>
                             <div style={{ ...styles.barFill, width: `${boredomPct}%`, backgroundColor: '#ff9800' }} />
                         </div>
@@ -254,9 +287,19 @@ export const CharacterStatusDrawer: React.FC = () => {
                     </div>
                 )}
 
-                {(currentSanity <= 0 || currentCorruption > 0) && (
+                {satiety && (
                     <div style={styles.statRow}>
-                        <span style={{ minWidth: '50px', color: '#9d4edd' }}>侵蚀:</span>
+                        <span style={{ minWidth: '40px' }}>饱腹:</span>
+                        <div style={styles.barContainer}>
+                            <div style={{ ...styles.barFill, width: `${satietyPct}%`, backgroundColor: '#ff5722' }} />
+                        </div>
+                        <span>{Math.floor(currentSatiety)}/{maxSatiety}</span>
+                    </div>
+                )}
+
+                {(currentSanity <= 0 || currentCorruption > 0) && corruption && (
+                    <div style={styles.statRow}>
+                        <span style={{ minWidth: '40px', color: '#9d4edd' }}>侵蚀:</span>
                         <div style={styles.barContainer}>
                             <div style={{ ...styles.barFill, width: `${corruptionPct}%`, backgroundColor: '#9d4edd' }} />
                         </div>
@@ -264,10 +307,24 @@ export const CharacterStatusDrawer: React.FC = () => {
                     </div>
                 )}
 
+                {/* Inventory Display */}
+                {entity?.inventory && entity.inventory.food > 0 && (
+                     <div style={{ ...styles.statRow, color: '#ffd700' }}>
+                        <span style={{ minWidth: '40px' }}>携带:</span>
+                        <span>食物 x{entity.inventory.food}</span>
+                     </div>
+                )}
+
+                {occupiedText && (
+                    <div style={{ ...styles.statRow, color: '#aaa', fontStyle: 'italic' }}>
+                        {occupiedText}
+                    </div>
+                )}
+
                 {/* Current Action Display */}
                 {currentAction && (
                     <div style={{ ...styles.statRow, marginTop: '4px', color: '#ffd700' }}>
-                        <span style={{ minWidth: '50px' }}>状态:</span>
+                        <span style={{ minWidth: '40px' }}>状态:</span>
                         <span>{currentAction}</span>
                     </div>
                 )}

@@ -3,7 +3,7 @@
 
 import type { Entity } from './index';
 
-export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom';
+export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom' | 'Eat' | 'StoreFood';
 
 export interface GoapState {
     stamina: number;
@@ -20,6 +20,10 @@ export interface GoapState {
     // Smart Object extensions
     atSmartObject: boolean;
     hasSmartObjectTarget: boolean;
+
+    // New Food Logic
+    hasFood?: boolean;
+    satiety?: number;
 }
 
 export interface GoapAction {
@@ -51,6 +55,7 @@ export interface GoapComponent {
             prayTimer?: number;
             meditateTimer?: number;
             wanderTimer?: number;
+            eatTimer?: number;
 
             // Smart Object extensions
             targetSmartObjectId?: string; // Entity ID

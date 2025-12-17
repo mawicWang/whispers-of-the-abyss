@@ -21,6 +21,10 @@ export interface BaseAttributeComponent {
         current: number;
         max: number;
     };
+    satiety?: {
+        current: number;
+        max: number;
+    };
   };
 }
 
@@ -115,12 +119,23 @@ export type Entity = {
   // Debuffs
   debuffs?: Debuff[];
 
+  // Inventory
+  inventory?: {
+    food: number;
+  };
+
+  // Storage (for Buildings)
+  storage?: {
+    food: number;
+  };
+
   // Tags
   isNPC?: boolean;
   isObject?: boolean;
   isGhost?: boolean;
   isObstacle?: boolean;
   isWheat?: boolean;
+  isBuilding?: boolean;
 
   // New Logic
   growth?: {
