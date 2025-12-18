@@ -55,6 +55,31 @@ export const PixiViewport = forwardRef<Viewport, PixiViewportProps>((props, ref)
              viewport.resize(app.screen.width, app.screen.height);
         };
         window.addEventListener('resize', onResize);
+
+        // Fix for pixel jitter: Force integer coordinates during rendering
+        // but preserve float coordinates for smooth movement/physics.
+        const originalUpdateTransform = viewport.updateTransform;
+
+        viewport.updateTransform = function(this: Viewport, ...args: any[]) {
+            const originalX = this.x;
+            const originalY = this.y;
+
+            this.x = Math.round(this.x);
+            this.y = Math.round(this.y);
+
+            // In Pixi v8, updateTransform might take a ticker or generic args
+            // We just pass them through.
+            // We use 'call' to invoke the original method on 'this'
+            // (Note: originalUpdateTransform might be on the prototype chain,
+            //  capturing it from the instance is fine as long as it's not bound elsewhere)
+            const result = originalUpdateTransform.apply(this, args as any);
+
+            this.x = originalX;
+            this.y = originalY;
+
+            return result;
+        };
+
         return () => window.removeEventListener('resize', onResize);
     }, [app]);
 
