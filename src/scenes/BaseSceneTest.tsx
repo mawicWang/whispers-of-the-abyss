@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
-import { Texture, BlurFilter, TextStyle, Rectangle, Assets } from 'pixi.js';
+import { Texture, BlurFilter, TextStyle, Rectangle, Assets, Container, Sprite, Graphics } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
@@ -242,9 +242,34 @@ export const BaseSceneTest: React.FC = () => {
 
     const effectIdCounter = useRef(0);
     const textIdCounter = useRef(0);
+    const entityRefs = useRef<Record<string, Container | Sprite | Graphics>>({});
 
     // Rendering to Texture Setup
     const { app } = useApplication();
+
+    // Portrait Extraction
+    useEffect(() => {
+        if (!selectedEntityId) {
+            setAvatarImage(null);
+            return;
+        }
+
+        const extract = async () => {
+             const target = entityRefs.current[selectedEntityId];
+             if (target && app.renderer) {
+                 try {
+                     const image = await app.renderer.extract.base64(target);
+                     setAvatarImage(image);
+                 } catch (e) {
+                     console.error("Extraction error", e);
+                 }
+             }
+        };
+        extract(); // Initial
+
+        const interval = setInterval(extract, 200);
+        return () => clearInterval(interval);
+    }, [selectedEntityId, app]);
 
     // Manual Hit Testing Logic
     const handleViewportClick = (e: any) => {
@@ -636,6 +661,7 @@ export const BaseSceneTest: React.FC = () => {
                             return (
                             <pixiGraphics
                                 key={entity.id}
+                                ref={(el: Graphics | null) => { if (el && entity.id) entityRefs.current[entity.id] = el; }}
                                 x={entity.position.x}
                                 y={entity.position.y}
                                 draw={(g) => {
@@ -649,6 +675,7 @@ export const BaseSceneTest: React.FC = () => {
                         return (
                         <pixiSprite
                             key={entity.id}
+                            ref={(el: Sprite | null) => { if (el && entity.id) entityRefs.current[entity.id] = el; }}
                             texture={texture}
                             x={entity.position.x}
                             y={entity.position.y}
@@ -690,6 +717,7 @@ export const BaseSceneTest: React.FC = () => {
                         y={entity.position.y + TILE_SIZE / 2}
                     >
                         <AutoPlayAnimatedSprite
+                            ref={(el: any) => { if (el && entity.id) entityRefs.current[entity.id] = el; }}
                             textures={textures}
                             animationSpeed={animationSpeed}
                             anchor={0.5}
@@ -758,15 +786,18 @@ export const BaseSceneTest: React.FC = () => {
 };
 
 // Helper
-const AutoPlayAnimatedSprite = ({ textures, animationSpeed, anchor, ...props }: any) => {
-    const ref = useRef<any>(null);
+const AutoPlayAnimatedSprite = React.forwardRef(({ textures, animationSpeed, anchor, ...props }: any, ref: any) => {
+    const internalRef = useRef<any>(null);
+
+    React.useImperativeHandle(ref, () => internalRef.current);
+
     useEffect(() => {
-        if (ref.current) {
-            ref.current.play();
+        if (internalRef.current) {
+            internalRef.current.play();
         }
     }, [textures]);
-    return <pixiAnimatedSprite ref={ref} textures={textures} animationSpeed={animationSpeed} anchor={anchor} {...props} />;
-};
+    return <pixiAnimatedSprite ref={internalRef} textures={textures} animationSpeed={animationSpeed} anchor={anchor} {...props} />;
+});
 
 export const BaseSceneUI: React.FC = () => {
     const { selectedSkill, setSelectedSkill } = useBaseSceneStore();
