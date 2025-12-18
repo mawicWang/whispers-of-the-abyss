@@ -65,6 +65,7 @@ jobs:
 
             console.log("Sending notification...");
             https.get(url, (res) => {
+              res.resume();
               if (res.statusCode === 200) {
                 console.log("Notification sent.");
               } else {
