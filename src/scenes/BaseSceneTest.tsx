@@ -7,7 +7,6 @@ import { ecs } from '../entities';
 import type { Entity, Debuff } from '../entities';
 import { findPath } from '../utils/Pathfinding';
 import { SuspicionGauge } from '../ui/SuspicionGauge';
-import { PixiViewport } from '../components/PixiViewport';
 import { useTick, useApplication } from '@pixi/react';
 import { useBaseSceneStore } from '../state/BaseSceneStore';
 import { useGameStore } from '../state/store';
@@ -563,12 +562,9 @@ export const BaseSceneTest: React.FC = () => {
     };
 
     return (
-        <PixiViewport
-            worldWidth={360}
-            worldHeight={640}
+        <pixiContainer
             onPointerDown={handleViewportClick}
             eventMode="static"
-            roundPixels={true}
         >
             {/* Systems */}
             <MoveSystem />
@@ -754,7 +750,7 @@ export const BaseSceneTest: React.FC = () => {
                     onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))}
                 />
             ))}
-        </PixiViewport>
+        </pixiContainer>
     );
 };
 
