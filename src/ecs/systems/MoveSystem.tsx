@@ -1,6 +1,6 @@
 
 import { useTick } from '@pixi/react';
-import { ecs } from '../entities';
+import { ecs } from '../world';
 
 export const MoveSystem = () => {
   useTick((ticker) => {

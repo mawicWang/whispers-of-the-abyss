@@ -3,163 +3,24 @@ import { AssetLoader } from '../utils/AssetLoader';
 import { Texture, BlurFilter, TextStyle, Rectangle, Assets, Container, Sprite, Graphics, RenderTexture } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
-import { ecs } from '../entities';
-import type { Entity, Debuff } from '../entities';
+import { ecs } from '../ecs/world';
+import type { Entity, Debuff } from '../ecs/types';
 import { findPath } from '../utils/Pathfinding';
-import { SuspicionGauge } from '../ui/SuspicionGauge';
+import { SuspicionGauge } from '../ui/widgets/SuspicionGauge';
 import { useTick, useApplication } from '@pixi/react';
 import { useBaseSceneStore } from '../state/BaseSceneStore';
 import { useGameStore } from '../state/store';
 import { useManaRegen } from '../hooks/useManaRegen';
-import { MoveSystem } from '../systems/MoveSystem';
-import { GoapSystem } from '../systems/GoapSystem';
-import { CharacterStatusDrawer } from '../ui/CharacterStatusDrawer';
-import { createWheatField } from '../entities/WheatField';
+import { MoveSystem } from '../ecs/systems/MoveSystem';
+import { GoapSystem } from '../ecs/systems/GoapSystem';
+import { CharacterStatusDrawer } from '../ui/overlays/CharacterStatusDrawer';
+import { createWheatField } from '../ecs/entities/WheatField';
+import { EntityFactory } from '../ecs/factories/EntityFactory';
 import { PixiViewport } from '../components/PixiViewport';
+import { WORKER_VARIANTS } from '../config/gameData';
+import { TILE_SIZE, GRID_W, GRID_H } from '../config/constants';
 
-const TILE_SIZE = 16;
-const GRID_W = Math.floor(360 / TILE_SIZE);
-const GRID_H = Math.floor(640 / TILE_SIZE);
 const ENTITY_HIT_AREA = new Rectangle(-24, -24, 48, 48);
-
-// Character Factory
-const WORKER_VARIANTS = ['FarmerCyan', 'FarmerRed', 'FarmerLime', 'FarmerPurple'];
-
-const createWorker = (x: number, y: number, id: string, houseId: string) => {
-    const variant = WORKER_VARIANTS[Math.floor(Math.random() * WORKER_VARIANTS.length)];
-    ecs.add({
-        id,
-        position: { x, y },
-        speed: 1.0,
-        appearance: {
-            sprite: variant,
-            animation: 'idle',
-            direction: 'down'
-        },
-        attributes: {
-            sanity: {
-                current: Math.floor(Math.random() * 101),
-                max: 100
-            },
-            stamina: {
-                current: 10,
-                max: 10
-            },
-            corruption: {
-                current: 0,
-                max: 100
-            },
-            boredom: {
-                current: Math.floor(Math.random() * 50), // Random initial boredom
-                max: 100
-            },
-            satiety: {
-                current: 70 + Math.floor(Math.random() * 30),
-                max: 100
-            }
-        },
-        goap: {
-            goals: ['Farm'],
-            currentGoal: 'Farm',
-            plan: [],
-            currentActionIndex: 0,
-            blackboard: {
-                homePosition: { x, y },
-                homeHouseId: houseId
-            }
-        },
-        lastMoveTime: Date.now(),
-        stateEnterTime: Date.now(),
-        path: [],
-        debuffs: [],
-        inventory: [],
-        isNPC: true
-    });
-};
-
-const createHouse = (x: number, y: number, variant: number, id: string) => {
-    ecs.add({
-        id,
-        name: '民居',
-        position: { x, y },
-        appearance: {
-            sprite: `House_${variant}`,
-        },
-        storage: {
-            food: 0
-        },
-        isObstacle: true,
-        isObject: true,
-        isHouse: true
-    });
-}
-
-const createCampfire = (x: number, y: number, id: string) => {
-    ecs.add({
-        id,
-        name: '篝火',
-        position: { x, y },
-        appearance: {
-            sprite: 'Bonfire', // Need a sprite for this
-            animation: 'idle'
-        },
-        isObstacle: true,
-        isObject: true,
-        smartObject: {
-            interactionType: "ENTERTAINMENT",
-            advertisedEffects: { boredom: -20, sanity: 5 },
-            duration: 10000,
-            animation: "sit", // We need 'sit' animation or fallback to 'idle'
-            faceTarget: true,
-            capacity: 4,
-            slots: [
-                { id: 0, x: 0, y: -24, claimedBy: null }, // Up
-                { id: 1, x: 0, y: 24, claimedBy: null },  // Down
-                { id: 2, x: -24, y: 0, claimedBy: null }, // Left
-                { id: 3, x: 24, y: 0, claimedBy: null }   // Right
-            ]
-        }
-    });
-}
-
-const createStatue = (x: number, y: number, id: string) => {
-    ecs.add({
-        id,
-        name: '神像',
-        position: { x, y },
-        appearance: {
-            sprite: 'Statue', // Need sprite
-        },
-        isObstacle: true,
-        isObject: true,
-        smartObject: {
-            interactionType: "WORSHIP",
-            advertisedEffects: { sanity: -100, corruption: 20 },
-            duration: 8000,
-            animation: "idle", // "kneel" if available
-            faceTarget: true,
-            capacity: 1,
-            slots: [
-                { id: 0, x: 0, y: 24, claimedBy: null } // Front
-            ]
-        }
-    });
-}
-
-const createWhisperZone = (x: number, y: number, level: number) => {
-    const isLevel1 = level >= 1;
-    ecs.add({
-        position: { x, y },
-        zone: {
-            type: 'WHISPER',
-            radius: 30,
-            duration: isLevel1 ? 20 : 10,
-            damageMin: isLevel1 ? 2 : 1,
-            damageMax: isLevel1 ? 12 : 6,
-            tickTimer: 0
-        }
-    });
-};
 
 const SpellEffect = ({ x, y, onComplete }: { x: number; y: number; onComplete: () => void }) => {
     const [alpha, setAlpha] = useState(1);
@@ -223,7 +84,7 @@ const FloatingText = ({ x, y, text, onComplete }: { x: number; y: number; text: 
     );
 };
 
-export const BaseSceneTest: React.FC = () => {
+export const GameScene: React.FC = () => {
     const [entities, setEntities] = useState<Entity[]>([]);
     const [effects, setEffects] = useState<{ id: number; x: number; y: number }[]>([]);
     const [floatingTexts, setFloatingTexts] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
@@ -423,7 +284,7 @@ export const BaseSceneTest: React.FC = () => {
              const x = gridX * TILE_SIZE;
              const y = gridY * TILE_SIZE;
              const variant = Math.floor(Math.random() * 9) + 1;
-             createHouse(x, y, variant, `house-${i}`);
+             EntityFactory.createHouse(x, y, variant, `house-${i}`);
              obstacles.add(key);
              reservedMap.add(key);
              houses.push({x, y, gridX, gridY});
@@ -437,7 +298,7 @@ export const BaseSceneTest: React.FC = () => {
                  const gridY = 5 + Math.floor(Math.random() * (GRID_H - 10));
                  const key = `${gridX},${gridY}`;
                  if (!reservedMap.has(key)) {
-                     createCampfire(gridX * TILE_SIZE, gridY * TILE_SIZE, 'campfire-1');
+                     EntityFactory.createCampfire(gridX * TILE_SIZE, gridY * TILE_SIZE, 'campfire-1');
                      obstacles.add(key);
                      reservedMap.add(key);
                      found = true;
@@ -453,7 +314,7 @@ export const BaseSceneTest: React.FC = () => {
                  const gridY = 5 + Math.floor(Math.random() * (GRID_H - 10));
                  const key = `${gridX},${gridY}`;
                  if (!reservedMap.has(key)) {
-                     createStatue(gridX * TILE_SIZE, gridY * TILE_SIZE, 'statue-1');
+                     EntityFactory.createStatue(gridX * TILE_SIZE, gridY * TILE_SIZE, 'statue-1');
                      obstacles.add(key);
                      reservedMap.add(key);
                      found = true;
@@ -466,9 +327,9 @@ export const BaseSceneTest: React.FC = () => {
              const workerGridY = house.gridY + 1;
              const workerKey = `${workerGridX},${workerGridY}`;
              if (!obstacles.has(workerKey)) {
-                createWorker(workerGridX * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`, `house-${idx}`);
+                EntityFactory.createWorker(workerGridX * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`, `house-${idx}`);
              } else {
-                 createWorker((workerGridX + 1) * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`, `house-${idx}`);
+                 EntityFactory.createWorker((workerGridX + 1) * TILE_SIZE, workerGridY * TILE_SIZE, `worker-${idx}`, `house-${idx}`);
              }
         });
 
@@ -646,7 +507,7 @@ export const BaseSceneTest: React.FC = () => {
         increaseSuspicion(1);
         const effectId = effectIdCounter.current++;
         setEffects(prev => [...prev, { id: effectId, x, y }]);
-        createWhisperZone(x, y, whisperLevel);
+        EntityFactory.createWhisperZone(x, y, whisperLevel);
         setSelectedSkill(null);
     };
 

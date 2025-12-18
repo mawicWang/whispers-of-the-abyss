@@ -1,7 +1,7 @@
 
 import { useTick } from '@pixi/react';
-import { ecs } from '../entities';
-import { findPath } from '../utils/Pathfinding';
+import { ecs } from '../world';
+import { findPath } from '../../utils/Pathfinding';
 
 // Simple AI logic constants
 const SUSPICION_DURATION = 2000; // ms

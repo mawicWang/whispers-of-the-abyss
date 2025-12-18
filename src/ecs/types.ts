@@ -1,8 +1,8 @@
 
-import { World } from 'miniplex';
-import type { GoapComponent } from './GoapComponent';
+import type { GoapComponent } from './components/GoapComponent';
 
 // Component Interfaces
+
 export interface BaseAttributeComponent {
   attributes: {
     sanity: {
@@ -141,5 +141,3 @@ export type Entity = {
 
   claimedBy?: string;
 };
-
-export const ecs = new World<Entity>();

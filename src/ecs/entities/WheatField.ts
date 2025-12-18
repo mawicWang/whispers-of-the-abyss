@@ -1,4 +1,4 @@
-import { ecs } from './index';
+import { ecs } from '../world';
 
 export const createWheatField = (x: number, y: number, gridX: number, gridY: number, stage: number, id: string) => {
     ecs.add({

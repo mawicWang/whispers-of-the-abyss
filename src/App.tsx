@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Application, extend, useApplication } from '@pixi/react';
 import { Container, Sprite, Text, Graphics, TextStyle, AnimatedSprite, TilingSprite } from 'pixi.js';
 import SimpleAnimationScene from './scenes/SimpleAnimationScene';
-import { BaseSceneTest, BaseSceneUI } from './scenes/BaseSceneTest';
+import { GameScene, BaseSceneUI } from './scenes/GameScene';
 import { AssetLoader } from './utils/AssetLoader';
-import LoadingScreen from './ui/LoadingScreen';
-import { MainMenu } from './ui/MainMenu';
+import LoadingScreen from './ui/overlays/LoadingScreen';
+import { MainMenu } from './ui/overlays/MainMenu';
 import { NavigationHeader } from './ui/NavigationHeader';
-import { DemonKingInterface } from './ui/DemonKingInterface';
 import './App.css';
 
 // Register PixiJS components
@@ -109,11 +108,8 @@ export const App = () => {
 
                 <Application width={360} height={640} backgroundColor={0x222222}>
                     {currentScene === 'sprites' && <SimpleAnimationScene />}
-                    {currentScene === 'tilemap' && <BaseSceneTest />}
+                    {currentScene === 'tilemap' && <GameScene />}
                 </Application>
-
-                {/* Only show DemonKingInterface in the sprites scene for now */}
-                {/* DemonKingInterface removed from sprites scene per user request */}
 
                 {/* Base Scene UI Overlay */}
                 {currentScene === 'tilemap' && <BaseSceneUI />}

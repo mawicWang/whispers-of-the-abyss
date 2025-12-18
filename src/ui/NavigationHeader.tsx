@@ -1,6 +1,5 @@
 import React from 'react';
 import './NavigationHeader.css';
-import './DemonKingInterface.css'; // For general .dk-icon styles
 
 interface NavigationHeaderProps {
     title: string;

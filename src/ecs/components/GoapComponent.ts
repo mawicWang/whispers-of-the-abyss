@@ -1,7 +1,7 @@
 // Basic implementation of a GOAP system for our needs
 // This is not a full general-purpose library, but a specific implementation for the task
 
-import type { Entity } from './index';
+import type { Entity } from '../types';
 
 export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom' | 'Eat' | 'StoreFood';
 
