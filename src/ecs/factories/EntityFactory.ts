@@ -15,6 +15,13 @@ export class EntityFactory {
                 direction: 'down'
             },
             attributes: {
+                might: Math.floor(Math.random() * 10) + 1,
+                magic: Math.floor(Math.random() * 10) + 1,
+                will: Math.floor(Math.random() * 10) + 1,
+                health: {
+                    current: 100,
+                    max: 100
+                },
                 sanity: {
                     current: Math.floor(Math.random() * 101),
                     max: 100
