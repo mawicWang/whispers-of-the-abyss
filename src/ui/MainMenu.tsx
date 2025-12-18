@@ -13,7 +13,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onNavigate }) => {
                 Sprites测试
             </button>
             <button className="main-menu-btn" onClick={() => onNavigate('tilemap')}>
-                Tile测试
+                Demo
             </button>
         </div>
     );

@@ -71,7 +71,7 @@ export const App = () => {
   const getSceneTitle = () => {
     switch(currentScene) {
         case 'sprites': return 'Sprites Test';
-        case 'tilemap': return 'Base Scene Test';
+            case 'tilemap': return 'Demo';
         default: return '';
     }
   };
@@ -94,8 +94,6 @@ export const App = () => {
                 )}
 
                 <Application width={360} height={640} backgroundColor={0x222222}>
-                    {/* Render SimpleAnimationScene as background for menu */}
-                    {currentScene === 'menu' && <SimpleAnimationScene />}
                     {currentScene === 'sprites' && <SimpleAnimationScene />}
                     {currentScene === 'tilemap' && <BaseSceneTest />}
                 </Application>
