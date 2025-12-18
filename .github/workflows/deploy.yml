@@ -76,6 +76,7 @@ jobs:
 
             console.log("Sending notification...");
             https.get(url, (res) => {
+              res.resume(); // Consume response to free up memory
               if (res.statusCode === 200) {
                 console.log("Notification sent.");
               } else {
