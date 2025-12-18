@@ -15,6 +15,7 @@ import { MoveSystem } from '../systems/MoveSystem';
 import { GoapSystem } from '../systems/GoapSystem';
 import { CharacterStatusDrawer } from '../ui/CharacterStatusDrawer';
 import { createWheatField } from '../entities/WheatField';
+import { PixiViewport } from '../components/PixiViewport';
 
 const TILE_SIZE = 16;
 const GRID_W = Math.floor(360 / TILE_SIZE);
@@ -562,9 +563,14 @@ export const BaseSceneTest: React.FC = () => {
     };
 
     return (
-        <pixiContainer
+        <PixiViewport
+            screenWidth={360}
+            screenHeight={640}
+            worldWidth={GRID_W * TILE_SIZE}
+            worldHeight={GRID_H * TILE_SIZE}
             onPointerDown={handleViewportClick}
             eventMode="static"
+            roundPixels={true}
         >
             {/* Systems */}
             <MoveSystem />
@@ -750,7 +756,7 @@ export const BaseSceneTest: React.FC = () => {
                     onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))}
                 />
             ))}
-        </pixiContainer>
+        </PixiViewport>
     );
 };
 
