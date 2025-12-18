@@ -1,8 +1,9 @@
 
 import { useTick } from '@pixi/react';
-import { ecs, type Entity } from '../entities';
-import type { GoapAction, GoapState } from '../entities/GoapComponent';
-import { findPath } from '../utils/Pathfinding';
+import { ecs } from '../world';
+import type { Entity } from '../types';
+import type { GoapAction, GoapState } from '../components/GoapComponent';
+import { findPath } from '../../utils/Pathfinding';
 
 const TILE_SIZE = 16;
 const GRID_W = Math.floor(360 / TILE_SIZE);

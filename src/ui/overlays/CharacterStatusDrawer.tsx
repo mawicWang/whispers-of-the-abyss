@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useGameStore } from '../state/store';
-import { ecs } from '../entities';
-import type { Entity } from '../entities';
+import { useGameStore } from '../../state/store';
+import { ecs } from '../../ecs/world';
+import type { Entity } from '../../ecs/types';
 
 export const CharacterStatusDrawer: React.FC = () => {
     const selectedEntityId = useGameStore((state) => state.selectedEntityId);
