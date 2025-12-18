@@ -196,7 +196,24 @@ export const GameScene: React.FC = () => {
     }, [selectedEntityId, app]);
 
     // Manual Hit Testing Logic
-    const handleViewportClick = (e: any) => {
+    const dragStartRef = useRef<{x: number, y: number} | null>(null);
+
+    const handlePointerDown = (e: any) => {
+        dragStartRef.current = { x: e.global.x, y: e.global.y };
+    };
+
+    const handlePointerUp = (e: any) => {
+        if (!dragStartRef.current) return;
+        const start = dragStartRef.current;
+        const end = { x: e.global.x, y: e.global.y };
+        const dist = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+        dragStartRef.current = null;
+
+        if (dist > 5) {
+             return; // It was a drag
+        }
+
+        // It was a click
         // e.currentTarget is the PixiViewport
         // getLocalPosition(viewport) returns the position in the viewport's local space (World Space)
         // because the viewport's children are in World Space.
@@ -534,7 +551,8 @@ export const GameScene: React.FC = () => {
             screenHeight={640}
             worldWidth={GRID_W * TILE_SIZE}
             worldHeight={GRID_H * TILE_SIZE}
-            onPointerDown={handleViewportClick}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
             eventMode="static"
         >
             {/* Systems */}
