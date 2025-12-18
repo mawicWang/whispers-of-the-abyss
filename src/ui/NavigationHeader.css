@@ -39,6 +39,17 @@
     letter-spacing: 1px;
 }
 
+/* Base class for icons using the global sprite sheet */
+.dk-icon {
+    width: 32px;
+    height: 32px;
+    background-image: var(--dk-icon-sheet);
+    background-size: 128px auto;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    display: inline-block;
+}
+
 .dk-icon-back {
     /* Row 5 (Index 4), Col 2 (Index 1).
        Grid 32x32.
