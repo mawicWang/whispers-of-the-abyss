@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
-import { Texture, BlurFilter, TextStyle, Rectangle, Assets, RenderTexture, Container, Sprite, Graphics } from 'pixi.js';
+import { Texture, BlurFilter, TextStyle, Rectangle, Assets } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
@@ -245,94 +245,12 @@ export const BaseSceneTest: React.FC = () => {
 
     // Rendering to Texture Setup
     const { app } = useApplication();
-    const worldRef = useRef<Container>(null);
-    // Create RenderTexture once
-    const renderTexture = useMemo(() => RenderTexture.create({ width: 360, height: 640, scaleMode: 'nearest' }), []);
-
-    // Avatar Extraction Effect
-    useEffect(() => {
-        if (!app) return;
-
-        const monitorW = 120;
-        const monitorH = 120;
-        const zoom = 2.5;
-        const monitorRT = RenderTexture.create({ width: monitorW, height: monitorH, scaleMode: 'nearest' });
-        const monitorSprite = new Sprite(renderTexture);
-        const maskGraphic = new Graphics();
-        maskGraphic.beginFill(0x000000);
-        maskGraphic.drawRoundedRect(0, 0, monitorW, monitorH, 4);
-        maskGraphic.endFill();
-
-        const monitorContainer = new Container();
-        monitorContainer.addChild(maskGraphic);
-        monitorContainer.addChild(monitorSprite);
-        monitorSprite.mask = maskGraphic;
-
-        let isExtracting = false;
-        const intervalId = setInterval(async () => {
-            if (isExtracting) return;
-            const targetId = useGameStore.getState().selectedEntityId;
-            if (!targetId) {
-                useGameStore.getState().setAvatarImage(null);
-                return;
-            }
-
-            const target = ecs.entities.find(e => e.id === targetId);
-            if (target && target.position) {
-                isExtracting = true;
-                const tx = target.position.x + 8;
-                const ty = target.position.y + 8;
-
-                // Transform to center target
-                monitorSprite.scale.set(zoom);
-                monitorSprite.position.set(
-                    (monitorW / 2) - tx * zoom,
-                    (monitorH / 2) - ty * zoom
-                );
-
-                // Render to RT
-                app.renderer.render({ container: monitorContainer, target: monitorRT });
-
-                // Extract to Base64
-                try {
-                    const dataUrl = await app.renderer.extract.base64(monitorRT);
-                    setAvatarImage(dataUrl);
-                } catch (e) {
-                    console.error("Failed to extract avatar image", e);
-                } finally {
-                    isExtracting = false;
-                }
-            }
-        }, 16); // ~60 FPS
-
-        return () => {
-            clearInterval(intervalId);
-            monitorRT.destroy(true);
-            monitorContainer.destroy({ children: true });
-        };
-    }, [app, renderTexture, setAvatarImage]);
 
     // Manual Hit Testing Logic
     const handleViewportClick = (e: any) => {
-        // e.detail or e.data contains global position?
-        // Pixi event structure: e.global or e.data.global
-        const globalPos = e.data.global;
-
-        // Convert to World Coordinates using Viewport
-        // If Viewport is controlling the Sprite, we need to ask Viewport.
-        // But here we are passing `handleViewportClick` to `PixiViewport`.
-        // The `PixiViewport` component forwards `onPointerDown`.
-        // The viewport instance is usually available via ref if we had one.
-        // Instead, we can use `e.target` if it is the viewport?
-        // Or we can use `toLocal` on the WorldContainer?
-        // Wait, the WorldContainer is hidden and untransformed (0,0).
-        // BUT the user sees the Viewport's content (Sprite).
-        // The Viewport transforms the Sprite.
-        // So `e.currentTarget` is the Viewport.
-        // `e.data.getLocalPosition(viewport)` gives coordinates inside the viewport world.
-        // Since the Sprite inside is at 0,0, this matches the Texture coordinates.
-        // And Texture coordinates match World coordinates (1:1).
-
+        // e.currentTarget is the PixiViewport
+        // getLocalPosition(viewport) returns the position in the viewport's local space (World Space)
+        // because the viewport's children are in World Space.
         const localPos = e.data.getLocalPosition(e.currentTarget);
         const wx = localPos.x;
         const wy = localPos.y;
@@ -628,23 +546,6 @@ export const BaseSceneTest: React.FC = () => {
             }
         }
         setEntities([...ecs.entities]);
-
-        // --- RENDER TEXTURE UPDATE ---
-        if (worldRef.current && app) {
-            // Render the hidden world container to the texture
-            // worldRef is visible=false so it won't render to screen
-            // But we can force render it
-            // Toggle visibility for render pass? No, just pass skipUpdateTransform: false
-
-            // Actually, if visible=false, Pixi renderers often skip.
-            // We'll set it to visible, render, then invisible?
-            // Or rely on `render` method behavior.
-
-            // Let's try:
-            worldRef.current.visible = true;
-            app.renderer.render({ container: worldRef.current, target: renderTexture });
-            worldRef.current.visible = false;
-        }
     });
 
     const castWhisper = (x: number, y: number) => {
@@ -662,207 +563,198 @@ export const BaseSceneTest: React.FC = () => {
     };
 
     return (
-        <pixiContainer>
-            {/* HIDDEN WORLD CONTAINER */}
-            <pixiContainer ref={worldRef} visible={false}>
-                {/* Systems */}
-                <MoveSystem />
-                <GoapSystem />
+        <PixiViewport
+            worldWidth={360}
+            worldHeight={640}
+            onPointerDown={handleViewportClick}
+            eventMode="static"
+            roundPixels={true}
+        >
+            {/* Systems */}
+            <MoveSystem />
+            <GoapSystem />
 
-                {/* Background */}
-                <pixiGraphics
-                    draw={(g) => {
-                        g.clear();
-                        g.beginFill(0x333333);
-                        g.drawRect(0, 0, 360, 640);
-                        g.endFill();
-                    }}
+            {/* Background */}
+            <pixiGraphics
+                draw={(g) => {
+                    g.clear();
+                    g.beginFill(0x333333);
+                    g.drawRect(0, 0, 360, 640);
+                    g.endFill();
+                }}
+            />
+            {backgroundTexture && (
+                <pixiTilingSprite
+                    texture={backgroundTexture}
+                    width={360}
+                    height={640}
+                    tilePosition={{ x: 0, y: 0 }}
+                    alpha={0.5}
                 />
-                {backgroundTexture && (
-                    <pixiTilingSprite
-                        texture={backgroundTexture}
-                        width={360}
-                        height={640}
-                        tilePosition={{ x: 0, y: 0 }}
-                        alpha={0.5}
-                    />
-                )}
+            )}
 
-                {/* Entities */}
-                {entities.map((entity) => {
-                    // Zone Debug
-                    if (entity.zone && entity.position) {
-                        return (
-                            <pixiGraphics
-                                key={`zone-${entity.id}`}
-                                x={entity.position.x}
-                                y={entity.position.y}
-                                draw={(g) => {
-                                    g.clear();
-                                    g.beginFill(0x9d4edd, 0.2);
-                                    g.drawCircle(0, 0, entity.zone!.radius);
-                                    g.endFill();
-                                }}
-                            />
-                        );
-                    }
-
-                    if (!entity.position || !entity.appearance) return null;
-
-                    const isStatic = entity.isObject && entity.appearance.sprite && (
-                        entity.appearance.sprite.startsWith('House_') ||
-                        entity.appearance.sprite.startsWith('wheat_stage_') ||
-                        entity.appearance.sprite === 'Bonfire' ||
-                        entity.appearance.sprite === 'Statue'
+            {/* Entities */}
+            {entities.map((entity) => {
+                // Zone Debug
+                if (entity.zone && entity.position) {
+                    return (
+                        <pixiGraphics
+                            key={`zone-${entity.id}`}
+                            x={entity.position.x}
+                            y={entity.position.y}
+                            draw={(g) => {
+                                g.clear();
+                                g.beginFill(0x9d4edd, 0.2);
+                                g.drawCircle(0, 0, entity.zone!.radius);
+                                g.endFill();
+                            }}
+                        />
                     );
-                    const isSelected = selectedEntityId === entity.id;
-                    const isFollower = entity.attributes?.sanity && entity.attributes.sanity.current <= 0;
+                }
 
-                    const filters = [];
-                    if (isSelected) filters.push(outlineFilter);
-                    if (isFollower) filters.push(followerFilter);
+                if (!entity.position || !entity.appearance) return null;
 
-                    if (isStatic) {
-                         const texture = staticTextures[entity.appearance.sprite];
-                         // If no texture, render placeholder graphics
-                         if (!texture) {
-                             const color = entity.appearance.sprite === 'Bonfire' ? 0xff6600 : (entity.appearance.sprite === 'Statue' ? 0x888888 : 0xcccccc);
-                             return (
-                                <pixiGraphics
-                                    key={entity.id}
-                                    x={entity.position.x}
-                                    y={entity.position.y}
-                                    draw={(g) => {
-                                        g.beginFill(color);
-                                        g.drawRect(0, 0, TILE_SIZE, TILE_SIZE);
-                                        g.endFill();
-                                    }}
-                                />
-                             );
-                         }
-                         return (
-                            <pixiSprite
-                                key={entity.id}
-                                texture={texture}
-                                x={entity.position.x}
-                                y={entity.position.y}
-                                anchor={0}
-                                roundPixels={true}
-                            />
-                         )
-                    }
+                const isStatic = entity.isObject && entity.appearance.sprite && (
+                    entity.appearance.sprite.startsWith('House_') ||
+                    entity.appearance.sprite.startsWith('wheat_stage_') ||
+                    entity.appearance.sprite === 'Bonfire' ||
+                    entity.appearance.sprite === 'Statue'
+                );
+                const isSelected = selectedEntityId === entity.id;
+                const isFollower = entity.attributes?.sanity && entity.attributes.sanity.current <= 0;
 
-                    const action = entity.appearance.animation || 'idle';
-                    const direction = entity.appearance.direction || 'down';
-                    const animKey = `${entity.appearance.sprite}_${action}_${direction}`;
-                    const textures = workerTextures[animKey] || workerTextures[`${entity.appearance.sprite}_${action}_down`] || workerTextures[`${entity.appearance.sprite}_idle_down`];
+                const filters = [];
+                if (isSelected) filters.push(outlineFilter);
+                if (isFollower) filters.push(followerFilter);
 
-                    let intervalMs = 300;
-                    if (action === 'walk') intervalMs = 200;
-                    if (action === 'run') intervalMs = 150;
-                    if (action.startsWith('attack')) intervalMs = 100;
-                    const animationSpeed = 1 / (intervalMs / 16.666);
-
-                    if (!textures) {
+                if (isStatic) {
+                        const texture = staticTextures[entity.appearance.sprite];
+                        // If no texture, render placeholder graphics
+                        if (!texture) {
+                            const color = entity.appearance.sprite === 'Bonfire' ? 0xff6600 : (entity.appearance.sprite === 'Statue' ? 0x888888 : 0xcccccc);
                             return (
                             <pixiGraphics
                                 key={entity.id}
                                 x={entity.position.x}
                                 y={entity.position.y}
                                 draw={(g) => {
-                                    g.beginFill(0x00ff00);
-                                    g.drawCircle(0,0,8);
+                                    g.beginFill(color);
+                                    g.drawRect(0, 0, TILE_SIZE, TILE_SIZE);
                                     g.endFill();
                                 }}
                             />
                             );
-                    }
-
-                    return (
-                        <pixiContainer
+                        }
+                        return (
+                        <pixiSprite
                             key={entity.id}
-                            x={entity.position.x + TILE_SIZE / 2}
-                            y={entity.position.y + TILE_SIZE / 2}
-                        >
-                            <AutoPlayAnimatedSprite
-                                textures={textures}
-                                animationSpeed={animationSpeed}
-                                anchor={0.5}
-                                filters={filters.length > 0 ? filters : null}
-                                roundPixels={true}
-                            />
-                            {/* Sanity Bar */}
-                            {entity.attributes?.sanity && (
-                            <pixiGraphics
-                                y={-15}
-                                draw={(g) => {
-                                    g.clear();
-                                    g.beginFill(0x000000);
-                                    g.drawRect(-10, 0, 20, 4);
-                                    g.beginFill(0x0000ff);
-                                    const pct = entity.attributes!.sanity.current / entity.attributes!.sanity.max;
-                                    g.drawRect(-10, 0, 20 * pct, 4);
-                                }}
-                            />
-                            )}
-                            {/* Debuffs */}
-                            {entity.debuffs && entity.debuffs.length > 0 && influenceIcon && (
-                                <pixiContainer y={-22}>
-                                    {entity.debuffs.map((d, i) => {
-                                        const row = Math.floor(i / 3);
-                                        const col = i % 3;
-                                        const rowCount = Math.min(entity.debuffs!.length - row*3, 3);
-                                        const startX = -((rowCount * 10) / 2) + 5;
-                                        return (
-                                            <pixiSprite
-                                                key={`debuff-${i}`}
-                                                texture={influenceIcon}
-                                                x={startX + col * 10}
-                                                y={-row * 10}
-                                                width={8}
-                                                height={8}
-                                                anchor={0.5}
-                                            />
-                                        );
-                                    })}
-                                </pixiContainer>
-                            )}
-                        </pixiContainer>
-                    );
-                })}
+                            texture={texture}
+                            x={entity.position.x}
+                            y={entity.position.y}
+                            anchor={0}
+                            roundPixels={true}
+                        />
+                        )
+                }
 
-                {effects.map(ef => (
-                    <SpellEffect
-                        key={ef.id}
-                        x={ef.x}
-                        y={ef.y}
-                        onComplete={() => setEffects(prev => prev.filter(e => e.id !== ef.id))}
-                    />
-                ))}
+                const action = entity.appearance.animation || 'idle';
+                const direction = entity.appearance.direction || 'down';
+                const animKey = `${entity.appearance.sprite}_${action}_${direction}`;
+                const textures = workerTextures[animKey] || workerTextures[`${entity.appearance.sprite}_${action}_down`] || workerTextures[`${entity.appearance.sprite}_idle_down`];
 
-                {floatingTexts.map(ft => (
-                    <FloatingText
-                        key={ft.id}
-                        x={ft.x}
-                        y={ft.y}
-                        text={ft.text}
-                        onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))}
-                    />
-                ))}
-            </pixiContainer>
+                let intervalMs = 300;
+                if (action === 'walk') intervalMs = 200;
+                if (action === 'run') intervalMs = 150;
+                if (action.startsWith('attack')) intervalMs = 100;
+                const animationSpeed = 1 / (intervalMs / 16.666);
 
-            {/* VISIBLE VIEWPORT SHOWING TEXTURE */}
-            <PixiViewport
-                worldWidth={360}
-                worldHeight={640}
-                onPointerDown={handleViewportClick}
-                eventMode="static"
-                roundPixels={true}
-            >
-                 <pixiSprite texture={renderTexture} roundPixels={true} />
-            </PixiViewport>
+                if (!textures) {
+                        return (
+                        <pixiGraphics
+                            key={entity.id}
+                            x={entity.position.x}
+                            y={entity.position.y}
+                            draw={(g) => {
+                                g.beginFill(0x00ff00);
+                                    g.drawCircle(0,0,8);
+                                g.endFill();
+                            }}
+                        />
+                        );
+                }
 
-        </pixiContainer>
+                return (
+                    <pixiContainer
+                        key={entity.id}
+                        x={entity.position.x + TILE_SIZE / 2}
+                        y={entity.position.y + TILE_SIZE / 2}
+                    >
+                        <AutoPlayAnimatedSprite
+                            textures={textures}
+                            animationSpeed={animationSpeed}
+                            anchor={0.5}
+                            filters={filters.length > 0 ? filters : null}
+                            roundPixels={true}
+                        />
+                        {/* Sanity Bar */}
+                        {entity.attributes?.sanity && (
+                        <pixiGraphics
+                            y={-15}
+                            draw={(g) => {
+                                g.clear();
+                                g.beginFill(0x000000);
+                                g.drawRect(-10, 0, 20, 4);
+                                g.beginFill(0x0000ff);
+                                const pct = entity.attributes!.sanity.current / entity.attributes!.sanity.max;
+                                g.drawRect(-10, 0, 20 * pct, 4);
+                            }}
+                        />
+                        )}
+                        {/* Debuffs */}
+                        {entity.debuffs && entity.debuffs.length > 0 && influenceIcon && (
+                            <pixiContainer y={-22}>
+                                {entity.debuffs.map((d, i) => {
+                                    const row = Math.floor(i / 3);
+                                    const col = i % 3;
+                                    const rowCount = Math.min(entity.debuffs!.length - row*3, 3);
+                                    const startX = -((rowCount * 10) / 2) + 5;
+                                    return (
+                                        <pixiSprite
+                                            key={`debuff-${i}`}
+                                            texture={influenceIcon}
+                                            x={startX + col * 10}
+                                            y={-row * 10}
+                                            width={8}
+                                            height={8}
+                                            anchor={0.5}
+                                        />
+                                    );
+                                })}
+                            </pixiContainer>
+                        )}
+                    </pixiContainer>
+                );
+            })}
+
+            {effects.map(ef => (
+                <SpellEffect
+                    key={ef.id}
+                    x={ef.x}
+                    y={ef.y}
+                    onComplete={() => setEffects(prev => prev.filter(e => e.id !== ef.id))}
+                />
+            ))}
+
+            {floatingTexts.map(ft => (
+                <FloatingText
+                    key={ft.id}
+                    x={ft.x}
+                    y={ft.y}
+                    text={ft.text}
+                    onComplete={() => setFloatingTexts(prev => prev.filter(t => t.id !== ft.id))}
+                />
+            ))}
+        </PixiViewport>
     );
 };
 
