@@ -11,7 +11,21 @@ import { DemonKingInterface } from './ui/DemonKingInterface';
 import './App.css';
 
 // Register PixiJS components
-extend({ Container, Sprite, Text, Graphics, AnimatedSprite, TilingSprite });
+extend({
+  Container,
+  Sprite,
+  Text,
+  Graphics,
+  AnimatedSprite,
+  TilingSprite,
+  // Map aliases used in JSX
+  pixiContainer: Container,
+  pixiSprite: Sprite,
+  pixiText: Text,
+  pixiGraphics: Graphics,
+  pixiAnimatedSprite: AnimatedSprite,
+  pixiTilingSprite: TilingSprite
+});
 
 type SceneState = 'menu' | 'sprites' | 'tilemap';
 

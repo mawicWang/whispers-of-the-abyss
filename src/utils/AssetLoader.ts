@@ -42,10 +42,11 @@ export class AssetLoader {
     try {
       if (onProgress) onProgress(0, 'Initializing...');
 
-      // Initialize Assets with preference for workers to offload image decoding
+      // Initialize Assets
+      // Disabled preferWorkers to improve stability on GitHub Pages
       await Assets.init({
         preferences: {
-          preferWorkers: true,
+          preferWorkers: false,
         },
       });
 

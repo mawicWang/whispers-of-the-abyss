@@ -60,9 +60,9 @@ export const PixiViewport = forwardRef<Viewport, PixiViewportProps>((props, ref)
 
     if (!app) return null;
 
-    // Use the registered tag 'viewport'
-    // Casting to any to avoid "Property 'viewport' does not exist on type 'JSX.IntrinsicElements'"
-    const ViewportTag = 'viewport' as any;
+    // Use the registered tag 'Viewport' (matching the class name registered via extend)
+    // Casting to any to avoid "Property 'Viewport' does not exist on type 'JSX.IntrinsicElements'"
+    const ViewportTag = 'Viewport' as any;
 
     return (
         <ViewportTag
