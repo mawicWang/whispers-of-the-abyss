@@ -333,6 +333,21 @@ export const GameScene: React.FC = () => {
              }
         });
 
+        // Spawn Guards
+        for (let i = 0; i < 2; i++) {
+             let found = false;
+             while(!found) {
+                 const gridX = 2 + Math.floor(Math.random() * (GRID_W - 4));
+                 const gridY = 2 + Math.floor(Math.random() * (GRID_H - 4));
+                 const key = `${gridX},${gridY}`;
+                 if (!reservedMap.has(key) && !obstacles.has(key)) {
+                     EntityFactory.createGuard(gridX * TILE_SIZE, gridY * TILE_SIZE, `guard-${i}`);
+                     reservedMap.add(key);
+                     found = true;
+                 }
+             }
+        }
+
         const loader = AssetLoader.getInstance();
         const loadAnims = async () => {
             try {
@@ -349,7 +364,9 @@ export const GameScene: React.FC = () => {
             const anims: Record<string, Texture[]> = {};
             const actions = ['idle', 'walk', 'attack', 'run'];
             const directions = ['down', 'up', 'left', 'right'];
-            WORKER_VARIANTS.forEach(variant => {
+            const allVariants = [...WORKER_VARIANTS, 'AxemanCyan', 'AxemanRed'];
+
+            allVariants.forEach(variant => {
                 actions.forEach(action => {
                     directions.forEach(direction => {
                         const key = `${variant}_${action}_${direction}`;

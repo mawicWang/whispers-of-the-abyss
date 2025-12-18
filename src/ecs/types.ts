@@ -123,6 +123,10 @@ export type Entity = {
   isWheat?: boolean;
   isHouse?: boolean;
 
+  // Role Tags
+  isWorker?: boolean;
+  isGuard?: boolean;
+
   // New Logic
   growth?: {
     stage: number;
