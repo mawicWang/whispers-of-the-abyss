@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
-import { Texture, BlurFilter, TextStyle, Rectangle, Assets, Container, Sprite, Graphics } from 'pixi.js';
+import { Texture, BlurFilter, TextStyle, Rectangle, Assets, Container, Sprite, Graphics, RenderTexture } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
 import { ecs } from '../entities';
@@ -247,7 +247,27 @@ export const BaseSceneTest: React.FC = () => {
     // Rendering to Texture Setup
     const { app } = useApplication();
 
-    // Portrait Extraction
+    // Portrait Extraction (Buffer Layer)
+    const portraitTextureRef = useRef<RenderTexture | null>(null);
+    const portraitContainerRef = useRef<Container | null>(null);
+
+    useEffect(() => {
+        // Initialize off-screen buffer
+        portraitTextureRef.current = RenderTexture.create({ width: 64, height: 64 });
+        portraitContainerRef.current = new Container();
+
+        return () => {
+            if (portraitTextureRef.current) {
+                portraitTextureRef.current.destroy(true);
+                portraitTextureRef.current = null;
+            }
+            if (portraitContainerRef.current) {
+                portraitContainerRef.current.destroy({ children: true });
+                portraitContainerRef.current = null;
+            }
+        };
+    }, []);
+
     useEffect(() => {
         if (!selectedEntityId) {
             setAvatarImage(null);
@@ -256,10 +276,53 @@ export const BaseSceneTest: React.FC = () => {
 
         const extract = async () => {
              const target = entityRefs.current[selectedEntityId];
-             if (target && app.renderer) {
+             const buffer = portraitContainerRef.current;
+             const rt = portraitTextureRef.current;
+
+             if (target && app.renderer && buffer && rt) {
                  try {
-                     const image = await app.renderer.extract.base64(target);
-                     setAvatarImage(image);
+                     // Clear buffer
+                     buffer.removeChildren();
+
+                     // Clone visual
+                     let clone: Container | Sprite | Graphics | null = null;
+
+                     // Determine visual type
+                     if (target instanceof Sprite) { // Covers AnimatedSprite
+                         const s = new Sprite(target.texture);
+                         s.anchor.set(0.5);
+                         clone = s;
+                     } else if (target instanceof Graphics) {
+                         try {
+                            const tex = await app.renderer.extract.texture(target);
+                            const sprite = new Sprite(tex);
+                            sprite.anchor.set(0.5);
+                            clone = sprite;
+                         } catch (e) {
+                             const g = new Graphics();
+                             g.rect(-8, -8, 16, 16);
+                             g.fill(0xFFFFFF);
+                             clone = g;
+                         }
+                     }
+
+                     if (clone) {
+                         // Setup clone in center of 64x64 buffer
+                         clone.x = 32;
+                         clone.y = 32;
+
+                         // Scale up (target is usually 16x16, we want it large in 64x64)
+                         clone.scale.set(3);
+
+                         buffer.addChild(clone);
+
+                         // Render to texture
+                         app.renderer.render({ container: buffer, target: rt });
+
+                         // Extract
+                         const image = await app.renderer.extract.base64(rt);
+                         setAvatarImage(image);
+                     }
                  } catch (e) {
                      console.error("Extraction error", e);
                  }
