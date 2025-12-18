@@ -570,7 +570,6 @@ export const BaseSceneTest: React.FC = () => {
             worldHeight={GRID_H * TILE_SIZE}
             onPointerDown={handleViewportClick}
             eventMode="static"
-            roundPixels={true}
         >
             {/* Systems */}
             <MoveSystem />
@@ -654,7 +653,6 @@ export const BaseSceneTest: React.FC = () => {
                             x={entity.position.x}
                             y={entity.position.y}
                             anchor={0}
-                            roundPixels={true}
                         />
                         )
                 }
@@ -696,7 +694,6 @@ export const BaseSceneTest: React.FC = () => {
                             animationSpeed={animationSpeed}
                             anchor={0.5}
                             filters={filters.length > 0 ? filters : null}
-                            roundPixels={true}
                         />
                         {/* Sanity Bar */}
                         {entity.attributes?.sanity && (
