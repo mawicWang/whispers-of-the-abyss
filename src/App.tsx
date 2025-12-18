@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Application, extend } from '@pixi/react';
+import { Application, extend, useApplication } from '@pixi/react';
 import { Container, Sprite, Text, Graphics, TextStyle, AnimatedSprite, TilingSprite } from 'pixi.js';
 import SimpleAnimationScene from './scenes/SimpleAnimationScene';
 import { BaseSceneTest, BaseSceneUI } from './scenes/BaseSceneTest';
@@ -14,6 +14,18 @@ import './App.css';
 extend({ Container, Sprite, Text, Graphics, AnimatedSprite, TilingSprite });
 
 type SceneState = 'menu' | 'sprites' | 'tilemap';
+
+// Force global roundPixels
+const GlobalSettings = () => {
+  const { app } = useApplication();
+  useEffect(() => {
+    if (app && app.renderer) {
+      // Force roundPixels (cast to any to bypass read-only type definition if necessary)
+      (app.renderer as any).roundPixels = true;
+    }
+  }, [app]);
+  return null;
+};
 
 export const App = () => {
   const [loading, setLoading] = useState(true);
@@ -94,6 +106,7 @@ export const App = () => {
                 )}
 
                 <Application width={360} height={640} backgroundColor={0x222222}>
+                    <GlobalSettings />
                     {currentScene === 'sprites' && <SimpleAnimationScene />}
                     {currentScene === 'tilemap' && <BaseSceneTest />}
                 </Application>
