@@ -75,7 +75,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            width: '120px',
+            width: '85px',
             flexShrink: 0
         },
         nameTitle: {
@@ -96,8 +96,8 @@ export const CharacterStatusDrawer: React.FC = () => {
             marginBottom: '4px'
         },
         portraitContainer: {
-            width: '100px',
-            height: '100px',
+            width: '75px',
+            height: '75px',
             backgroundColor: '#000',
             border: '2px solid #6d6d8d',
             borderRadius: '4px',
@@ -120,7 +120,7 @@ export const CharacterStatusDrawer: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            width: '120px',
+            width: '80px',
             flexShrink: 0,
             paddingTop: '24px' // Align visually with avatar somewhat
         },
@@ -148,13 +148,13 @@ export const CharacterStatusDrawer: React.FC = () => {
             fontSize: '12px'
         },
         label: {
-            width: '60px',
+            width: '40px',
             textAlign: 'right',
             color: '#aaa'
         },
         barContainer: {
             flexGrow: 1,
-            height: '10px',
+            height: '16px',
             backgroundColor: '#333',
             border: '1px solid #555',
             position: 'relative',
@@ -164,12 +164,6 @@ export const CharacterStatusDrawer: React.FC = () => {
             height: '100%',
             transition: 'width 0.2s'
         },
-        valueText: {
-            width: '70px',
-            textAlign: 'left',
-            color: '#fff'
-        },
-
         // Fallback for non-NPCs
         simpleContainer: {
             display: 'flex',
@@ -190,7 +184,7 @@ export const CharacterStatusDrawer: React.FC = () => {
                     {entity?.name || 'House'}
                 </div>
                 <div>
-                     <span style={{ fontSize: '16px' }}>🍞 食物 (Food): {foodCount}</span>
+                     <span style={{ fontSize: '16px' }}>🍞 食物: {foodCount}</span>
                 </div>
             </div>
         );
@@ -206,7 +200,7 @@ export const CharacterStatusDrawer: React.FC = () => {
                      {entity?.name || 'Wheat Field'}
                  </div>
                  <div>
-                     <span>生长阶段 (Stage): </span>
+                     <span>生长阶段: </span>
                      <span style={{ color: isMature ? '#4caf50' : '#fff' }}>
                         {stage} / {maxStage} {isMature && '(Mature)'}
                      </span>
@@ -217,8 +211,8 @@ export const CharacterStatusDrawer: React.FC = () => {
 
     const renderObject = () => {
         let description = entity?.smartObject?.interactionType || 'Interaction Point';
-        if (entity?.name === '篝火') description = '提供温暖和娱乐 (Rest Area)';
-        if (entity?.name === '神像') description = '供人膜拜的地方 (Worship Site)';
+        if (entity?.name === '篝火') description = '提供温暖和娱乐';
+        if (entity?.name === '神像') description = '供人膜拜的地方';
 
         return (
              <div style={styles.simpleContainer}>
@@ -281,8 +275,24 @@ export const CharacterStatusDrawer: React.FC = () => {
                     <span style={{...styles.label, color: color}}>{label}:</span>
                     <div style={styles.barContainer}>
                         <div style={{ ...styles.barFill, width: `${pct}%`, backgroundColor: color }} />
+                        <span style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            color: '#fff',
+                            textShadow: '1px 1px 2px #000',
+                            pointerEvents: 'none'
+                        }}>
+                           {Math.floor(current)}/{max}
+                        </span>
                     </div>
-                    <span style={styles.valueText}>{Math.floor(current)}/{max}</span>
                 </div>
             );
         };
@@ -301,10 +311,6 @@ export const CharacterStatusDrawer: React.FC = () => {
                                 alt="Target"
                             />
                         )}
-                         {/* Debuffs Overlay on Avatar (Optional, or keep in separate row?)
-                             Let's keep them separate or below action text if needed.
-                             For now, let's put debuffs below action text.
-                         */}
                     </div>
                     <div style={styles.actionText}>{currentAction}</div>
 
@@ -324,28 +330,27 @@ export const CharacterStatusDrawer: React.FC = () => {
                 {/* Middle Column: Stats */}
                 <div style={styles.middleColumn}>
                     <div style={styles.statValueRow}>
-                        <span>武力 (Might)</span>
+                        <span>武力</span>
                         <span>{might}</span>
                     </div>
                     <div style={styles.statValueRow}>
-                        <span>魔力 (Magic)</span>
+                        <span>魔力</span>
                         <span>{magic}</span>
                     </div>
                     <div style={styles.statValueRow}>
-                        <span>意志 (Will)</span>
+                        <span>意志</span>
                         <span>{will}</span>
                     </div>
                 </div>
 
                 {/* Right Column: Points */}
                 <div style={styles.rightColumn}>
-                    {renderBar('生命 (Health)', health?.current, health?.max, '#f44336')}
-                    {renderBar('理智 (Sanity)', sanity?.current, sanity?.max, '#4fc3f7')}
-                    {renderBar('腐蚀 (Corr)', corruption?.current, corruption?.max, '#9d4edd')}
-                    {renderBar('饱腹 (Food)', satiety?.current, satiety?.max, '#ffb74d')}
-                    {renderBar('精力 (Energy)', stamina?.current, stamina?.max, '#4caf50')}
-                    {/* Keep Boredom if needed, but maybe lower priority or hidden? keeping for debug/completeness */}
-                    {renderBar('无聊 (Bored)', boredom?.current, boredom?.max, '#ff9800')}
+                    {renderBar('生命', health?.current, health?.max, '#f44336')}
+                    {renderBar('理智', sanity?.current, sanity?.max, '#4fc3f7')}
+                    {renderBar('腐蚀', corruption?.current, corruption?.max, '#9d4edd')}
+                    {renderBar('饱腹', satiety?.current, satiety?.max, '#ffb74d')}
+                    {renderBar('精力', stamina?.current, stamina?.max, '#4caf50')}
+                    {renderBar('无聊', boredom?.current, boredom?.max, '#ff9800')}
                 </div>
             </>
         );
