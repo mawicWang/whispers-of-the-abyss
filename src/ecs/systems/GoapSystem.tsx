@@ -2,7 +2,7 @@
 import { useTick } from '@pixi/react';
 import { ecs } from '../world';
 import type { Entity } from '../types';
-import type { GoapAction, GoapState } from '../components/GoapComponent';
+import type { GoapAction, GoapState, Goal } from '../components/GoapComponent';
 import { findPath } from '../../utils/Pathfinding';
 
 const TILE_SIZE = 16;
@@ -19,6 +19,7 @@ const CHAT_DURATION = 5000;
 const FARM_ANIMATION_DURATION = 800;
 const EAT_DURATION = 2000;
 const STORE_DURATION = 1000;
+const INSPECT_DURATION = 3000;
 
 // Helper to collect obstacles
 const getObstacles = () => {
@@ -457,11 +458,7 @@ export const GoToHouseAction: GoapAction = {
             return false;
         }
 
-        // Move to door (offset by size/2 or just close)
-        // Houses are usually obstacles, so we target a point next to it.
-        // Assuming houses are solid, we need a "door" or interaction point.
-        // For now, move to center and let collision/distance check stop us?
-        // Or specific offset. Let's try 16px below center.
+        // Move to door
         return navigateTo(entity, target.position.x, target.position.y + 16);
     }
 };
@@ -550,8 +547,125 @@ export const EatAction: GoapAction = {
     }
 };
 
-// --- Corrupted / Other Actions ---
-// (Keeping existing definitions for brevity where unchanged, but including full file write)
+// --- Guard Actions ---
+
+export const FindTargetToInspectAction: GoapAction = {
+    name: 'FindTargetToInspect',
+    cost: 2,
+    preconditions: (state) => !state.hasInspectTarget,
+    effects: (state) => ({ hasInspectTarget: true }),
+    execute: (entity, deltaTime) => {
+        if (entity.goap) entity.goap.currentActionName = "寻找检查目标";
+
+        // Find a random worker or object that isn't me
+        // Simple heuristic: anyone nearby or random
+        const candidates = ecs.entities.filter(e =>
+            (e.isWorker || e.isObject || e.isWheat) &&
+            e.id !== entity.id &&
+            e.position
+        );
+
+        if (candidates.length > 0) {
+            const target = candidates[Math.floor(Math.random() * candidates.length)];
+            if (entity.goap) {
+                entity.goap.blackboard.targetInspectId = target.id;
+            }
+            return true;
+        }
+
+        // No targets? Complete anyway so we don't get stuck
+        return true;
+    }
+};
+
+export const GoToInspectTargetAction: GoapAction = {
+    name: 'GoToInspectTarget',
+    cost: 2,
+    preconditions: (state) => state.hasInspectTarget,
+    effects: (state) => ({ atInspectTarget: true }),
+    execute: (entity, deltaTime) => {
+        const targetId = entity.goap?.blackboard.targetInspectId;
+        const target = ecs.entities.find(e => e.id === targetId);
+
+        if (entity.goap) {
+            const name = target?.name || "可疑目标";
+            entity.goap.currentActionName = `接近 ${name}`;
+        }
+
+        if (!target || !target.position) {
+            if (entity.goap) entity.goap.blackboard.targetInspectId = undefined;
+            return false; // Fail, will replan
+        }
+
+        // Move close to target
+        return navigateTo(entity, target.position.x, target.position.y);
+    }
+};
+
+export const InspectAction: GoapAction = {
+    name: 'Inspect',
+    cost: 1,
+    preconditions: (state) => state.atInspectTarget,
+    effects: (state) => ({ }), // Satisfies MaintainOrder implicitly via execution
+    execute: (entity, deltaTime) => {
+        if (entity.goap) entity.goap.currentActionName = "检查中";
+
+        if (entity.goap && entity.goap.blackboard.inspectTimer === undefined) {
+             entity.goap.blackboard.inspectTimer = 0;
+             if (entity.appearance) {
+                 // Look at target
+                 const targetId = entity.goap.blackboard.targetInspectId;
+                 const target = ecs.entities.find(e => e.id === targetId);
+                 if (target && target.position && entity.position) {
+                     const dx = target.position.x - entity.position.x;
+                     const dy = target.position.y - entity.position.y;
+                     if (Math.abs(dx) > Math.abs(dy)) entity.appearance.direction = dx > 0 ? 'right' : 'left';
+                     else entity.appearance.direction = dy > 0 ? 'down' : 'up';
+                 }
+             }
+        }
+
+        if (entity.goap) entity.goap.blackboard.inspectTimer! += deltaTime;
+
+        if (entity.goap && entity.goap.blackboard.inspectTimer! >= INSPECT_DURATION) {
+             entity.goap.blackboard.inspectTimer = undefined;
+             entity.goap.blackboard.targetInspectId = undefined;
+             return true;
+        }
+        return false;
+    }
+};
+
+export const PatrolAction: GoapAction = {
+    name: 'Patrol',
+    cost: 1,
+    preconditions: (state) => true,
+    effects: (state) => ({ atQuietSpot: true }), // Reusing 'atQuietSpot' as 'atPatrolPoint' roughly
+    execute: (entity, deltaTime) => {
+        if (entity.goap) entity.goap.currentActionName = "巡逻中";
+        if (!entity.goap) return false;
+
+        if (!entity.goap.blackboard.targetSpot) {
+            // Pick a random spot, maybe prefer perimeter or near buildings?
+            // For now, random spot is fine.
+            const rx = Math.floor(Math.random() * (GRID_W - 2) + 1) * TILE_SIZE;
+            const ry = Math.floor(Math.random() * (GRID_H - 2) + 1) * TILE_SIZE;
+            entity.goap.blackboard.targetSpot = { x: rx, y: ry };
+        }
+
+        const target = entity.goap.blackboard.targetSpot;
+        const reached = navigateTo(entity, target.x, target.y);
+
+        if (reached) {
+             entity.goap.blackboard.targetSpot = undefined;
+             return true;
+        }
+        return false;
+    }
+};
+
+
+// --- Other Actions ---
 
 export const GoToRandomSpotAction: GoapAction = {
     name: 'GoToRandomSpot',
@@ -680,7 +794,7 @@ export const MeditateAction: GoapAction = {
     }
 };
 
-const UpdateSensors = (entity: Entity) => {
+const UpdateWorkerSensors = (entity: Entity) => {
     if (!entity.position || !entity.goap) return;
     const goap = entity.goap;
     if (goap.currentGoal === 'KillBoredom' && !goap.blackboard.socialTargetId) {
@@ -698,6 +812,72 @@ const UpdateSensors = (entity: Entity) => {
     }
 };
 
+const UpdateGuardSensors = (entity: Entity) => {
+    if (!entity.position || !entity.goap) return;
+    const goap = entity.goap;
+
+    // Guard specific scanning can go here
+    // e.g. finding threats
+};
+
+const EvaluateWorkerGoals = (entity: Entity): Goal | undefined => {
+    if (!entity.goap || !entity.attributes) return undefined;
+    const goap = entity.goap;
+    const attributes = entity.attributes;
+
+    const stamina = attributes.stamina?.current || 0;
+    const maxStamina = attributes.stamina?.max || 10;
+    const sanity = attributes.sanity?.current ?? 100;
+    const boredom = attributes.boredom?.current || 0;
+    const satiety = attributes.satiety?.current || 0;
+    const hasFoodInInventory = entity.inventory?.some(i => i.item === 'food' && i.count > 0);
+
+    if (stamina <= 0 && goap.currentGoal !== 'RecoverStamina') {
+        // Interruption logic handled in loop usually, but for goal selection:
+        return 'RecoverStamina';
+    }
+
+    if (stamina >= maxStamina && goap.currentGoal === 'RecoverStamina') {
+        return undefined; // Done
+    }
+
+    if (satiety < 30) return 'Eat';
+    if (hasFoodInInventory) return 'StoreFood';
+
+    if (sanity <= 0) {
+        const rand = Math.random();
+        if (rand < 0.3) return 'Pray';
+        if (rand < 0.5) return 'Meditate';
+        return 'Farm';
+    }
+
+    if (boredom > 80) return 'KillBoredom';
+
+    return 'Farm';
+};
+
+const EvaluateGuardGoals = (entity: Entity): Goal | undefined => {
+    if (!entity.goap || !entity.attributes) return undefined;
+    const goap = entity.goap;
+    const attributes = entity.attributes;
+
+    const stamina = attributes.stamina?.current || 0;
+    const maxStamina = attributes.stamina?.max || 10;
+    const satiety = attributes.satiety?.current || 0;
+
+    // Survival first
+    if (stamina <= 0) return 'RecoverStamina';
+    if (stamina >= maxStamina && goap.currentGoal === 'RecoverStamina') return undefined;
+
+    if (satiety < 30) return 'Eat';
+
+    // Guard duties
+    const rand = Math.random();
+    if (rand < 0.3) return 'MaintainOrder'; // Inspect
+
+    return 'Patrol';
+};
+
 export const GoapSystem = () => {
   useTick((ticker) => {
     const deltaMS = ticker.elapsedMS;
@@ -713,19 +893,17 @@ export const GoapSystem = () => {
         }
         // Satiety Decay
         if (entity.attributes?.satiety) {
-             // Satiety decreases slowly. E.g. 1 per 2 seconds?
              const satietyDecrease = (deltaMS / 1000) * 0.5;
              entity.attributes.satiety.current = Math.max(0, entity.attributes.satiety.current - satietyDecrease);
         }
 
         const stamina = entity.attributes?.stamina?.current || 0;
-        const maxStamina = entity.attributes?.stamina?.max || 10;
         const sanity = entity.attributes?.sanity?.current ?? 100;
         const boredom = entity.attributes?.boredom?.current || 0;
         const satiety = entity.attributes?.satiety?.current || 0;
         const hasFoodInInventory = entity.inventory?.some(i => i.item === 'food' && i.count > 0);
 
-        // Social Handling (Passive)
+        // Social Handling (Passive) - Mostly Worker relevant but Guards can chat too maybe?
         if (goap.blackboard.socialRequestFrom && !goap.currentGoal && entity.attributes?.boredom && entity.attributes.boredom.current > 30) {
             const requester = ecs.entities.find(e => e.id === goap.blackboard.socialRequestFrom);
             if (requester && requester.goap) {
@@ -736,14 +914,17 @@ export const GoapSystem = () => {
         }
 
         // Goal Selection
-        // Priority:
-        // 1. Recover Stamina (Survival)
-        // 2. Eat (Survival) -> if satiety < 30
-        // 3. Store Food (Duty) -> if has food
-        // 4. Corrupted Behavior
-        // 5. Kill Boredom
-        // 6. Farm (Work)
+        if (!goap.currentGoal) {
+            if (entity.isGuard) {
+                UpdateGuardSensors(entity);
+                goap.currentGoal = EvaluateGuardGoals(entity);
+            } else {
+                UpdateWorkerSensors(entity);
+                goap.currentGoal = EvaluateWorkerGoals(entity);
+            }
+        }
 
+        // Interruptions (e.g. Stamina running out)
         if (stamina <= 0 && goap.currentGoal !== 'RecoverStamina') {
              // Reset relevant blackboards for interrupted tasks
              if (goap.blackboard.targetFarmId) {
@@ -752,25 +933,7 @@ export const GoapSystem = () => {
                  goap.blackboard.targetFarmId = undefined;
              }
              goap.currentGoal = 'RecoverStamina';
-        }
-        else if (stamina >= maxStamina && goap.currentGoal === 'RecoverStamina') {
-            goap.currentGoal = undefined;
-        }
-        else if (!goap.currentGoal) {
-            if (satiety < 30) {
-                goap.currentGoal = 'Eat';
-            } else if (hasFoodInInventory) {
-                goap.currentGoal = 'StoreFood';
-            } else if (sanity <= 0) {
-                const rand = Math.random();
-                if (rand < 0.3) goap.currentGoal = 'Pray';
-                else if (rand < 0.5) goap.currentGoal = 'Meditate';
-                else goap.currentGoal = 'Farm';
-            } else if (boredom > 80) {
-                 goap.currentGoal = 'KillBoredom';
-            } else {
-                goap.currentGoal = 'Farm';
-            }
+             goap.plan = []; // Force replan
         }
 
         // 2. Planning
@@ -793,10 +956,12 @@ export const GoapSystem = () => {
                 hasHouseTarget: !!goap.blackboard.targetHouseId,
                 atHouse: false,
                 hasFood: !!hasFoodInInventory,
-                houseHasFood: false // To be checked
+                houseHasFood: false,
+                hasInspectTarget: !!goap.blackboard.targetInspectId,
+                atInspectTarget: false // Calc below
             };
 
-            // Sensor Updates
+            // Sensor Updates (Location based)
             if (entity.position) {
                  const home = goap.blackboard.homePosition || HOME_POSITION;
                  const dHome = Math.hypot(entity.position.x - home.x, entity.position.y - home.y);
@@ -805,11 +970,8 @@ export const GoapSystem = () => {
                  if (goap.blackboard.targetHouseId) {
                      const h = ecs.entities.find(e => e.id === goap.blackboard.targetHouseId);
                      if (h && h.position) {
-                         // Check close enough to door (y+16 logic matches navigateTo)
                          const dH = Math.hypot(entity.position.x - h.position.x, entity.position.y - (h.position.y + 16));
                          currentState.atHouse = dH < 5;
-
-                         // Check food
                          if (h.storage && (h.storage['food'] || 0) > 0) {
                              currentState.houseHasFood = true;
                          }
@@ -835,7 +997,6 @@ export const GoapSystem = () => {
                      }
                  }
                  if (goap.blackboard.targetSmartObjectId) {
-                      // ... (Smart Object Distance Logic)
                       const target = ecs.entities.find(e => e.id === goap.blackboard.targetSmartObjectId);
                       const slotIndex = goap.blackboard.targetSlotIndex;
                       if (target && target.position && target.smartObject && slotIndex !== undefined && slotIndex > -1) {
@@ -849,7 +1010,16 @@ export const GoapSystem = () => {
                          currentState.hasSmartObjectTarget = false;
                       }
                  }
-                 UpdateSensors(entity);
+                 if (goap.blackboard.targetInspectId) {
+                     const target = ecs.entities.find(e => e.id === goap.blackboard.targetInspectId);
+                     if (target && target.position) {
+                         const d = Math.hypot(entity.position.x - target.position.x, entity.position.y - target.position.y);
+                         currentState.atInspectTarget = d < 48; // Close enough to see
+                     } else {
+                         goap.blackboard.targetInspectId = undefined;
+                         currentState.hasInspectTarget = false;
+                     }
+                 }
             }
 
             // Plan Construction
@@ -869,9 +1039,8 @@ export const GoapSystem = () => {
             } else if (goap.currentGoal === 'Farm') {
                 if (!currentState.hasFarmTarget) goap.plan.push(FindFarmAction);
                 goap.plan.push(GoToFarmAction);
-                goap.plan.push(HarvestAction); // Replaced FarmAction with HarvestAction
+                goap.plan.push(HarvestAction);
             } else if (goap.currentGoal === 'KillBoredom') {
-                 // ... (Keep existing logic)
                  const rand = Math.random();
                  if (rand < 0.5) {
                      if (!currentState.hasSmartObjectTarget) goap.plan.push(createFindSmartObjectAction("ENTERTAINMENT"));
@@ -897,6 +1066,14 @@ export const GoapSystem = () => {
                  if (!currentState.atHome) goap.plan.push(GoHomeAction);
                  goap.plan.push(MeditateAction);
             }
+            // Guard Goals
+            else if (goap.currentGoal === 'Patrol') {
+                goap.plan.push(PatrolAction);
+            } else if (goap.currentGoal === 'MaintainOrder') {
+                if (!currentState.hasInspectTarget) goap.plan.push(FindTargetToInspectAction);
+                goap.plan.push(GoToInspectTargetAction);
+                goap.plan.push(InspectAction);
+            }
 
             goap.currentActionIndex = 0;
         }
@@ -904,7 +1081,7 @@ export const GoapSystem = () => {
         // 3. Execution
         const currentAction = goap.plan[goap.currentActionIndex];
         if (currentAction) {
-             // Validation checks (Target lost etc)
+             // Validation checks
              if ((currentAction.name === 'GoToFarm' || currentAction.name === 'Harvest') && goap.blackboard.targetFarmId) {
                   const t = ecs.entities.find(e => e.id === goap.blackboard.targetFarmId);
                   if (!t || t.claimedBy !== entity.id) {
@@ -914,7 +1091,6 @@ export const GoapSystem = () => {
                   }
              }
 
-             // Execute
              const completed = currentAction.execute(entity, deltaMS);
              if (completed) {
                  goap.currentActionIndex++;

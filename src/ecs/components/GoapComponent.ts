@@ -3,7 +3,7 @@
 
 import type { Entity } from '../types';
 
-export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom' | 'Eat' | 'StoreFood';
+export type Goal = 'RecoverStamina' | 'Farm' | 'Pray' | 'Meditate' | 'KillBoredom' | 'Eat' | 'StoreFood' | 'Patrol' | 'MaintainOrder';
 
 export interface GoapState {
     stamina: number;
@@ -27,6 +27,10 @@ export interface GoapState {
     atHouse: boolean;
     hasFood: boolean;
     houseHasFood: boolean;
+
+    // Guard extensions
+    hasInspectTarget: boolean;
+    atInspectTarget: boolean;
 }
 
 export interface GoapAction {
@@ -70,6 +74,10 @@ export interface GoapComponent {
             homeHouseId?: string; // Assigned house ID
             storeTimer?: number;
             eatTimer?: number;
+
+            // Guard extensions
+            targetInspectId?: string;
+            inspectTimer?: number;
         };
     };
 }

@@ -2,11 +2,14 @@
 import { ecs } from '../world';
 import { WORKER_VARIANTS } from '../../config/gameData';
 
+const AXEMAN_VARIANTS = ['AxemanCyan', 'AxemanRed']; // Assumed available based on prompt
+
 export class EntityFactory {
     static createWorker(x: number, y: number, id: string, houseId: string) {
         const variant = WORKER_VARIANTS[Math.floor(Math.random() * WORKER_VARIANTS.length)];
         ecs.add({
             id,
+            name: `工人 ${id.split('-')[1]}`,
             position: { x, y },
             speed: 1.0,
             appearance: {
@@ -44,7 +47,7 @@ export class EntityFactory {
                 }
             },
             goap: {
-                goals: ['Farm'],
+                goals: ['Farm', 'Eat', 'StoreFood', 'RecoverStamina', 'KillBoredom'],
                 currentGoal: 'Farm',
                 plan: [],
                 currentActionIndex: 0,
@@ -58,7 +61,52 @@ export class EntityFactory {
             path: [],
             debuffs: [],
             inventory: [],
-            isNPC: true
+            isNPC: true,
+            isWorker: true,
+            role: 'CIVILIAN'
+        });
+    }
+
+    static createGuard(x: number, y: number, id: string) {
+        const variant = AXEMAN_VARIANTS[Math.floor(Math.random() * AXEMAN_VARIANTS.length)];
+        ecs.add({
+            id,
+            name: `侍卫 ${id.split('-')[1]}`,
+            position: { x, y },
+            speed: 1.1, // Slightly faster
+            appearance: {
+                sprite: variant,
+                animation: 'idle',
+                direction: 'down'
+            },
+            attributes: {
+                might: 15, // Stronger
+                magic: 5,
+                will: 10,
+                health: { current: 150, max: 150 },
+                sanity: { current: 100, max: 100 },
+                stamina: { current: 20, max: 20 },
+                corruption: { current: 0, max: 100 },
+                boredom: { current: 0, max: 100 },
+                satiety: { current: 100, max: 100 }
+            },
+            goap: {
+                goals: ['Patrol', 'MaintainOrder', 'Eat', 'RecoverStamina'],
+                currentGoal: 'Patrol',
+                plan: [],
+                currentActionIndex: 0,
+                blackboard: {
+                    homePosition: { x, y }
+                }
+            },
+            lastMoveTime: Date.now(),
+            stateEnterTime: Date.now(),
+            path: [],
+            debuffs: [],
+            inventory: [],
+            isNPC: true,
+            isGuard: true,
+            role: 'GUARD'
         });
     }
 
