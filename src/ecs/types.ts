@@ -5,26 +5,18 @@ import type { GoapComponent } from './components/GoapComponent';
 
 export interface BaseAttributeComponent {
   attributes: {
-    sanity: {
-      current: number;
-      max: number;
-    };
-    stamina?: {
-        current: number;
-        max: number;
-    };
-    corruption?: {
-        current: number;
-        max: number;
-    };
-    boredom?: {
-        current: number;
-        max: number;
-    };
-    satiety?: {
-        current: number;
-        max: number;
-    };
+    // Stats (Value)
+    might: number;
+    magic: number;
+    will: number;
+
+    // Points (Current/Max)
+    health: { current: number; max: number };
+    sanity: { current: number; max: number };
+    stamina?: { current: number; max: number };
+    corruption?: { current: number; max: number };
+    boredom?: { current: number; max: number };
+    satiety?: { current: number; max: number };
   };
 }
 

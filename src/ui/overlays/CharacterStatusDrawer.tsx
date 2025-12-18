@@ -60,19 +60,44 @@ export const CharacterStatusDrawer: React.FC = () => {
             transform: isOpen ? 'translateY(0)' : 'translateY(-100%)',
             transition: 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             padding: '16px',
             boxSizing: 'border-box',
             zIndex: 1000,
             color: '#fff',
             fontFamily: 'system-ui, "Segoe UI", Roboto, sans-serif, monospace',
             imageRendering: 'pixelated',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.5)'
+            boxShadow: '0 4px 8px rgba(0,0,0,0.5)',
+            gap: '24px'
+        },
+        // Left Column: Avatar & Basic Info
+        leftColumn: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '120px',
+            flexShrink: 0
+        },
+        nameTitle: {
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: '#fff',
+            marginBottom: '4px',
+            textAlign: 'center',
+            width: '100%',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+        },
+        titleText: {
+            fontSize: '12px',
+            color: '#aaa',
+            fontStyle: 'italic',
+            marginBottom: '4px'
         },
         portraitContainer: {
-            width: '120px',
-            height: '120px',
-            marginRight: '24px',
+            width: '100px',
+            height: '100px',
             backgroundColor: '#000',
             border: '2px solid #6d6d8d',
             borderRadius: '4px',
@@ -80,62 +105,76 @@ export const CharacterStatusDrawer: React.FC = () => {
             overflow: 'hidden',
             position: 'relative',
             boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
-            imageRendering: 'pixelated'
+            imageRendering: 'pixelated',
+            marginBottom: '4px'
         },
-        statsContainer: {
+        actionText: {
+            fontSize: '12px',
+            color: '#ffd700',
+            textAlign: 'center',
+            marginTop: '4px'
+        },
+
+        // Middle Column: Stats (Value)
+        middleColumn: {
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
-            gap: '6px'
+            gap: '8px',
+            width: '120px',
+            flexShrink: 0,
+            paddingTop: '24px' // Align visually with avatar somewhat
         },
-        statRow: {
+        statValueRow: {
             fontSize: '14px',
+            color: '#ddd',
+            display: 'flex',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #444',
+            paddingBottom: '2px'
+        },
+
+        // Right Column: Points (Bars)
+        rightColumn: {
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            flexGrow: 1,
+            paddingTop: '4px'
+        },
+        pointRow: {
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            fontSize: '12px'
+        },
+        label: {
+            width: '60px',
+            textAlign: 'right',
+            color: '#aaa'
         },
         barContainer: {
-            width: '150px',
+            flexGrow: 1,
             height: '10px',
             backgroundColor: '#333',
-            border: '2px solid #555',
-            position: 'relative'
+            border: '1px solid #555',
+            position: 'relative',
+            maxWidth: '200px'
         },
         barFill: {
             height: '100%',
             transition: 'width 0.2s'
         },
-        debuffContainer: {
+        valueText: {
+            width: '70px',
+            textAlign: 'left',
+            color: '#fff'
+        },
+
+        // Fallback for non-NPCs
+        simpleContainer: {
             display: 'flex',
-            gap: '6px',
-            minHeight: '24px',
-            alignItems: 'center',
-            marginTop: '-2px',
-            marginBottom: '2px'
-        },
-        debuffItem: {
-             position: 'relative',
-             width: '20px',
-             height: '20px',
-             backgroundColor: 'rgba(0,0,0,0.3)',
-             border: '1px solid #555',
-             borderRadius: '4px',
-        },
-        debuffTimer: {
-            position: 'absolute',
-            bottom: '-6px',
-            right: '-4px',
-            fontSize: '9px',
-            color: '#fff',
-            textShadow: '1px 1px 0 #000',
-            fontWeight: 'bold',
-            zIndex: 2
-        },
-        titleText: {
-            fontSize: '12px',
-            color: '#aaa',
-            marginLeft: '8px',
-            fontStyle: 'italic'
+            flexDirection: 'column',
+            gap: '8px'
         }
     };
 
@@ -146,14 +185,11 @@ export const CharacterStatusDrawer: React.FC = () => {
     const renderHouse = () => {
         const foodCount = entity?.storage?.['food'] || 0;
         return (
-            <div style={styles.statsContainer}>
+            <div style={styles.simpleContainer}>
                 <div style={{ fontSize: '18px', color: '#ffb74d' }}>
                     {entity?.name || 'House'}
                 </div>
-                <div style={styles.statRow}>
-                    <span style={{color: '#aaa'}}>储存 (Storage):</span>
-                </div>
-                <div style={styles.statRow}>
+                <div>
                      <span style={{ fontSize: '16px' }}>🍞 食物 (Food): {foodCount}</span>
                 </div>
             </div>
@@ -165,12 +201,12 @@ export const CharacterStatusDrawer: React.FC = () => {
         const maxStage = entity?.growth?.maxStage ?? 4;
         const isMature = stage >= maxStage;
         return (
-             <div style={styles.statsContainer}>
+             <div style={styles.simpleContainer}>
                  <div style={{ fontSize: '18px', color: '#8d6e63' }}>
                      {entity?.name || 'Wheat Field'}
                  </div>
-                 <div style={styles.statRow}>
-                     <span>生长阶段 (Stage):</span>
+                 <div>
+                     <span>生长阶段 (Stage): </span>
                      <span style={{ color: isMature ? '#4caf50' : '#fff' }}>
                         {stage} / {maxStage} {isMature && '(Mature)'}
                      </span>
@@ -185,60 +221,40 @@ export const CharacterStatusDrawer: React.FC = () => {
         if (entity?.name === '神像') description = '供人膜拜的地方 (Worship Site)';
 
         return (
-             <div style={styles.statsContainer}>
+             <div style={styles.simpleContainer}>
                  <div style={{ fontSize: '18px', color: '#cccccc' }}>
                      {entity?.name || 'Interactive Object'}
                  </div>
-                 <div style={styles.statRow}>
-                    <span style={{fontStyle: 'italic', color: '#888'}}>
+                 <div style={{fontStyle: 'italic', color: '#888'}}>
                         {description}
-                    </span>
                  </div>
-                 {occupantName && (
-                     <div style={styles.statRow}>
-                         <span style={{color: '#aaa'}}>Occupied by:</span>
+                 {occupantName ? (
+                     <div>
+                         <span style={{color: '#aaa'}}>Occupied by: </span>
                          <span style={{color: '#fff'}}>{occupantName}</span>
                      </div>
-                 )}
-                 {!occupantName && (
-                     <div style={styles.statRow}>
-                         <span style={{color: '#4caf50'}}>Available</span>
-                     </div>
+                 ) : (
+                     <div style={{color: '#4caf50'}}>Available</div>
                  )}
              </div>
         );
     };
 
     const renderNPC = () => {
-        const sanity = entity?.attributes?.sanity;
-        const currentSanity = sanity?.current ?? 0;
-        const maxSanity = sanity?.max ?? 100;
-        const sanityPct = Math.max(0, Math.min(100, (currentSanity / maxSanity) * 100));
+        const attrs = entity?.attributes || {} as Partial<NonNullable<Entity['attributes']>>;
+        const {
+            might = 0, magic = 0, will = 0,
+            health, sanity, stamina, corruption, boredom, satiety
+        } = attrs;
 
-        const stamina = entity?.attributes?.stamina;
-        const currentStamina = stamina?.current ?? 0;
-        const maxStamina = stamina?.max ?? 10;
-        const staminaPct = Math.max(0, Math.min(100, (currentStamina / maxStamina) * 100));
+        // Points Normalization
+        const getPct = (current: number = 0, max: number = 100) => Math.max(0, Math.min(100, (current / max) * 100));
 
-        const boredom = entity?.attributes?.boredom;
-        const currentBoredom = boredom?.current ?? 0;
-        const maxBoredom = boredom?.max ?? 100;
-        const boredomPct = Math.max(0, Math.min(100, (currentBoredom / maxBoredom) * 100));
-
-        const satiety = entity?.attributes?.satiety;
-        const currentSatiety = satiety?.current ?? 0;
-        const maxSatiety = satiety?.max ?? 100;
-        const satietyPct = Math.max(0, Math.min(100, (currentSatiety / maxSatiety) * 100));
-
-        const corruption = entity?.attributes?.corruption;
-        const currentCorruption = corruption?.current ?? 0;
-        const maxCorruption = corruption?.max ?? 100;
-        const corruptionPct = Math.max(0, Math.min(100, (currentCorruption / maxCorruption) * 100));
-
-        // Determine Title and Color
-        let title = '';
+        // Determine Title and Color based on Corruption/Sanity
+        let title = 'Worker'; // Default title
         let nameColor = '#ffffff';
-        const isCorrupted = currentSanity <= 0;
+        const isCorrupted = (sanity?.current ?? 0) <= 0;
+        const currentCorruption = corruption?.current ?? 0;
 
         if (isCorrupted) {
             if (currentCorruption >= 100) {
@@ -254,90 +270,84 @@ export const CharacterStatusDrawer: React.FC = () => {
             }
         }
 
-        const currentAction = entity?.goap?.currentActionName;
+        const currentAction = entity?.goap?.currentActionName || 'Idle';
+
+        // Render Helper for Point Bars
+        const renderBar = (label: string, current: number | undefined, max: number | undefined, color: string) => {
+            if (current === undefined || max === undefined) return null;
+            const pct = getPct(current, max);
+            return (
+                <div style={styles.pointRow}>
+                    <span style={{...styles.label, color: color}}>{label}:</span>
+                    <div style={styles.barContainer}>
+                        <div style={{ ...styles.barFill, width: `${pct}%`, backgroundColor: color }} />
+                    </div>
+                    <span style={styles.valueText}>{Math.floor(current)}/{max}</span>
+                </div>
+            );
+        };
 
         return (
-            <div style={styles.statsContainer}>
-                <div style={{ fontSize: '18px', color: nameColor, display: 'flex', alignItems: 'baseline', minWidth: '300px' }}>
-                     {entity?.id || 'Unknown'}
-                     {title && <span style={styles.titleText}>{title}</span>}
-                </div>
+            <>
+                {/* Left Column: Avatar */}
+                <div style={styles.leftColumn}>
+                    <div style={{...styles.nameTitle, color: nameColor}}>{entity?.name || entity?.id || 'Unknown'}</div>
+                    <div style={styles.titleText}>{title}</div>
+                    <div style={styles.portraitContainer}>
+                        {avatarImage && (
+                            <img
+                                src={avatarImage}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                                alt="Target"
+                            />
+                        )}
+                         {/* Debuffs Overlay on Avatar (Optional, or keep in separate row?)
+                             Let's keep them separate or below action text if needed.
+                             For now, let's put debuffs below action text.
+                         */}
+                    </div>
+                    <div style={styles.actionText}>{currentAction}</div>
 
-                {/* Debuffs */}
-                <div style={styles.debuffContainer}>
-                     {entity?.debuffs && entity.debuffs.map((debuff, i) => (
-                        <div key={i} style={styles.debuffItem} title={`${debuff.type} (${Math.ceil(debuff.duration)}s)`}>
-                            <div style={{
-                                width: '100%',
-                                height: '100%',
+                    {/* Debuffs */}
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                         {entity?.debuffs && entity.debuffs.map((debuff, i) => (
+                            <div key={i} title={`${debuff.type} (${Math.ceil(debuff.duration)}s)`} style={{
+                                width: '16px', height: '16px',
                                 backgroundImage: `url(${getDebuffIconUrl(debuff.icon)})`,
-                                backgroundSize: '16px 16px',
-                                backgroundRepeat: 'no-repeat',
-                                backgroundPosition: 'center',
-                                imageRendering: 'pixelated'
+                                backgroundSize: 'contain',
+                                border: '1px solid #555'
                             }} />
-                            <div style={styles.debuffTimer}>{Math.ceil(debuff.duration)}s</div>
-                        </div>
-                     ))}
+                         ))}
+                    </div>
                 </div>
 
-                {!isCorrupted && (
-                    <div style={styles.statRow}>
-                        <span style={{ minWidth: '50px' }}>理智:</span>
-                        <div style={styles.barContainer}>
-                            <div style={{ ...styles.barFill, width: `${sanityPct}%`, backgroundColor: '#4fc3f7' }} />
-                        </div>
-                        <span>{Math.floor(currentSanity)}/{maxSanity}</span>
+                {/* Middle Column: Stats */}
+                <div style={styles.middleColumn}>
+                    <div style={styles.statValueRow}>
+                        <span>武力 (Might)</span>
+                        <span>{might}</span>
                     </div>
-                )}
+                    <div style={styles.statValueRow}>
+                        <span>魔力 (Magic)</span>
+                        <span>{magic}</span>
+                    </div>
+                    <div style={styles.statValueRow}>
+                        <span>意志 (Will)</span>
+                        <span>{will}</span>
+                    </div>
+                </div>
 
-                {stamina && (
-                    <div style={styles.statRow}>
-                        <span style={{ minWidth: '50px' }}>精力:</span>
-                        <div style={styles.barContainer}>
-                            <div style={{ ...styles.barFill, width: `${staminaPct}%`, backgroundColor: '#4caf50' }} />
-                        </div>
-                        <span>{Math.floor(currentStamina)}/{maxStamina}</span>
-                    </div>
-                )}
-
-                {boredom && (
-                    <div style={styles.statRow}>
-                        <span style={{ minWidth: '50px' }}>无聊:</span>
-                        <div style={styles.barContainer}>
-                            <div style={{ ...styles.barFill, width: `${boredomPct}%`, backgroundColor: '#ff9800' }} />
-                        </div>
-                        <span>{Math.floor(currentBoredom)}/{maxBoredom}</span>
-                    </div>
-                )}
-
-                {satiety && (
-                    <div style={styles.statRow}>
-                        <span style={{ minWidth: '50px' }}>饱腹:</span>
-                        <div style={styles.barContainer}>
-                            <div style={{ ...styles.barFill, width: `${satietyPct}%`, backgroundColor: '#ffb74d' }} />
-                        </div>
-                        <span>{Math.floor(currentSatiety)}/{maxSatiety}</span>
-                    </div>
-                )}
-
-                {(currentSanity <= 0 || currentCorruption > 0) && (
-                    <div style={styles.statRow}>
-                        <span style={{ minWidth: '50px', color: '#9d4edd' }}>侵蚀:</span>
-                        <div style={styles.barContainer}>
-                            <div style={{ ...styles.barFill, width: `${corruptionPct}%`, backgroundColor: '#9d4edd' }} />
-                        </div>
-                        <span style={{color: '#9d4edd'}}>{Math.floor(currentCorruption)}/{maxCorruption}</span>
-                    </div>
-                )}
-
-                {currentAction && (
-                    <div style={{ ...styles.statRow, marginTop: '4px', color: '#ffd700' }}>
-                        <span style={{ minWidth: '50px' }}>状态:</span>
-                        <span>{currentAction}</span>
-                    </div>
-                )}
-            </div>
+                {/* Right Column: Points */}
+                <div style={styles.rightColumn}>
+                    {renderBar('生命 (Health)', health?.current, health?.max, '#f44336')}
+                    {renderBar('理智 (Sanity)', sanity?.current, sanity?.max, '#4fc3f7')}
+                    {renderBar('腐蚀 (Corr)', corruption?.current, corruption?.max, '#9d4edd')}
+                    {renderBar('饱腹 (Food)', satiety?.current, satiety?.max, '#ffb74d')}
+                    {renderBar('精力 (Energy)', stamina?.current, stamina?.max, '#4caf50')}
+                    {/* Keep Boredom if needed, but maybe lower priority or hidden? keeping for debug/completeness */}
+                    {renderBar('无聊 (Bored)', boredom?.current, boredom?.max, '#ff9800')}
+                </div>
+            </>
         );
     };
 
@@ -355,16 +365,25 @@ export const CharacterStatusDrawer: React.FC = () => {
 
     return (
         <div style={styles.drawer}>
-            <div style={styles.portraitContainer}>
-                {avatarImage && (
-                    <img
-                        src={avatarImage}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-                        alt="Target Monitor"
-                    />
-                )}
-            </div>
-            {mainContent}
+            {/* If it's not an NPC, we might want a different layout, or just stuff it in the middle */}
+            {(!entity?.isNPC) ? (
+                <>
+                     <div style={styles.leftColumn}>
+                        <div style={styles.portraitContainer}>
+                            {avatarImage && (
+                                <img
+                                    src={avatarImage}
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                                    alt="Target"
+                                />
+                            )}
+                        </div>
+                     </div>
+                     {mainContent}
+                </>
+            ) : (
+                mainContent
+            )}
         </div>
     );
 };
