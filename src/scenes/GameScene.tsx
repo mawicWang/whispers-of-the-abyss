@@ -197,6 +197,7 @@ export const GameScene: React.FC = () => {
 
     // Manual Hit Testing Logic
     const dragStartRef = useRef<{x: number, y: number} | null>(null);
+    const lastSelectionClickRef = useRef<{ time: number; x: number; y: number } | null>(null);
 
     const handlePointerDown = (e: any) => {
         dragStartRef.current = { x: e.global.x, y: e.global.y };
@@ -225,10 +226,8 @@ export const GameScene: React.FC = () => {
             castWhisper(wx, wy);
         } else {
             // Find Entity
-            let foundId: string | null = null;
-            // Check distance to entity centers
-            // Hit radius approx 24px
             const HIT_RADIUS_SQ = 24 * 24;
+            const candidates: Entity[] = [];
 
             for(const ent of ecs.entities) {
                 // Select NPCs and Objects (Houses, Wheat, etc.)
@@ -238,12 +237,45 @@ export const GameScene: React.FC = () => {
                     const dx = wx - cx;
                     const dy = wy - cy;
                     if (dx*dx + dy*dy < HIT_RADIUS_SQ) {
-                        foundId = ent.id || null;
-                        break; // Pick first
+                        candidates.push(ent);
                     }
                 }
             }
-            setSelectedEntity(foundId);
+
+            if (candidates.length === 0) {
+                setSelectedEntity(null);
+                lastSelectionClickRef.current = null;
+                return;
+            }
+
+            // Sort candidates to ensure consistent cycling order (e.g. by Render Order/Y then ID)
+            candidates.sort((a, b) => {
+                const ay = a.position?.y ?? 0;
+                const by = b.position?.y ?? 0;
+                if (Math.abs(ay - by) > 1) return ay - by;
+                return (a.id || '').localeCompare(b.id || '');
+            });
+
+            const now = Date.now();
+            let nextId = candidates[0].id || null;
+
+            if (lastSelectionClickRef.current) {
+                const last = lastSelectionClickRef.current;
+                const timeDiff = now - last.time;
+                const distToLast = Math.sqrt(Math.pow(wx - last.x, 2) + Math.pow(wy - last.y, 2));
+
+                if (timeDiff < 1000 && distToLast < 16) {
+                    // Cycle through candidates
+                    const currentIdx = candidates.findIndex(c => c.id === selectedEntityId);
+                    if (currentIdx !== -1) {
+                        const nextIdx = (currentIdx + 1) % candidates.length;
+                        nextId = candidates[nextIdx].id || null;
+                    }
+                }
+            }
+
+            setSelectedEntity(nextId);
+            lastSelectionClickRef.current = { time: now, x: wx, y: wy };
         }
     };
 
