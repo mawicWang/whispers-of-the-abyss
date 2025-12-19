@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { AssetLoader } from '../utils/AssetLoader';
+import { Viewport } from 'pixi-viewport';
 import { Texture, BlurFilter, TextStyle, Rectangle, Assets, Container, Sprite, Graphics, RenderTexture } from 'pixi.js';
 import { OutlineFilter } from 'pixi-filters';
 import { FollowerFilter } from '../utils/FollowerFilter';
@@ -104,6 +105,13 @@ export const GameScene: React.FC = () => {
     const effectIdCounter = useRef(0);
     const textIdCounter = useRef(0);
     const entityRefs = useRef<Record<string, Container | Sprite | Graphics>>({});
+    const viewportRef = useRef<Viewport>(null);
+
+    useEffect(() => {
+        if (viewportRef.current) {
+            viewportRef.current.setZoom(2);
+        }
+    }, []);
 
     // Rendering to Texture Setup
     const { app } = useApplication();
@@ -325,7 +333,8 @@ export const GameScene: React.FC = () => {
             }
         }
 
-        for (let i = 0; i < 5; i++) {
+        const houseCount = 8 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < houseCount; i++) {
              const gridX = 2 + Math.floor(Math.random() * (GRID_W - 4));
              const gridY = 2 + Math.floor(Math.random() * (GRID_H - 4));
              const key = `${gridX},${gridY}`;
@@ -579,6 +588,7 @@ export const GameScene: React.FC = () => {
 
     return (
         <PixiViewport
+            ref={viewportRef}
             screenWidth={360}
             screenHeight={640}
             worldWidth={GRID_W * TILE_SIZE}
